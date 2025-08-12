@@ -14,6 +14,7 @@ import { KokoroSynthesizer } from "../services/KokoroSynthesizer";
 import { LocalTTSStorage, SentenceIndexer } from "../services/SentenceIndexer";
 import { EPUBAdapter } from "../adapters/EPUBAdapter";
 import { PDFAdapter } from "../adapters/PDFAdapter";
+import type { TTSLocator } from "../services/TTSController";
 
 interface TTSPlayerProps {
   bookId: string;
@@ -85,36 +86,58 @@ export function TTSPlayer({
 
   const initializeTTS = async () => {
     try {
+      console.log("🎵 Starting TTS initialization...");
       setIsLoading(true);
       setError(null);
 
       // Create core components
+      console.log("🔧 Creating TTS components...");
       synthesizerRef.current = new KokoroSynthesizer();
       storageRef.current = new LocalTTSStorage();
-      indexerRef.current = new SentenceIndexer(storageRef.current);
       ttsControllerRef.current = new TTSController();
 
+      console.log("📖 Creating sentence indexer...");
+      indexerRef.current = new SentenceIndexer(
+        storageRef.current,
+        ttsControllerRef.current
+      );
+
       // Set current book for indexer
+      console.log(`📚 Setting book: ${bookId}`);
       indexerRef.current.setCurrentBook(bookId);
 
       // Create appropriate adapter
+      console.log(`🔌 Creating ${bookType} adapter...`);
       let adapter = null;
       if (bookType === "epub" && epubBook && epubRendition) {
         adapter = new EPUBAdapter(epubBook, epubRendition);
+        console.log("✅ EPUB adapter created");
       } else if (bookType === "pdf" && pdfDocument && pdfContainer) {
         adapter = new PDFAdapter(pdfDocument, pdfContainer);
+        console.log("✅ PDF adapter created");
+      } else {
+        console.error("❌ No valid adapter could be created", {
+          bookType,
+          hasEpubBook: !!epubBook,
+          hasEpubRendition: !!epubRendition,
+          hasPdfDocument: !!pdfDocument,
+          hasPdfContainer: !!pdfContainer,
+        });
       }
 
       if (adapter) {
         adapterRef.current = adapter;
 
         // Set up start-here handler
+        console.log("🎯 Setting up start-here handler...");
         adapter.onStartHere((locator) => {
+          console.log("🎯 Start-Here triggered:", locator);
           handleStartHere(locator);
         });
       }
 
       // Initialize TTS Controller
+      console.log("🎮 Initializing TTS Controller...");
       await ttsControllerRef.current.init({
         synthesizer: synthesizerRef.current,
         storage: storageRef.current,
@@ -126,16 +149,23 @@ export function TTSPlayer({
       });
 
       // Set up event handlers
+      console.log("📡 Setting up event handlers...");
       setupEventHandlers();
 
-      // Set current book
+      // Set current book and load settings
+      console.log("⚙️ Setting book and loading settings...");
       await ttsControllerRef.current.setBook(bookId);
 
+      // Load voices
+      console.log("🗣️ Loading voices...");
+      await loadVoices();
+
+      console.log("✅ TTS initialization complete!");
       setIsInitialized(true);
+      setIsLoading(false);
     } catch (error) {
-      console.error("Failed to initialize TTS:", error);
+      console.error("❌ TTS initialization failed:", error);
       setError("Failed to initialize text-to-speech system");
-    } finally {
       setIsLoading(false);
     }
   };
@@ -212,19 +242,28 @@ export function TTSPlayer({
     }
   };
 
-  const handleStartHere = async (locator: any) => {
-    if (!ttsControllerRef.current) return;
+  const handleStartHere = async (locator: TTSLocator) => {
+    console.log("🎯 handleStartHere called with DETAILED locator:", {
+      type: locator.type,
+      sentenceId: locator.sentenceId,
+      page: locator.page,
+      char: locator.char,
+      href: locator.href,
+      cfi: locator.cfi,
+    });
+
+    if (!ttsControllerRef.current) {
+      console.error("❌ TTS Controller not available");
+      return;
+    }
 
     try {
-      setIsLoading(true);
-      setError(null);
-
+      console.log("▶️ Starting playback from locator...");
       await ttsControllerRef.current.playFromLocator(locator);
+      console.log("✅ Playback started successfully");
     } catch (error) {
-      console.error("Failed to start playback:", error);
-      setError("Failed to start playback from selected location");
-    } finally {
-      setIsLoading(false);
+      console.error("❌ Failed to start playbook:", error);
+      setError("Failed to start text-to-speech");
     }
   };
 

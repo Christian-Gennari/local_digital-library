@@ -26,9 +26,11 @@ export class SentenceIndexer implements TTSSentenceIndex {
   protected indexCache = new Map<string, SentenceIndexData>();
   private worker: Worker | null = null;
   private currentBookId: string | null = null;
+  private ttsController: any = null; // Reference to TTS controller for adapter access
 
-  constructor(storage: any) {
+  constructor(storage: any, ttsController?: any) {
     this.storage = storage;
+    this.ttsController = ttsController;
     this.initializeWorker();
   }
 
@@ -252,18 +254,79 @@ export class SentenceIndexer implements TTSSentenceIndex {
   }
 
   async getSentencesFromLocator(locator: TTSLocator): Promise<TTSSentence[]> {
+    console.log("📍 getSentencesFromLocator called with:", {
+      type: locator.type,
+      page: locator.page,
+      char: locator.char,
+      href: locator.href,
+    });
+
     if (locator.type === "epub" && locator.href) {
       const indexData = this.indexCache.get(this.currentBookId || "current");
       const chapter = indexData?.epub?.spine[locator.href];
-      return chapter?.sentences || [];
+      const sentences = chapter?.sentences || [];
+      console.log("📖 EPUB sentences found:", sentences.length);
+      return sentences;
     }
 
     if (locator.type === "pdf" && locator.page) {
       const indexData = this.indexCache.get(this.currentBookId || "current");
       const page = indexData?.pdf?.pages[String(locator.page)];
-      return page?.sentences || [];
+      const sentences = page?.sentences || [];
+
+      console.log("📄 PDF sentences found:", {
+        pageKey: String(locator.page),
+        totalSentences: sentences.length,
+        clickedChar: locator.char,
+        firstFewSentences: sentences.slice(0, 3).map((s) => ({
+          id: s.id,
+          charStart: s.char_start,
+          charEnd: s.char_end,
+          text: s.text.substring(0, 50) + "...",
+        })),
+      });
+
+      // If we have a specific character position, try to find the sentence that contains it
+      if (locator.char !== undefined && locator.char > 0) {
+        const targetSentence = sentences.find(
+          (s) => s.char_start <= locator.char! && s.char_end >= locator.char!
+        );
+
+        if (targetSentence) {
+          console.log(
+            "🎯 Found target sentence for character",
+            locator.char,
+            ":",
+            {
+              id: targetSentence.id,
+              charStart: targetSentence.char_start,
+              charEnd: targetSentence.char_end,
+              text: targetSentence.text.substring(0, 100) + "...",
+            }
+          );
+
+          // Return sentences starting from the target sentence
+          const startIndex = sentences.indexOf(targetSentence);
+          const result = sentences.slice(startIndex);
+          console.log(
+            "📋 Returning",
+            result.length,
+            "sentences starting from target"
+          );
+          return result;
+        } else {
+          console.warn(
+            "⚠️ No sentence found containing character",
+            locator.char,
+            "- falling back to first sentence"
+          );
+        }
+      }
+
+      return sentences;
     }
 
+    console.log("❌ No sentences found for locator");
     return [];
   }
 
@@ -308,19 +371,15 @@ export class SentenceIndexer implements TTSSentenceIndex {
     let indexData = this.indexCache.get(bookId);
     if (!indexData) {
       const loadedData = await this.storage.loadSentences(bookId);
-      indexData =
-        loadedData !== undefined && loadedData !== null
-          ? loadedData
-          : ({ version: 1 } as SentenceIndexData);
-      // Ensure indexData is always SentenceIndexData, never undefined
-      this.indexCache.set(bookId, indexData as SentenceIndexData);
+      indexData = (loadedData ?? { version: 1 }) as SentenceIndexData;
+      this.indexCache.set(bookId, indexData);
     }
 
     // Set as current book
     this.currentBookId = bookId;
 
     // Type assertion to ensure indexData is never undefined
-    const safeIndexData: SentenceIndexData = indexData!;
+    const safeIndexData: SentenceIndexData = indexData;
 
     if (locator.type === "epub" && locator.href) {
       await this.buildEPUBIndex(bookId, locator.href, safeIndexData);
@@ -428,23 +487,54 @@ export class SentenceIndexer implements TTSSentenceIndex {
     });
   }
 
-  // Placeholder methods - you'll need to integrate with your existing EPUB/PDF systems
+  // UPDATED: Now integrates with actual adapters
   protected async getEPUBContent(
     href: string
   ): Promise<{ html: string } | null> {
-    // TODO: Integrate with your EPUB.js renderer to get chapter HTML
+    // Get the EPUB adapter from the current TTS system
+    const ttsController = this.getTTSController();
+    const epubAdapter = ttsController?.adapters?.get("epub") as any;
+
+    if (epubAdapter && typeof epubAdapter.getChapterContent === "function") {
+      return await epubAdapter.getChapterContent(href);
+    }
+
+    console.warn("EPUB adapter not available for content extraction");
     return null;
   }
 
   protected async getPDFPageText(page: number): Promise<string | null> {
-    // TODO: Integrate with your PDF.js renderer to get page text
+    // Get the PDF adapter from the current TTS system
+    const ttsController = this.getTTSController();
+    const pdfAdapter = ttsController?.adapters?.get("pdf") as any;
+
+    if (pdfAdapter && typeof pdfAdapter.getPageText === "function") {
+      return await pdfAdapter.getPageText(page);
+    }
+
+    console.warn("PDF adapter not available for text extraction");
     return null;
   }
 
   protected computeCFIForSentence(href: string, charOffset: number): string {
-    // TODO: Implement CFI computation based on character offset
-    // This requires integration with your EPUB.js setup
+    // Get the EPUB adapter for CFI computation
+    const ttsController = this.getTTSController();
+    const epubAdapter = ttsController?.adapters?.get("epub") as any;
+
+    if (
+      epubAdapter &&
+      typeof epubAdapter.computeCFIForSentence === "function"
+    ) {
+      return epubAdapter.computeCFIForSentence(href, charOffset);
+    }
+
+    // Fallback CFI
     return `epubcfi(/6/14[${href}]!/4/2/2[text-${charOffset}])`;
+  }
+
+  // Helper method to get TTS controller reference
+  private getTTSController(): any {
+    return this.ttsController;
   }
 
   destroy() {

@@ -202,6 +202,21 @@ export class TTSController extends EventEmitter {
     const sentence = await this.sentenceIndex?.getSentence(sentenceId);
     if (!sentence) return;
 
+    // CRITICAL FIX: Ensure AudioContext exists
+    if (!this.audioContext) {
+      console.warn("❌ AudioContext is null, recreating...");
+      this.audioContext = new (window.AudioContext ||
+        (window as any).webkitAudioContext)();
+    }
+
+    // Resume AudioContext if suspended
+    if (this.audioContext.state === "suspended") {
+      console.log("🔊 Resuming suspended AudioContext");
+      await this.audioContext.resume();
+    }
+
+    console.log("🎵 AudioContext state:", this.audioContext.state);
+
     // Get or create audio buffer
     let audioBuffer = this.audioCache.get(sentenceId);
     if (!audioBuffer) {
@@ -209,9 +224,16 @@ export class TTSController extends EventEmitter {
         sentence.text,
         this.settings
       );
-      audioBuffer = await this.audioContext!.decodeAudioData(
-        arrayBuffer.slice(0)
-      );
+
+      try {
+        audioBuffer = await this.audioContext.decodeAudioData(
+          arrayBuffer.slice(0)
+        );
+        console.log("✅ Audio decoded successfully");
+      } catch (error) {
+        console.error("❌ Failed to decode audio:", error);
+        return;
+      }
 
       // Cache management
       if (this.audioCache.size >= this.maxCacheSize) {
@@ -224,9 +246,9 @@ export class TTSController extends EventEmitter {
     }
 
     // Create and configure source
-    this.currentSource = this.audioContext!.createBufferSource();
+    this.currentSource = this.audioContext.createBufferSource();
     this.currentSource.buffer = audioBuffer;
-    this.currentSource.connect(this.audioContext!.destination);
+    this.currentSource.connect(this.audioContext.destination);
 
     // Set up event handlers
     this.currentSource.onended = () => {
@@ -236,7 +258,7 @@ export class TTSController extends EventEmitter {
     };
 
     // Start playback
-    const startTime = this.audioContext!.currentTime;
+    const startTime = this.audioContext.currentTime;
     this.startedAtCtxTime = startTime;
     this.currentSource.start(startTime, this.offsetInSentence);
 
@@ -297,7 +319,14 @@ export class TTSController extends EventEmitter {
         nextSentence.text,
         this.settings
       );
-      const audioBuffer = await this.audioContext!.decodeAudioData(
+
+      // CRITICAL FIX: Check AudioContext before using it
+      if (!this.audioContext) {
+        console.warn("❌ AudioContext is null in preload, skipping...");
+        return;
+      }
+
+      const audioBuffer = await this.audioContext.decodeAudioData(
         arrayBuffer.slice(0)
       );
 

@@ -14,6 +14,7 @@ import { useStore } from "../../../store";
 import { PdfHighlighting } from "./PdfHighlighting";
 import TableOfContents, { TocItem } from "./ToCForPdfReader";
 import { PlusIcon, MinusIcon } from "@heroicons/react/24/outline";
+import { TTSPlayer } from "../../TTSPlayer";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
@@ -46,6 +47,9 @@ const PdfReader = forwardRef<PdfReaderRef, PdfReaderProps>(
     const [isTocOpen, setIsTocOpen] = useState(false);
     const [openChapters, setOpenChapters] = useState<Set<string>>(new Set());
     const [currentChapterId, setCurrentChapterId] = useState<string>("");
+
+    const [showTTS, setShowTTS] = useState(false);
+    const [pdfDocument, setPdfDocument] = useState<any>(null);
 
     // Layout measurement for responsive fit-to-width on mobile
     const containerRef = useRef<HTMLDivElement>(null);
@@ -189,6 +193,7 @@ const PdfReader = forwardRef<PdfReaderRef, PdfReaderProps>(
 
     const onDocumentLoadSuccess = useCallback(
       async (pdf: any) => {
+        setPdfDocument(pdf);
         setNumPages(pdf.numPages);
         const initialPage = currentBook.metadata.lastReadPosition || 1;
         setCurrentPage(initialPage);
@@ -348,14 +353,74 @@ const PdfReader = forwardRef<PdfReaderRef, PdfReaderProps>(
               strokeWidth={1.5}
               stroke="currentColor"
             >
+              {/* SVG path */}
+            </svg>
+          </button>
+        )}
+
+        {/* 🔥 ADD THE TTS COMPONENTS RIGHT HERE 🔥 */}
+        {/* TTS Player - only show when enabled */}
+        {showTTS && pdfDocument && containerRef.current && (
+          <div className="fixed top-4 right-4 z-50">
+            <TTSPlayer
+              bookId={currentBook.id}
+              bookType="pdf"
+              pdfDocument={pdfDocument}
+              pdfContainer={containerRef.current}
+              className="bg-white shadow-lg rounded-lg border border-slate-200"
+              compact={true}
+            />
+          </div>
+        )}
+
+        {/* TTS Toggle Button */}
+        {!showTTS && (
+          <button
+            onClick={() => setShowTTS(true)}
+            className="fixed z-30 right-3 bottom-[calc(120px+env(safe-area-inset-bottom))] md:right-20 md:bottom-auto md:top-1/3 h-11 w-11 md:h-12 md:w-12 flex items-center justify-center rounded-full bg-blue-600 shadow-lg text-white hover:bg-blue-700 hover:shadow-xl transition-all duration-200 cursor-pointer"
+            title="Text-to-Speech"
+            aria-label="Text-to-Speech"
+          >
+            <svg
+              className="h-6 w-6"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={1.5}
+              stroke="currentColor"
+            >
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0ZM3.75 12h.007v.008H3.75V12Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm-.375 5.25h.007v.008H3.75v-.008Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z"
+                d="M19.114 5.636a9 9 0 0 1 0 12.728M16.463 8.288a5.25 5.25 0 0 1 0 7.424M6.75 8.25l4.72-4.72a.75.75 0 0 1 1.28.53v15.88a.75.75 0 0 1-1.28.53l-4.72-4.72H4.5c-.69 0-1.25-.56-1.25-1.25v-6.5c0-.69.56-1.25 1.25-1.25h2.25Z"
               />
             </svg>
           </button>
         )}
+
+        {/* Close TTS button when TTS is open */}
+        {showTTS && (
+          <button
+            onClick={() => setShowTTS(false)}
+            className="fixed z-50 top-4 right-[calc(100%+1rem)] md:right-4 md:top-16 h-8 w-8 flex items-center justify-center rounded-full bg-slate-600 text-white hover:bg-slate-700 transition-all cursor-pointer"
+            title="Close TTS"
+            aria-label="Close TTS"
+          >
+            <svg
+              className="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+        )}
+        {/* 🔥 END OF TTS COMPONENTS 🔥 */}
 
         <TableOfContents
           tableOfContents={tableOfContents}

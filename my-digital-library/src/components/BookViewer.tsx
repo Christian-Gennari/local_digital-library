@@ -10,7 +10,6 @@ import "react-pdf/dist/Page/TextLayer.css";
 import PdfReader, { PdfReaderRef } from "./readers/PDF/PdfReader";
 import EpubReader, { EpubReaderRef } from "./readers/EPUB/EpubReader";
 import AudioPlayer, { AudioPlayerRef } from "./readers/AudioPlayer";
-import { TTSPlayer, TTSPlayerRef } from "./TTSPlayer";
 
 export function BookViewer() {
   const { currentBook } = useStore();
@@ -35,7 +34,6 @@ function BookViewerContent() {
   const pdfReaderRef = useRef<PdfReaderRef>(null);
   const epubReaderRef = useRef<EpubReaderRef>(null);
   const audioPlayerRef = useRef<AudioPlayerRef>(null);
-  const ttsPlayerRef = useRef<TTSPlayerRef>(null);
   const [rendition, setRendition] = useState<any>(null);
 
   if (!currentBook) return null;
@@ -122,27 +120,13 @@ function BookViewerContent() {
         );
       case "epub":
         return (
-          <>
-            <EpubReader
-              ref={epubReaderRef}
-              epubUrl={currentBook.url!}
-              isNotesOpen={isNotesOpen}
-              currentBook={currentBook}
-              onRenditionReady={setRendition}
-            />
-            {rendition && (
-              <div className="fixed bottom-4 right-4 w-80 z-50">
-                <TTSPlayer
-                  ref={ttsPlayerRef}
-                  book={currentBook}
-                  rendition={rendition}
-                  startCfi={
-                    (currentBook.metadata.lastReadPosition as string) || ""
-                  }
-                />
-              </div>
-            )}
-          </>
+          <EpubReader
+            ref={epubReaderRef}
+            epubUrl={currentBook.url!}
+            isNotesOpen={isNotesOpen}
+            currentBook={currentBook}
+            onRenditionReady={setRendition}
+          />
         );
       case "audio":
         return (

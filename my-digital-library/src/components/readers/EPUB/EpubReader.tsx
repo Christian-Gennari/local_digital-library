@@ -30,6 +30,7 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
 } from "@heroicons/react/24/outline";
+import { TTSPlayer } from "../../TTSPlayer"; // Adjust path as needed
 
 export interface EpubReaderRef {
   displayCFI: (cfi: string) => void;
@@ -66,6 +67,8 @@ const EpubReader = forwardRef<EpubReaderRef, EpubReaderProps>(
     const [isTocOpen, setIsTocOpen] = useState(false);
     const [openChapters, setOpenChapters] = useState<Set<string>>(new Set());
     const [currentChapterId, setCurrentChapterId] = useState<string>("");
+
+    const [showTTS, setShowTTS] = useState(false);
 
     // Touch swipe (mobile)
     const touchStartX = useRef<number | null>(null);
@@ -675,6 +678,70 @@ const EpubReader = forwardRef<EpubReaderRef, EpubReaderProps>(
           visible={highlightsVisible}
           onRegisterService={handleRegisterHighlightService}
         />
+
+        {/* 🔥 ADD THE TTS COMPONENTS RIGHT HERE 🔥 */}
+        {/* TTS Player - only show when enabled */}
+        {showTTS && book && rendition && (
+          <div className="fixed top-4 right-4 z-50">
+            <TTSPlayer
+              bookId={currentBook.id}
+              bookType="epub"
+              epubBook={book}
+              epubRendition={rendition}
+              className="bg-white shadow-lg rounded-lg border border-slate-200"
+              compact={true}
+            />
+          </div>
+        )}
+
+        {/* TTS Toggle Button - position it near your ToC button */}
+        {!showTTS && (
+          <button
+            onClick={() => setShowTTS(true)}
+            className="fixed z-40 right-3 bottom-[calc(120px+env(safe-area-inset-bottom))] md:right-20 md:bottom-auto md:top-1/2 md:-translate-y-1/2 h-11 w-11 md:h-12 md:w-12 flex items-center justify-center rounded-full bg-blue-600 shadow-lg text-white hover:bg-blue-700 hover:shadow-xl transition-all cursor-pointer"
+            title="Text-to-Speech"
+            aria-label="Text-to-Speech"
+          >
+            <svg
+              className="h-6 w-6"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={1.5}
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M19.114 5.636a9 9 0 0 1 0 12.728M16.463 8.288a5.25 5.25 0 0 1 0 7.424M6.75 8.25l4.72-4.72a.75.75 0 0 1 1.28.53v15.88a.75.75 0 0 1-1.28.53l-4.72-4.72H4.5c-.69 0-1.25-.56-1.25-1.25v-6.5c0-.69.56-1.25 1.25-1.25h2.25Z"
+              />
+            </svg>
+          </button>
+        )}
+
+        {/* Close TTS button when TTS is open */}
+        {showTTS && (
+          <button
+            onClick={() => setShowTTS(false)}
+            className="fixed z-50 top-4 right-[calc(100%+1rem)] md:right-4 md:top-16 h-8 w-8 flex items-center justify-center rounded-full bg-slate-600 text-white hover:bg-slate-700 transition-all cursor-pointer"
+            title="Close TTS"
+            aria-label="Close TTS"
+          >
+            <svg
+              className="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+        )}
+        {/* 🔥 END OF TTS COMPONENTS 🔥 */}
 
         {/* ToC FAB — bottom-right on mobile, mid-left on desktop */}
         {!isTocOpen && (

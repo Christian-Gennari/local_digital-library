@@ -6,31 +6,61 @@ export class KokoroSynthesizer implements TTSSynthesizer {
   private readonly maxCacheSize = 100;
 
   async synthesize(text: string, options?: TTSOptions): Promise<ArrayBuffer> {
+    console.log("🔊 KokoroSynthesizer.synthesize called:", {
+      text: text.substring(0, 100) + (text.length > 100 ? "..." : ""),
+      voice: options?.voice,
+      rate: options?.rate,
+      textLength: text.length,
+    });
+
     const cacheKey = this.getCacheKey(text, options);
 
     // Check cache first
     if (this.cache.has(cacheKey)) {
+      console.log("💾 Found in cache, returning cached audio");
       return this.cache.get(cacheKey)!;
     }
 
     try {
+      console.log("🌐 Making request to /api/tts/synthesize-buffer...");
+
+      const requestBody = {
+        text,
+        voice: options?.voice || "af_heart",
+        speed: options?.rate || 1.0,
+      };
+      console.log("📤 Request body:", requestBody);
+
       const response = await fetch("/api/tts/synthesize-buffer", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          text,
-          voice: options?.voice || "af_heart",
-          speed: options?.rate || 1.0,
-        }),
+        body: JSON.stringify(requestBody),
+      });
+
+      console.log("📡 Response received:", {
+        ok: response.ok,
+        status: response.status,
+        statusText: response.statusText,
+        headers: Object.fromEntries(response.headers.entries()),
       });
 
       if (!response.ok) {
-        throw new Error(`Synthesis failed: ${response.statusText}`);
+        const errorText = await response.text();
+        console.error("❌ Server error response:", errorText);
+        throw new Error(
+          `Synthesis failed: ${response.statusText} - ${errorText}`
+        );
       }
 
+      console.log("⬇️ Getting array buffer...");
       const arrayBuffer = await response.arrayBuffer();
+
+      console.log("🎵 Audio buffer received:", {
+        size: arrayBuffer.byteLength,
+        sizeKB: Math.round(arrayBuffer.byteLength / 1024),
+      });
 
       // Cache the result with LRU eviction
       if (this.cache.size >= this.maxCacheSize) {
@@ -41,9 +71,10 @@ export class KokoroSynthesizer implements TTSSynthesizer {
       }
       this.cache.set(cacheKey, arrayBuffer);
 
+      console.log("✅ Synthesis complete, returning audio buffer");
       return arrayBuffer;
     } catch (error) {
-      console.error("Synthesis error:", error);
+      console.error("❌ Synthesis error:", error);
       throw error;
     }
   }
