@@ -31,8 +31,8 @@ function useMediaQuery(query: string) {
 
 export function LibraryLayout() {
   const { selectedBook, updateBookMetadata } = useStore();
-  const [leftOpen, setLeftOpen] = useState(false);
-  const [rightOpen, setRightOpen] = useState(false);
+  const [leftOpen, setLeftOpen] = useState(false); // Changed from true to false
+  const [rightOpen, setRightOpen] = useState(false); // Changed from true to false
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCollection, setSelectedCollection] = useState<string | null>(
     null
@@ -43,8 +43,22 @@ export function LibraryLayout() {
     readingStatus: "all",
   });
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [hasMounted, setHasMounted] = useState(false);
 
   const isMobile = useMediaQuery("(max-width: 768px)");
+
+  // Set mounted flag after initial render
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
+
+  // Auto-close/open appropriate panes on mobile when a book is selected
+  useEffect(() => {
+    if (isMobile && selectedBook) {
+      setRightOpen(true);
+      setLeftOpen(false);
+    }
+  }, [selectedBook, isMobile]);
 
   // Fetch missing cover by ISBN (keeps your current behavior)
   useEffect(() => {
@@ -151,7 +165,7 @@ export function LibraryLayout() {
         </aside>
       </div>
 
-      {/* LEFT DRAWER (mobile) */}
+      {/* LEFT DRAWER (mobile) - Updated with conditional transitions */}
       <div
         className={`md:hidden fixed inset-0 z-50 ${
           leftOpen ? "" : "pointer-events-none"
@@ -161,15 +175,20 @@ export function LibraryLayout() {
         {/* Backdrop */}
         <div
           onClick={() => setLeftOpen(false)}
-          className={`absolute inset-0 bg-black/40 transition-opacity ${
-            leftOpen ? "opacity-100" : "opacity-0"
-          }`}
+          className={`absolute inset-0 bg-black/40 ${
+            hasMounted ? "transition-opacity" : ""
+          } ${leftOpen ? "opacity-100" : "opacity-0"}`}
         />
         {/* Panel */}
         <div
-          className={`absolute inset-y-0 left-0 w-[82%] max-w-[22rem] bg-white border-r border-slate-200 shadow-xl pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] transition-transform duration-300 ${
-            leftOpen ? "translate-x-0" : "-translate-x-full"
-          }`}
+          className={`absolute inset-y-0 left-0 w-[82%] max-w-[22rem] bg-white border-r border-slate-200 shadow-xl pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] ${
+            hasMounted ? "transition-transform duration-300" : ""
+          } ${leftOpen ? "translate-x-0" : "-translate-x-full"}`}
+          style={{
+            // Ensure it starts hidden even without transition
+            transform:
+              !hasMounted && !leftOpen ? "translateX(-100%)" : undefined,
+          }}
           role="dialog"
           aria-label="Collections"
         >
@@ -197,7 +216,7 @@ export function LibraryLayout() {
         </div>
       </div>
 
-      {/* RIGHT DRAWER (mobile) */}
+      {/* RIGHT DRAWER (mobile) - Updated with conditional transitions */}
       <div
         className={`md:hidden fixed inset-0 z-50 ${
           rightOpen ? "" : "pointer-events-none"
@@ -206,14 +225,19 @@ export function LibraryLayout() {
       >
         <div
           onClick={() => setRightOpen(false)}
-          className={`absolute inset-0 bg-black/40 transition-opacity ${
-            rightOpen ? "opacity-100" : "opacity-0"
-          }`}
+          className={`absolute inset-0 bg-black/40 ${
+            hasMounted ? "transition-opacity" : ""
+          } ${rightOpen ? "opacity-100" : "opacity-0"}`}
         />
         <div
-          className={`absolute inset-y-0 right-0 w-[86%] max-w-[24rem] bg-white border-l border-slate-200 shadow-xl pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] transition-transform duration-300 ${
-            rightOpen ? "translate-x-0" : "translate-x-full"
-          }`}
+          className={`absolute inset-y-0 right-0 w-[86%] max-w-[24rem] bg-white border-l border-slate-200 shadow-xl pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] ${
+            hasMounted ? "transition-transform duration-300" : ""
+          } ${rightOpen ? "translate-x-0" : "translate-x-full"}`}
+          style={{
+            // Ensure it starts hidden even without transition
+            transform:
+              !hasMounted && !rightOpen ? "translateX(100%)" : undefined,
+          }}
           role="dialog"
           aria-label="Details"
         >

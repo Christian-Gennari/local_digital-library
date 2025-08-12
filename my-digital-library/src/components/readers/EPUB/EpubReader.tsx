@@ -304,9 +304,16 @@ const EpubReader = forwardRef<EpubReaderRef, EpubReaderProps>(
           body: {
             margin: "0 auto",
             padding: "0 1rem",
-            maxWidth: "min(720px, 92vw)",
+            maxWidth: "min(720px, 92vw)", // Keep this as-is for mobile
             lineHeight: "1.65",
             color: "#0f172a",
+          },
+          // Add desktop-specific padding
+          "@media (min-width: 768px)": {
+            body: {
+              padding: "2rem 2rem", // More generous padding on desktop
+              maxWidth: "800px", // Fixed width on desktop for consistency
+            },
           },
           p: {
             margin: "0 0 1rem 0",
@@ -782,9 +789,8 @@ const EpubReader = forwardRef<EpubReaderRef, EpubReaderProps>(
             {/* Reading area shell keeps the content centered and above toolbar */}
             <div
               ref={viewerShellRef}
-              className="flex-1 overflow-auto grid place-items-center p-3 md:p-4 min-h-0"
+              className="flex-1 overflow-auto grid place-items-center p-3 md:p-8 lg:p-12 min-h-0"
               style={{
-                // ensure nothing is hidden by bottom toolbar on mobile
                 paddingBottom: `max(${
                   TOOLBAR_MOBILE_HEIGHT + 16
                 }px, env(safe-area-inset-bottom))`,
@@ -865,7 +871,8 @@ const EpubReader = forwardRef<EpubReaderRef, EpubReaderProps>(
               <div className="w-full h-full grid place-items-center">
                 <div
                   ref={viewerRef}
-                  className="w-full h-full bg-white rounded md:rounded-none shadow-sm md:shadow-none overflow-hidden"
+                  className="w-full h-full bg-white rounded md:rounded-lg shadow-sm md:shadow-lg overflow-hidden
+               md:max-w-5xl md:max-h-[90vh] md:mx-auto"
                   tabIndex={0}
                   style={{
                     userSelect: "text",
