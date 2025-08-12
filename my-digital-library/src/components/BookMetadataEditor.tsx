@@ -19,6 +19,7 @@ import {
   StarIcon as StarOutlineIcon,
   XMarkIcon,
 } from "@heroicons/react/24/outline";
+import { REMOTE_MODE } from "../store";
 
 interface Props {
   book: Book;
@@ -74,6 +75,20 @@ export function BookMetadataEditor({ book, onClose }: Props) {
   }, [book]);
 
   const getCoverImageSrc = async () => {
+    // Handle REMOTE_MODE
+    if (REMOTE_MODE) {
+      if (metadata.coverFile) {
+        const coverUrl = `/files/${encodeURIComponent(
+          book.id
+        )}/${encodeURIComponent(metadata.coverFile)}`;
+        setCoverPreview(coverUrl);
+        return;
+      }
+      setCoverPreview(metadata.coverUrl || null);
+      return;
+    }
+
+    // Local mode - use FileSystem API
     if (metadata.coverFile) {
       try {
         const coverHandle = await book.folderHandle.getFileHandle(

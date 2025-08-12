@@ -29,6 +29,7 @@ import {
   MicrophoneIcon,
   SpeakerWaveIcon,
 } from "@heroicons/react/24/outline";
+import { REMOTE_MODE } from "../store";
 
 export function BookDetailsSidebar() {
   const { selectedBook, openBook, removeBook } = useStore();
@@ -65,6 +66,20 @@ export function BookDetailsSidebar() {
   const getCoverImageSrc = async () => {
     if (!selectedBook) return;
 
+    // Handle REMOTE_MODE
+    if (REMOTE_MODE) {
+      if (selectedBook.metadata.coverFile) {
+        const coverUrl = `/files/${encodeURIComponent(
+          selectedBook.id
+        )}/${encodeURIComponent(selectedBook.metadata.coverFile)}`;
+        setCoverSrc(coverUrl);
+        return;
+      }
+      setCoverSrc(selectedBook.metadata.coverUrl || null);
+      return;
+    }
+
+    // Local mode - use FileSystem API
     if (selectedBook.metadata.coverFile) {
       try {
         const coverHandle = await selectedBook.folderHandle.getFileHandle(

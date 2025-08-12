@@ -23,6 +23,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { StarIcon } from "@heroicons/react/24/solid";
 import { Squares2X2Icon, Bars3Icon } from "@heroicons/react/24/outline";
+import { REMOTE_MODE } from "../store";
 
 interface BookListProps {
   searchQuery?: string;
@@ -38,13 +39,28 @@ interface BookListProps {
 const coverUrlCache = new Map<string, string>();
 
 // Memoized function to get the cover image source with caching
+// Memoized function to get the cover image source with caching
 const getCoverImageSrc = async (book: Book): Promise<string | null> => {
   // Check the cache first
   if (coverUrlCache.has(book.id)) {
     return coverUrlCache.get(book.id)!;
   }
 
-  // If a local cover file exists, fetch it and cache the URL
+  // Handle REMOTE_MODE - construct URL directly
+  if (REMOTE_MODE) {
+    if (book.metadata.coverFile) {
+      // Construct the URL for the cover file on the server
+      const coverUrl = `/files/${encodeURIComponent(
+        book.id
+      )}/${encodeURIComponent(book.metadata.coverFile)}`;
+      coverUrlCache.set(book.id, coverUrl);
+      return coverUrl;
+    }
+    // Fallback to online URL if no cover file
+    return book.metadata.coverUrl || null;
+  }
+
+  // Local mode - use FileSystem API
   if (book.metadata.coverFile) {
     try {
       const coverHandle = await book.folderHandle.getFileHandle(
