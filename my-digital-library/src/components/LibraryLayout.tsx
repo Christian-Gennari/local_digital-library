@@ -31,8 +31,8 @@ function useMediaQuery(query: string) {
 
 export function LibraryLayout() {
   const { selectedBook, updateBookMetadata } = useStore();
-  const [leftOpen, setLeftOpen] = useState(true);
-  const [rightOpen, setRightOpen] = useState(true);
+  const [leftOpen, setLeftOpen] = useState(false);
+  const [rightOpen, setRightOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCollection, setSelectedCollection] = useState<string | null>(
     null
@@ -45,14 +45,6 @@ export function LibraryLayout() {
   const [showUploadModal, setShowUploadModal] = useState(false);
 
   const isMobile = useMediaQuery("(max-width: 768px)");
-
-  // Auto-close/open appropriate panes on mobile when a book is selected
-  useEffect(() => {
-    if (isMobile && selectedBook) {
-      setRightOpen(true);
-      setLeftOpen(false);
-    }
-  }, [selectedBook, isMobile]);
 
   // Fetch missing cover by ISBN (keeps your current behavior)
   useEffect(() => {
