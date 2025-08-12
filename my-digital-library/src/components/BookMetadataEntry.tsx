@@ -1,7 +1,16 @@
 // src/components/BookMetadataEntry.tsx
 import { useState, useRef, useEffect, useCallback } from "react";
-import { BookMetadata } from "../types";
+import { BookMetadata, ItemType } from "../types";
 import { cleanISBN, fetchBookDataFromISBN } from "../utils/isbn";
+import { fetchArticleDataFromDOI } from "../utils/doi";
+import {
+  getFieldVisibility,
+  getIdentifier,
+  setIdentifier,
+  formatDuration,
+  parseDuration,
+  migrateMetadata,
+} from "../utils/metadataHelpers";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 
 interface Props {
@@ -11,36 +20,94 @@ interface Props {
 }
 
 export function BookMetadataEntry({ fileName, onSave, onSkip }: Props) {
+  // Detect initial item type from filename
+  const getInitialItemType = (filename: string): ItemType => {
+    const ext = filename.toLowerCase();
+    if (ext.match(/\.(mp3|wav|m4a|m4b|aac|flac|ogg)$/)) {
+      return "audiobook";
+    }
+    // Default to book for PDFs and EPUBs (can be changed by user)
+    return "book";
+  };
+
+  const [itemType, setItemType] = useState<ItemType>(
+    getInitialItemType(fileName)
+  );
   const [metadata, setMetadata] = useState<Partial<BookMetadata>>({
     title: fileName.replace(/\.[^/.]+$/, ""),
+    itemType: itemType,
+    identifiers: {},
+    audiobook: itemType === "audiobook" ? {} : undefined,
   });
-  const [isbnLookup, setIsbnLookup] = useState("");
+  const [identifierLookup, setIdentifierLookup] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [manualCoverFile, setManualCoverFile] = useState<File | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [activeTab, setActiveTab] = useState<
-    "basic" | "publication" | "digital" | "user"
+    "basic" | "identifiers" | "publication" | "digital" | "user"
   >("basic");
+
+  // Get field visibility based on item type
+  const fieldVisibility = getFieldVisibility(itemType);
 
   const panelRef = useRef<HTMLDivElement>(null);
 
-  const handleISBNFetch = async () => {
-    if (!isbnLookup.trim()) return;
+  // Update metadata when item type changes
+  useEffect(() => {
+    setMetadata((prev) => ({
+      ...prev,
+      itemType: itemType,
+      audiobook: itemType === "audiobook" ? prev.audiobook || {} : undefined,
+    }));
+  }, [itemType]);
+
+  const handleIdentifierChange = (type: string, value: string) => {
+    setMetadata((prev) => setIdentifier(prev, type as any, value));
+  };
+
+  const handleAudiobookFieldChange = (field: string, value: any) => {
+    setMetadata((prev) => ({
+      ...prev,
+      audiobook: {
+        ...prev.audiobook,
+        [field]: value,
+      },
+    }));
+  };
+
+  const handleIdentifierFetch = async () => {
+    if (!identifierLookup.trim()) return;
 
     setIsLoading(true);
     try {
-      const cleaned = cleanISBN(isbnLookup.trim());
-      const bookData = await fetchBookDataFromISBN(cleaned);
+      let bookData: any = null;
+
+      if (itemType === "article") {
+        bookData = await fetchArticleDataFromDOI(identifierLookup.trim());
+      } else {
+        const cleaned = cleanISBN(identifierLookup.trim());
+        bookData = await fetchBookDataFromISBN(cleaned);
+      }
 
       if (bookData) {
-        setMetadata((prev) => ({ ...prev, ...bookData }));
+        // Migrate the fetched data to new format
+        const migratedData = migrateMetadata(bookData);
+        setMetadata((prev) => ({
+          ...prev,
+          ...migratedData,
+          itemType: itemType,
+        }));
         if (bookData.coverUrl) setCoverPreview(bookData.coverUrl);
       } else {
-        alert("No book found with that ISBN. Please enter manually.");
+        alert(
+          itemType === "article"
+            ? "No article found with that DOI. Please enter manually."
+            : "No book found with that ISBN. Please enter manually."
+        );
       }
     } catch {
-      alert("Error fetching book data. Please try again.");
+      alert("Error fetching data. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -75,11 +142,19 @@ export function BookMetadataEntry({ fileName, onSave, onSkip }: Props) {
       author: metadata.author,
       editors: metadata.editors,
       translators: metadata.translators,
+      itemType: itemType,
       isbn: metadata.isbn,
+      identifiers: metadata.identifiers,
+      audiobook: metadata.audiobook,
       publisher: metadata.publisher,
       publishedDate: metadata.publishedDate,
       placeOfPublication: metadata.placeOfPublication,
       edition: metadata.edition,
+      journalTitle: metadata.journalTitle,
+      volumeNumber: metadata.volumeNumber,
+      issueNumber: metadata.issueNumber,
+      pageRange: metadata.pageRange,
+      articleNumber: metadata.articleNumber,
       series: metadata.series,
       seriesNumber: metadata.seriesNumber,
       volume: metadata.volume,
@@ -162,7 +237,7 @@ export function BookMetadataEntry({ fileName, onSave, onSkip }: Props) {
               Add Book Metadata
             </h2>
             <p className="text-sm text-gray-600 mt-1 truncate">
-              Fill in the book details for "
+              Fill in the details for "
               <span className="font-medium">{fileName}</span>"
             </p>
           </div>
@@ -177,28 +252,20 @@ export function BookMetadataEntry({ fileName, onSave, onSkip }: Props) {
 
         {/* Body */}
         <div className="p-4 md:p-6 overflow-y-auto">
-          {/* ISBN Lookup Section */}
-          <div className="bg-gray-50 rounded-lg p-4 mb-6 border border-gray-200">
+          {/* Item Type Selector */}
+          <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Identifier Lookup
+              Item Type
             </label>
-            <div className="flex items-center gap-2 flex-col sm:flex-row">
-              <input
-                type="text"
-                value={isbnLookup}
-                onChange={(e) => setIsbnLookup(e.target.value)}
-                placeholder="Enter ISBN to auto-fill"
-                className="flex-1 rounded-lg border border-gray-300 px-4 py-2 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
-                onKeyDown={(e) => e.key === "Enter" && handleISBNFetch()}
-              />
-              <button
-                onClick={handleISBNFetch}
-                disabled={isLoading || !isbnLookup.trim()}
-                className="cursor-pointer px-5 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 disabled:bg-gray-400 disabled:cursor-not-allowed text-sm font-medium transition-colors"
-              >
-                {isLoading ? "Fetching..." : "Fetch Data"}
-              </button>
-            </div>
+            <select
+              value={itemType}
+              onChange={(e) => setItemType(e.target.value as ItemType)}
+              className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
+            >
+              <option value="book">Book</option>
+              <option value="audiobook">Audiobook</option>
+              <option value="article">Article</option>
+            </select>
           </div>
 
           {/* Cover Image Section */}
@@ -260,7 +327,7 @@ export function BookMetadataEntry({ fileName, onSave, onSkip }: Props) {
           </div>
 
           {/* Tabs */}
-          <div className="border-b border-gray-200 mb-6 overflow-x-auto">
+          <div className="border-b border-gray-200 mb-6 overflow-x-auto hide-scrollbar">
             <nav className="-mb-px flex space-x-6 min-w-max" aria-label="Tabs">
               <button
                 onClick={() => setActiveTab("basic")}
@@ -271,6 +338,16 @@ export function BookMetadataEntry({ fileName, onSave, onSkip }: Props) {
                 }`}
               >
                 Basic Info
+              </button>
+              <button
+                onClick={() => setActiveTab("identifiers")}
+                className={`py-3 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors cursor-pointer ${
+                  activeTab === "identifiers"
+                    ? "border-slate-600 text-slate-900"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                }`}
+              >
+                Identifiers
               </button>
               <button
                 onClick={() => setActiveTab("publication")}
@@ -290,7 +367,7 @@ export function BookMetadataEntry({ fileName, onSave, onSkip }: Props) {
                     : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                 }`}
               >
-                Digital/Series
+                {itemType === "audiobook" ? "Media Details" : "Digital/Series"}
               </button>
               <button
                 onClick={() => setActiveTab("user")}
@@ -324,20 +401,42 @@ export function BookMetadataEntry({ fileName, onSave, onSkip }: Props) {
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Subtitle
-                  </label>
-                  <input
-                    type="text"
-                    value={metadata.subtitle || ""}
-                    onChange={(e) =>
-                      setMetadata({ ...metadata, subtitle: e.target.value })
-                    }
-                    className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
-                    placeholder="Book subtitle (if any)"
-                  />
-                </div>
+                {itemType === "article" && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Journal/Publication
+                    </label>
+                    <input
+                      type="text"
+                      value={metadata.journalTitle || ""}
+                      onChange={(e) =>
+                        setMetadata({
+                          ...metadata,
+                          journalTitle: e.target.value,
+                        })
+                      }
+                      className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
+                      placeholder="Journal or publication name"
+                    />
+                  </div>
+                )}
+
+                {(itemType === "book" || itemType === "audiobook") && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Subtitle
+                    </label>
+                    <input
+                      type="text"
+                      value={metadata.subtitle || ""}
+                      onChange={(e) =>
+                        setMetadata({ ...metadata, subtitle: e.target.value })
+                      }
+                      className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
+                      placeholder="Book subtitle (if any)"
+                    />
+                  </div>
+                )}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
@@ -354,6 +453,41 @@ export function BookMetadataEntry({ fileName, onSave, onSkip }: Props) {
                       placeholder="e.g., John Doe, Jane Smith"
                     />
                   </div>
+                  {fieldVisibility.narrator && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Narrator(s)
+                      </label>
+                      <input
+                        type="text"
+                        value={metadata.audiobook?.narrator || ""}
+                        onChange={(e) =>
+                          handleAudiobookFieldChange("narrator", e.target.value)
+                        }
+                        className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
+                        placeholder="e.g., Stephen Fry"
+                      />
+                    </div>
+                  )}
+                  {!fieldVisibility.narrator && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Editor(s)
+                      </label>
+                      <input
+                        type="text"
+                        value={metadata.editors || ""}
+                        onChange={(e) =>
+                          setMetadata({ ...metadata, editors: e.target.value })
+                        }
+                        className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
+                        placeholder="For edited books"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {fieldVisibility.narrator && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Editor(s)
@@ -368,40 +502,24 @@ export function BookMetadataEntry({ fileName, onSave, onSkip }: Props) {
                       placeholder="For edited books"
                     />
                   </div>
-                </div>
+                )}
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Translator(s)
-                    </label>
-                    <input
-                      type="text"
-                      value={metadata.translators || ""}
-                      onChange={(e) =>
-                        setMetadata({
-                          ...metadata,
-                          translators: e.target.value,
-                        })
-                      }
-                      className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
-                      placeholder="For translated works"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      ISBN
-                    </label>
-                    <input
-                      type="text"
-                      value={metadata.isbn || ""}
-                      onChange={(e) =>
-                        setMetadata({ ...metadata, isbn: e.target.value })
-                      }
-                      className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
-                      placeholder="978-0-123456-78-9"
-                    />
-                  </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Translator(s)
+                  </label>
+                  <input
+                    type="text"
+                    value={metadata.translators || ""}
+                    onChange={(e) =>
+                      setMetadata({
+                        ...metadata,
+                        translators: e.target.value,
+                      })
+                    }
+                    className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
+                    placeholder="For translated works"
+                  />
                 </div>
 
                 <div>
@@ -415,8 +533,139 @@ export function BookMetadataEntry({ fileName, onSave, onSkip }: Props) {
                     }
                     rows={4}
                     className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20 resize-none"
-                    placeholder="Brief description of the book..."
+                    placeholder="Brief description..."
                   />
+                </div>
+              </>
+            )}
+
+            {activeTab === "identifiers" && (
+              <>
+                <div className="bg-gray-50 rounded-lg p-4 mb-6 border border-gray-200">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Quick Identifier Lookup
+                  </label>
+                  <div className="flex items-center gap-2 flex-col sm:flex-row">
+                    <input
+                      type="text"
+                      value={identifierLookup}
+                      onChange={(e) => setIdentifierLookup(e.target.value)}
+                      placeholder={
+                        itemType === "article"
+                          ? "Enter DOI to auto-fill"
+                          : itemType === "audiobook"
+                          ? "Enter ISBN or ASIN..."
+                          : "Enter ISBN to auto-fill"
+                      }
+                      className="flex-1 rounded-lg border border-gray-300 px-4 py-2 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
+                      onKeyDown={(e) =>
+                        e.key === "Enter" && handleIdentifierFetch()
+                      }
+                    />
+                    <button
+                      onClick={handleIdentifierFetch}
+                      disabled={isLoading || !identifierLookup.trim()}
+                      className="cursor-pointer px-5 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 disabled:bg-gray-400 disabled:cursor-not-allowed text-sm font-medium transition-colors"
+                    >
+                      {isLoading ? "Fetching..." : "Fetch Data"}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {fieldVisibility.isbn && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        ISBN
+                      </label>
+                      <input
+                        type="text"
+                        value={
+                          (getIdentifier(metadata, "isbn") as string) || ""
+                        }
+                        onChange={(e) =>
+                          handleIdentifierChange("isbn", e.target.value)
+                        }
+                        className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
+                        placeholder="978-0-123456-78-9"
+                      />
+                    </div>
+                  )}
+
+                  {fieldVisibility.asin && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        ASIN
+                      </label>
+                      <input
+                        type="text"
+                        value={
+                          (getIdentifier(metadata, "asin") as string) || ""
+                        }
+                        onChange={(e) =>
+                          handleIdentifierChange("asin", e.target.value)
+                        }
+                        className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
+                        placeholder="B08XYZ1234"
+                      />
+                    </div>
+                  )}
+
+                  {fieldVisibility.audibleAsin && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Audible ASIN
+                      </label>
+                      <input
+                        type="text"
+                        value={
+                          (getIdentifier(metadata, "audibleAsin") as string) ||
+                          ""
+                        }
+                        onChange={(e) =>
+                          handleIdentifierChange("audibleAsin", e.target.value)
+                        }
+                        className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
+                        placeholder="Audible-specific ASIN"
+                      />
+                    </div>
+                  )}
+
+                  {fieldVisibility.doi && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        DOI
+                      </label>
+                      <input
+                        type="text"
+                        value={(getIdentifier(metadata, "doi") as string) || ""}
+                        onChange={(e) =>
+                          handleIdentifierChange("doi", e.target.value)
+                        }
+                        className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
+                        placeholder="10.1234/example"
+                      />
+                    </div>
+                  )}
+
+                  {fieldVisibility.issn && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        ISSN
+                      </label>
+                      <input
+                        type="text"
+                        value={
+                          (getIdentifier(metadata, "issn") as string) || ""
+                        }
+                        onChange={(e) =>
+                          handleIdentifierChange("issn", e.target.value)
+                        }
+                        className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
+                        placeholder="1234-5678"
+                      />
+                    </div>
+                  )}
                 </div>
               </>
             )}
@@ -424,37 +673,65 @@ export function BookMetadataEntry({ fileName, onSave, onSkip }: Props) {
             {activeTab === "publication" && (
               <>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Publisher
-                    </label>
-                    <input
-                      type="text"
-                      value={metadata.publisher || ""}
-                      onChange={(e) =>
-                        setMetadata({ ...metadata, publisher: e.target.value })
-                      }
-                      className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
-                      placeholder="Publisher name"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Place of Publication
-                    </label>
-                    <input
-                      type="text"
-                      value={metadata.placeOfPublication || ""}
-                      onChange={(e) =>
-                        setMetadata({
-                          ...metadata,
-                          placeOfPublication: e.target.value,
-                        })
-                      }
-                      className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
-                      placeholder="e.g., New York, NY"
-                    />
-                  </div>
+                  {fieldVisibility.publisher && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Publisher
+                      </label>
+                      <input
+                        type="text"
+                        value={metadata.publisher || ""}
+                        onChange={(e) =>
+                          setMetadata({
+                            ...metadata,
+                            publisher: e.target.value,
+                          })
+                        }
+                        className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
+                        placeholder="Publisher name"
+                      />
+                    </div>
+                  )}
+
+                  {fieldVisibility.audioPublisher && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Audio Publisher
+                      </label>
+                      <input
+                        type="text"
+                        value={metadata.audiobook?.audioPublisher || ""}
+                        onChange={(e) =>
+                          handleAudiobookFieldChange(
+                            "audioPublisher",
+                            e.target.value
+                          )
+                        }
+                        className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
+                        placeholder="e.g., Audible Studios"
+                      />
+                    </div>
+                  )}
+
+                  {fieldVisibility.placeOfPublication && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Place of Publication
+                      </label>
+                      <input
+                        type="text"
+                        value={metadata.placeOfPublication || ""}
+                        onChange={(e) =>
+                          setMetadata({
+                            ...metadata,
+                            placeOfPublication: e.target.value,
+                          })
+                        }
+                        className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
+                        placeholder="e.g., New York, NY"
+                      />
+                    </div>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -475,40 +752,87 @@ export function BookMetadataEntry({ fileName, onSave, onSkip }: Props) {
                       placeholder="e.g., 2023 or March 2023"
                     />
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Edition
-                    </label>
-                    <input
-                      type="text"
-                      value={metadata.edition || ""}
-                      onChange={(e) =>
-                        setMetadata({ ...metadata, edition: e.target.value })
-                      }
-                      className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
-                      placeholder="e.g., 2nd edition, Revised"
-                    />
-                  </div>
+
+                  {fieldVisibility.edition && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Edition
+                      </label>
+                      <input
+                        type="text"
+                        value={metadata.edition || ""}
+                        onChange={(e) =>
+                          setMetadata({ ...metadata, edition: e.target.value })
+                        }
+                        className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
+                        placeholder="e.g., 2nd edition, Revised"
+                      />
+                    </div>
+                  )}
+
+                  {fieldVisibility.abridged && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Abridged
+                      </label>
+                      <select
+                        value={metadata.audiobook?.abridged ? "true" : "false"}
+                        onChange={(e) =>
+                          handleAudiobookFieldChange(
+                            "abridged",
+                            e.target.value === "true"
+                          )
+                        }
+                        className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
+                      >
+                        <option value="false">Unabridged</option>
+                        <option value="true">Abridged</option>
+                      </select>
+                    </div>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Page Count
-                    </label>
-                    <input
-                      type="number"
-                      value={metadata.pageCount || ""}
-                      onChange={(e) =>
-                        setMetadata({
-                          ...metadata,
-                          pageCount: parseInt(e.target.value) || undefined,
-                        })
-                      }
-                      className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
-                      placeholder="320"
-                    />
-                  </div>
+                  {fieldVisibility.pageCount && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Page Count
+                      </label>
+                      <input
+                        type="number"
+                        value={metadata.pageCount || ""}
+                        onChange={(e) =>
+                          setMetadata({
+                            ...metadata,
+                            pageCount: parseInt(e.target.value) || undefined,
+                          })
+                        }
+                        className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
+                        placeholder="320"
+                      />
+                    </div>
+                  )}
+
+                  {fieldVisibility.pageRange && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Pages
+                      </label>
+                      <input
+                        type="text"
+                        value={metadata.pageRange || ""}
+                        onChange={(e) =>
+                          setMetadata({
+                            ...metadata,
+                            pageRange: e.target.value,
+                          })
+                        }
+                        className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
+                        placeholder="e.g., 123-145"
+                      />
+                    </div>
+                  )}
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Language
@@ -523,6 +847,7 @@ export function BookMetadataEntry({ fileName, onSave, onSkip }: Props) {
                       placeholder="English"
                     />
                   </div>
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Original Language
@@ -541,6 +866,46 @@ export function BookMetadataEntry({ fileName, onSave, onSkip }: Props) {
                     />
                   </div>
                 </div>
+
+                {/* Article-specific fields */}
+                {itemType === "article" && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Volume Number
+                      </label>
+                      <input
+                        type="text"
+                        value={metadata.volumeNumber || ""}
+                        onChange={(e) =>
+                          setMetadata({
+                            ...metadata,
+                            volumeNumber: e.target.value,
+                          })
+                        }
+                        className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
+                        placeholder="Volume number"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Issue Number
+                      </label>
+                      <input
+                        type="text"
+                        value={metadata.issueNumber || ""}
+                        onChange={(e) =>
+                          setMetadata({
+                            ...metadata,
+                            issueNumber: e.target.value,
+                          })
+                        }
+                        className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
+                        placeholder="Issue number"
+                      />
+                    </div>
+                  </div>
+                )}
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -567,89 +932,139 @@ export function BookMetadataEntry({ fileName, onSave, onSkip }: Props) {
 
             {activeTab === "digital" && (
               <>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Series
-                    </label>
-                    <input
-                      type="text"
-                      value={metadata.series || ""}
-                      onChange={(e) =>
-                        setMetadata({ ...metadata, series: e.target.value })
-                      }
-                      className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
-                      placeholder="e.g., Harry Potter"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Series Number
-                    </label>
-                    <input
-                      type="text"
-                      value={metadata.seriesNumber || ""}
-                      onChange={(e) =>
-                        setMetadata({
-                          ...metadata,
-                          seriesNumber: e.target.value,
-                        })
-                      }
-                      className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
-                      placeholder="e.g., 1 or Book 1"
-                    />
-                  </div>
-                </div>
+                {/* Audiobook-specific media details */}
+                {itemType === "audiobook" && (
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Duration
+                        </label>
+                        <input
+                          type="text"
+                          value={formatDuration(metadata.audiobook?.duration)}
+                          onChange={(e) => {
+                            const seconds = parseDuration(e.target.value);
+                            handleAudiobookFieldChange("duration", seconds);
+                          }}
+                          className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
+                          placeholder="e.g., 8h 30m"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Audio Format
+                        </label>
+                        <select
+                          value={metadata.audiobook?.format || ""}
+                          onChange={(e) =>
+                            handleAudiobookFieldChange("format", e.target.value)
+                          }
+                          className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
+                        >
+                          <option value="">Select format...</option>
+                          <option value="mp3">MP3</option>
+                          <option value="m4a">M4A</option>
+                          <option value="m4b">M4B</option>
+                          <option value="audible">Audible</option>
+                          <option value="other">Other</option>
+                        </select>
+                      </div>
+                    </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Volume
-                    </label>
-                    <input
-                      type="text"
-                      value={metadata.volume || ""}
-                      onChange={(e) =>
-                        setMetadata({ ...metadata, volume: e.target.value })
-                      }
-                      className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
-                      placeholder="For multi-volume works"
-                    />
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Production Company
+                      </label>
+                      <input
+                        type="text"
+                        value={metadata.audiobook?.productionCompany || ""}
+                        onChange={(e) =>
+                          handleAudiobookFieldChange(
+                            "productionCompany",
+                            e.target.value
+                          )
+                        }
+                        className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
+                        placeholder="e.g., Penguin Audio"
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Number of Volumes
-                    </label>
-                    <input
-                      type="number"
-                      value={metadata.numberOfVolumes || ""}
-                      onChange={(e) =>
-                        setMetadata({
-                          ...metadata,
-                          numberOfVolumes:
-                            parseInt(e.target.value) || undefined,
-                        })
-                      }
-                      className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
-                      placeholder="Total volumes in set"
-                    />
-                  </div>
-                </div>
+                )}
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    DOI
-                  </label>
-                  <input
-                    type="text"
-                    value={metadata.doi || ""}
-                    onChange={(e) =>
-                      setMetadata({ ...metadata, doi: e.target.value })
-                    }
-                    className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
-                    placeholder="10.1234/example.doi"
-                  />
-                </div>
+                {/* Series information for books and audiobooks */}
+                {(itemType === "book" || itemType === "audiobook") && (
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Series
+                        </label>
+                        <input
+                          type="text"
+                          value={metadata.series || ""}
+                          onChange={(e) =>
+                            setMetadata({ ...metadata, series: e.target.value })
+                          }
+                          className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
+                          placeholder="e.g., Harry Potter"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Series Number
+                        </label>
+                        <input
+                          type="text"
+                          value={metadata.seriesNumber || ""}
+                          onChange={(e) =>
+                            setMetadata({
+                              ...metadata,
+                              seriesNumber: e.target.value,
+                            })
+                          }
+                          className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
+                          placeholder="e.g., 1 or Book 1"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Volume
+                        </label>
+                        <input
+                          type="text"
+                          value={metadata.volume || ""}
+                          onChange={(e) =>
+                            setMetadata({ ...metadata, volume: e.target.value })
+                          }
+                          className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
+                          placeholder="For multi-volume works"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Number of Volumes
+                        </label>
+                        <input
+                          type="number"
+                          value={metadata.numberOfVolumes || ""}
+                          onChange={(e) =>
+                            setMetadata({
+                              ...metadata,
+                              numberOfVolumes:
+                                parseInt(e.target.value) || undefined,
+                            })
+                          }
+                          className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
+                          placeholder="Total volumes in set"
+                        />
+                      </div>
+                    </div>
+                  </>
+                )}
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -729,7 +1144,7 @@ export function BookMetadataEntry({ fileName, onSave, onSkip }: Props) {
         </div>
 
         {/* Footer */}
-        <div className="px-4 md:px-6 py-4 border-t border-gray-200 flex justify-between items-center gap-3 sticky bottom-0 bg-white">
+        <div className="px-4 md:px-6 py-4 border-t border-gray-200 flex justify-between items-center gap-3 bottom-0 bg-white">
           <button
             onClick={onSkip}
             className="px-6 py-2 text-gray-700 hover:text-gray-900 font-medium rounded-lg transition-colors cursor-pointer"

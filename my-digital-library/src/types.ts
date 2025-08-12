@@ -14,13 +14,43 @@ export type CreatorRole =
   | "author"
   | "editor"
   | "translator"
-  | "contributor";
+  | "contributor"
+  | "narrator"; // ADDED: narrator role for audiobooks
 
 export interface StructuredCreator {
   firstName: string; // "John"
   lastName: string; // "Smith"
   fullName: string; // "John Smith" (fallback if parts missing)
   role: CreatorRole;
+}
+
+// NEW: Audiobook-specific metadata
+export interface AudiobookMetadata {
+  narrator?: string; // Single narrator as string for simple cases
+  narrators?: StructuredCreator[]; // Multiple narrators with structured data
+  duration?: number; // Duration in seconds
+  format?: "mp3" | "m4a" | "m4b" | "audible" | "other";
+  abridged?: boolean;
+  audioPublisher?: string; // Sometimes different from book publisher
+  audioPublishedDate?: string;
+  productionCompany?: string;
+}
+
+// NEW: Flexible identifier system
+export interface Identifiers {
+  isbn?: string | string[]; // Can have multiple ISBNs (ISBN-10 & ISBN-13)
+  isbn10?: string;
+  isbn13?: string;
+  asin?: string; // Amazon Standard Identification Number
+  audibleAsin?: string; // Audible-specific ASIN
+  doi?: string; // Digital Object Identifier
+  issn?: string; // International Standard Serial Number (for periodicals)
+  oclc?: string; // WorldCat identifier
+  lccn?: string; // Library of Congress Control Number
+  googleBooksId?: string;
+  goodreadsId?: string;
+  openLibraryId?: string;
+  custom?: { [key: string]: string }; // For future expansion or user-defined identifiers
 }
 
 // NEW: Highlighting types
@@ -85,14 +115,21 @@ export interface BookMetadata {
     authors?: StructuredCreator[];
     editors?: StructuredCreator[];
     translators?: StructuredCreator[];
+    narrators?: StructuredCreator[]; // ADDED: For audiobooks
   };
 
   // Publication Information
-  isbn?: string; // For books/audiobooks
+  isbn?: string; // DEPRECATED: Keep for backward compatibility, use identifiers.isbn instead
   publisher?: string; // For books, or journal publisher for articles
   publishedDate?: string;
   placeOfPublication?: string; // City/Location of publication
   edition?: string; // e.g., "2nd edition", "Revised edition"
+
+  // NEW: Flexible Identifier System
+  identifiers?: Identifiers;
+
+  // NEW: Audiobook-specific fields
+  audiobook?: AudiobookMetadata;
 
   // Article-specific fields (NEW)
   journalTitle?: string; // Journal/Magazine/Newspaper name
@@ -107,7 +144,7 @@ export interface BookMetadata {
   volume?: string; // Volume number for multi-volume works
 
   // Digital/Online Information
-  doi?: string; // Digital Object Identifier (primary for articles, optional for books)
+  doi?: string; // DEPRECATED: Keep for backward compatibility, use identifiers.doi instead
   url?: string; // URL for online resources
   accessDate?: string; // When online resource was accessed
 
@@ -202,4 +239,38 @@ export interface TextSelection {
   text: string;
   reference: Reference;
   format: "pdf" | "epub" | "audio";
+}
+
+// NEW: Collection interface for organizing books
+export interface Collection {
+  id: string;
+  name: string;
+  description?: string;
+  color?: string; // For UI representation
+  createdAt: string;
+  updatedAt: string;
+  bookIds: string[];
+  isDefault?: boolean; // For system collections like "Favorites"
+  sortOrder?: number; // For custom ordering
+  parentId?: string | null; // For nested collections
+}
+
+// For PDF rendering
+export interface PDFRenderOptions {
+  scale?: number;
+  rotation?: number;
+  dpi?: number;
+  background?: string;
+  canvasContext?: string;
+}
+
+// For search functionality
+export interface SearchResult {
+  bookId: string;
+  matches: {
+    field: string;
+    value: string;
+    context?: string; // Surrounding text for context
+  }[];
+  score: number; // Relevance score
 }

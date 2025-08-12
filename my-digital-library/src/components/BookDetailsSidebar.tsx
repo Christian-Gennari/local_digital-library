@@ -5,6 +5,7 @@ import { useStore } from "../store";
 import { BookMetadataEditor } from "./BookMetadataEditor";
 import { ConfirmationModal } from "./ConfirmationModal";
 import { Book } from "../types";
+import { getAllIdentifiers, formatDuration } from "../utils/metadataHelpers";
 import {
   PencilSquareIcon,
   BookOpenIcon,
@@ -25,6 +26,8 @@ import {
   LinkIcon,
   TrashIcon,
   CheckIcon,
+  MicrophoneIcon,
+  SpeakerWaveIcon,
 } from "@heroicons/react/24/outline";
 
 export function BookDetailsSidebar() {
@@ -40,7 +43,9 @@ export function BookDetailsSidebar() {
   const [expandedSections, setExpandedSections] = useState<{
     [key: string]: boolean;
   }>({
+    identifiers: false,
     basic: true,
+    media: false,
     publication: false,
     series: false,
     digital: false,
@@ -181,6 +186,23 @@ export function BookDetailsSidebar() {
           </div>
 
           <div className="flex-1 min-w-0">
+            {/* Item Type Badge */}
+            <span
+              className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium mb-2 ${
+                itemType === "audiobook"
+                  ? "bg-purple-100 text-purple-800"
+                  : itemType === "article"
+                  ? "bg-green-100 text-green-800"
+                  : "bg-blue-100 text-blue-800"
+              }`}
+            >
+              {itemType === "audiobook"
+                ? "🎧 Audiobook"
+                : itemType === "article"
+                ? "📄 Article"
+                : "📚 Book"}
+            </span>
+
             <h3 className="font-bold text-gray-900 text-base sm:text-lg leading-tight mb-1 line-clamp-2">
               {selectedBook.metadata.title}
             </h3>
@@ -197,6 +219,14 @@ export function BookDetailsSidebar() {
                   : `Edited by ${selectedBook.metadata.editors}`}
               </p>
             )}
+
+            {/* Narrator for audiobooks */}
+            {itemType === "audiobook" &&
+              selectedBook.metadata.audiobook?.narrator && (
+                <p className="text-xs sm:text-sm text-gray-600 mt-1">
+                  Narrated by {selectedBook.metadata.audiobook.narrator}
+                </p>
+              )}
           </div>
         </div>
 
@@ -308,6 +338,194 @@ export function BookDetailsSidebar() {
 
         {/* Accordion Sections */}
         <div className="space-y-4">
+          {/* Identifiers Section */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+            <button
+              onClick={() => toggleSection("identifiers")}
+              className="w-full flex items-center justify-between text-left p-4 cursor-pointer"
+              aria-expanded={expandedSections.identifiers}
+              aria-controls="section-identifiers"
+            >
+              <h4 className="font-semibold text-gray-900 text-sm uppercase tracking-wide">
+                Identifiers
+              </h4>
+              <svg
+                className={`h-4 w-4 text-gray-500 transform transition-transform ${
+                  expandedSections.identifiers ? "rotate-180" : ""
+                }`}
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 9l-7 7-7-7"
+                />
+              </svg>
+            </button>
+
+            {expandedSections.identifiers && (
+              <div
+                id="section-identifiers"
+                className="p-4 pt-4 border-t border-gray-200 space-y-3"
+              >
+                {getAllIdentifiers(selectedBook.metadata).map((identifier) => (
+                  <div
+                    key={`${identifier.type}-${identifier.value}`}
+                    className="flex items-start gap-3"
+                  >
+                    <DocumentTextIcon className="h-4 w-4 text-gray-400 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-gray-500">
+                        {identifier.label}
+                      </p>
+                      <p className="text-sm text-gray-900 break-all">
+                        {identifier.value}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() =>
+                        copyToClipboard(identifier.value, identifier.type)
+                      }
+                      className="px-2 py-1 text-xs rounded bg-gray-100 hover:bg-gray-200 text-gray-700 cursor-pointer"
+                      title={`Copy ${identifier.label}`}
+                    >
+                      {copiedKey === identifier.type ? (
+                        <CheckIcon className="w-4 h-4 text-green-600" />
+                      ) : (
+                        "Copy"
+                      )}
+                    </button>
+                  </div>
+                ))}
+
+                {getAllIdentifiers(selectedBook.metadata).length === 0 && (
+                  <p className="text-sm text-gray-500 italic">
+                    No identifiers available
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Media Details Section (for audiobooks) */}
+          {itemType === "audiobook" && selectedBook.metadata.audiobook && (
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+              <button
+                onClick={() => toggleSection("media")}
+                className="w-full flex items-center justify-between text-left p-4 cursor-pointer"
+                aria-expanded={expandedSections.media}
+                aria-controls="section-media"
+              >
+                <h4 className="font-semibold text-gray-900 text-sm uppercase tracking-wide">
+                  Media Details
+                </h4>
+                <svg
+                  className={`h-4 w-4 text-gray-500 transform transition-transform ${
+                    expandedSections.media ? "rotate-180" : ""
+                  }`}
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
+              </button>
+
+              {expandedSections.media && (
+                <div
+                  id="section-media"
+                  className="p-4 pt-4 border-t border-gray-200 space-y-4"
+                >
+                  {selectedBook.metadata.audiobook.narrator && (
+                    <div className="flex items-start gap-3">
+                      <MicrophoneIcon className="h-4 w-4 text-gray-400 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-xs text-gray-500">Narrator</p>
+                        <p className="text-sm text-gray-900">
+                          {selectedBook.metadata.audiobook.narrator}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedBook.metadata.audiobook.duration && (
+                    <div className="flex items-start gap-3">
+                      <ClockIcon className="h-4 w-4 text-gray-400 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-xs text-gray-500">Duration</p>
+                        <p className="text-sm text-gray-900">
+                          {formatDuration(
+                            selectedBook.metadata.audiobook.duration
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedBook.metadata.audiobook.format && (
+                    <div className="flex items-start gap-3">
+                      <SpeakerWaveIcon className="h-4 w-4 text-gray-400 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-xs text-gray-500">Format</p>
+                        <p className="text-sm text-gray-900">
+                          {selectedBook.metadata.audiobook.format.toUpperCase()}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedBook.metadata.audiobook.abridged !== undefined && (
+                    <div className="flex items-start gap-3">
+                      <BookOpenIcon className="h-4 w-4 text-gray-400 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-xs text-gray-500">Version</p>
+                        <p className="text-sm text-gray-900">
+                          {selectedBook.metadata.audiobook.abridged
+                            ? "Abridged"
+                            : "Unabridged"}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedBook.metadata.audiobook.audioPublisher && (
+                    <div className="flex items-start gap-3">
+                      <BuildingOfficeIcon className="h-4 w-4 text-gray-400 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-xs text-gray-500">Audio Publisher</p>
+                        <p className="text-sm text-gray-900">
+                          {selectedBook.metadata.audiobook.audioPublisher}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedBook.metadata.audiobook.productionCompany && (
+                    <div className="flex items-start gap-3">
+                      <BuildingOfficeIcon className="h-4 w-4 text-gray-400 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-xs text-gray-500">
+                          Production Company
+                        </p>
+                        <p className="text-sm text-gray-900">
+                          {selectedBook.metadata.audiobook.productionCompany}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Basic Information */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200">
             <button
@@ -341,58 +559,6 @@ export function BookDetailsSidebar() {
                 id="section-basic"
                 className="p-4 pt-4 border-t border-gray-200 space-y-4"
               >
-                {/* DOI / ISBN */}
-                {itemType === "article" && selectedBook.metadata.doi && (
-                  <div className="flex items-start gap-3">
-                    <DocumentTextIcon className="h-4 w-4 text-gray-400 flex-shrink-0 mt-0.5" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs text-gray-500">DOI</p>
-                      <p className="text-sm text-gray-900 break-all">
-                        {selectedBook.metadata.doi}
-                      </p>
-                    </div>
-                    <button
-                      onClick={() =>
-                        copyToClipboard(selectedBook.metadata.doi!, "doi")
-                      }
-                      className="px-2 py-1 text-xs rounded bg-gray-100 hover:bg-gray-200 text-gray-700 cursor-pointer"
-                      title="Copy DOI"
-                    >
-                      {copiedKey === "doi" ? (
-                        <CheckIcon className="w-4 h-4 text-green-600" />
-                      ) : (
-                        "Copy"
-                      )}
-                    </button>
-                  </div>
-                )}
-
-                {(itemType === "book" || itemType === "audiobook") &&
-                  selectedBook.metadata.isbn && (
-                    <div className="flex items-start gap-3">
-                      <DocumentTextIcon className="h-4 w-4 text-gray-400 flex-shrink-0 mt-0.5" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs text-gray-500">ISBN</p>
-                        <p className="text-sm text-gray-900 break-all">
-                          {selectedBook.metadata.isbn}
-                        </p>
-                      </div>
-                      <button
-                        onClick={() =>
-                          copyToClipboard(selectedBook.metadata.isbn!, "isbn")
-                        }
-                        className="px-2 py-1 text-xs rounded bg-gray-100 hover:bg-gray-200 text-gray-700 cursor-pointer"
-                        title="Copy ISBN"
-                      >
-                        {copiedKey === "isbn" ? (
-                          <CheckIcon className="w-4 h-4 text-green-600" />
-                        ) : (
-                          "Copy"
-                        )}
-                      </button>
-                    </div>
-                  )}
-
                 {/* Article-only fields */}
                 {itemType === "article" && (
                   <>
@@ -666,7 +832,7 @@ export function BookDetailsSidebar() {
           )}
 
           {/* Digital Information */}
-          {(selectedBook.metadata.doi || selectedBook.metadata.url) && (
+          {selectedBook.metadata.url && (
             <div className="bg-white rounded-lg shadow-sm border border-gray-200">
               <button
                 onClick={() => toggleSection("digital")}
@@ -699,31 +865,6 @@ export function BookDetailsSidebar() {
                   id="section-digital"
                   className="p-4 pt-4 border-t border-gray-200 space-y-4"
                 >
-                  {selectedBook.metadata.doi && (
-                    <div className="flex items-start gap-3">
-                      <IdentificationIcon className="h-4 w-4 text-gray-400 flex-shrink-0 mt-0.5" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs text-gray-500">DOI</p>
-                        <p className="text-sm text-gray-900 break-all">
-                          {selectedBook.metadata.doi}
-                        </p>
-                      </div>
-                      <button
-                        onClick={() =>
-                          copyToClipboard(selectedBook.metadata.doi!, "doi2")
-                        }
-                        className="px-2 py-1 text-xs rounded bg-gray-100 hover:bg-gray-200 text-gray-700 cursor-pointer"
-                        title="Copy DOI"
-                      >
-                        {copiedKey === "doi2" ? (
-                          <CheckIcon className="w-4 h-4 text-green-600" />
-                        ) : (
-                          "Copy"
-                        )}
-                      </button>
-                    </div>
-                  )}
-
                   {selectedBook.metadata.url && (
                     <div className="flex items-start gap-3">
                       <LinkIcon className="h-4 w-4 text-gray-400 flex-shrink-0 mt-0.5" />
