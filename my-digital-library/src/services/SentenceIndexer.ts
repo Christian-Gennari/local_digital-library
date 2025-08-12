@@ -37,94 +37,91 @@ export class SentenceIndexer implements TTSSentenceIndex {
   private initializeWorker() {
     // Create inline worker for sentence splitting
     const workerCode = `
-      // Sentence splitting logic in worker
-      const SENTENCE_REGEX = /[.!?]+\\s+/g;
-      const ABBREVIATIONS = new Set([
-        'dr', 'mr', 'mrs', 'ms', 'prof', 'vs', 'etc', 'inc', 'ltd', 'co',
-        'st', 'ave', 'blvd', 'rd', 'no', 'vol', 'ch', 'fig', 'p', 'pp'
-      ]);
+    // Sentence splitting logic in worker
+    const SENTENCE_REGEX = /[.!?]+\\s+/g;
+    const ABBREVIATIONS = new Set([
+      'dr', 'mr', 'mrs', 'ms', 'prof', 'vs', 'etc', 'inc', 'ltd', 'co',
+      'st', 'ave', 'blvd', 'rd', 'no', 'vol', 'ch', 'fig', 'p', 'pp'
+    ]);
 
-      function splitIntoSentences(text) {
-        const sentences = [];
-        let lastIndex = 0;
-        let match;
+    function splitIntoSentences(text) {
+      const sentences = [];
+      let lastIndex = 0;
+      let match;
 
-        while ((match = SENTENCE_REGEX.exec(text)) !== null) {
-          const beforePeriod = text.substring(lastIndex, match.index).trim();
-          const words = beforePeriod.toLowerCase().split(/\\s+/);
-          const lastWord = words[words.length - 1]?.replace(/[^a-z]/g, '');
-          
-          // Check if this is likely an abbreviation
-          if (!ABBREVIATIONS.has(lastWord) && beforePeriod.length > 10) {
-            const sentence = text.substring(lastIndex, match.index + match[0].length).trim();
-            if (sentence.length > 0) {
-              sentences.push({
-                text: sentence,
-                start: lastIndex,
-                end: match.index + match[0].length
-              });
-            }
-            lastIndex = match.index + match[0].length;
-          }
-        }
-
-        // Add remaining text as last sentence
-        if (lastIndex < text.length) {
-          const remaining = text.substring(lastIndex).trim();
-          if (remaining.length > 0) {
+      while ((match = SENTENCE_REGEX.exec(text)) !== null) {
+        const beforePeriod = text.substring(lastIndex, match.index).trim();
+        const words = beforePeriod.toLowerCase().split(/\\s+/);
+        const lastWord = words[words.length - 1]?.replace(/[^a-z]/g, '');
+        
+        // Check if this is likely an abbreviation
+        if (!ABBREVIATIONS.has(lastWord) && beforePeriod.length > 10) {
+          const sentence = text.substring(lastIndex, match.index + match[0].length).trim();
+          if (sentence.length > 0) {
             sentences.push({
-              text: remaining,
+              text: sentence,
               start: lastIndex,
-              end: text.length
+              end: match.index + match[0].length
             });
           }
+          lastIndex = match.index + match[0].length;
         }
-
-        return sentences;
       }
 
-      self.onmessage = function(e) {
-        const { type, data } = e.data;
-        
-        switch (type) {
-          case 'splitEPUB':
-            const { html, href, baseCharOffset } = data;
-            // Parse HTML and extract text with position tracking
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(html, 'text/html');
-            const textContent = doc.body.textContent || '';
-            
-            const rawSentences = splitIntoSentences(textContent);
-            const sentences = rawSentences.map((sent, index) => ({
-              id: \`\${href}:\${String(index).padStart(3, '0')}\`,
-              text: sent.text,
-              char_start: baseCharOffset + sent.start,
-              char_end: baseCharOffset + sent.end,
-              para: Math.floor(index / 3), // Rough paragraph estimation
-              cfi_start: '', // Will be filled by main thread
-              cfi_end: ''
-            }));
-            
-            self.postMessage({ type: 'epubResult', sentences });
-            break;
-            
-          case 'splitPDF':
-            const { text, page, baseCharOffset: pdfOffset } = data;
-            const pdfSentences = splitIntoSentences(text);
-            
-            const pdfResult = pdfSentences.map((sent, index) => ({
-              id: \`\${page}:\${String(index).padStart(3, '0')}\`,
-              text: sent.text,
-              page: page,
-              char_start: pdfOffset + sent.start,
-              char_end: pdfOffset + sent.end
-            }));
-            
-            self.postMessage({ type: 'pdfResult', sentences: pdfResult });
-            break;
+      // Add remaining text as last sentence
+      if (lastIndex < text.length) {
+        const remaining = text.substring(lastIndex).trim();
+        if (remaining.length > 0) {
+          sentences.push({
+            text: remaining,
+            start: lastIndex,
+            end: text.length
+          });
         }
-      };
-    `;
+      }
+
+      return sentences;
+    }
+
+    self.onmessage = function(e) {
+      const { type, data } = e.data;
+      
+      switch (type) {
+        case 'splitEPUB':
+        const { text, href, baseCharOffset } = data;
+        // Now we receive plain text instead of HTML - no DOMParser needed!
+        
+        const rawSentences = splitIntoSentences(text);
+        const sentences = rawSentences.map((sent, index) => ({
+            id: \`\${href}:\${String(index).padStart(3, '0')}\`,
+            text: sent.text,
+            char_start: baseCharOffset + sent.start,
+            char_end: baseCharOffset + sent.end,
+            para: Math.floor(index / 3), // Rough paragraph estimation
+            cfi_start: '', // Will be filled by main thread
+            cfi_end: ''
+        }));
+        
+        self.postMessage({ type: 'epubResult', sentences });
+        break;
+          
+        case 'splitPDF':
+          const { text: pdfText, page, baseCharOffset: pdfOffset } = data;
+          const pdfSentences = splitIntoSentences(pdfText);
+          
+          const pdfResult = pdfSentences.map((sent, index) => ({
+            id: \`\${page}:\${String(index).padStart(3, '0')}\`,
+            text: sent.text,
+            page: page,
+            char_start: pdfOffset + sent.start,
+            char_end: pdfOffset + sent.end
+          }));
+          
+          self.postMessage({ type: 'pdfResult', sentences: pdfResult });
+          break;
+      }
+    };
+  `;
 
     const blob = new Blob([workerCode], { type: "application/javascript" });
     this.worker = new Worker(URL.createObjectURL(blob));
@@ -259,6 +256,8 @@ export class SentenceIndexer implements TTSSentenceIndex {
       page: locator.page,
       char: locator.char,
       href: locator.href,
+      cfi: locator.cfi,
+      clickedText: (locator as any).clickedText?.substring(0, 50),
     });
 
     if (locator.type === "epub" && locator.href) {
@@ -266,6 +265,108 @@ export class SentenceIndexer implements TTSSentenceIndex {
       const chapter = indexData?.epub?.spine[locator.href];
       const sentences = chapter?.sentences || [];
       console.log("📖 EPUB sentences found:", sentences.length);
+
+      // Try to find the sentence matching the clicked position
+      const clickedText = (locator as any).clickedText;
+      if (clickedText && sentences.length > 0) {
+        const searchText = clickedText.toLowerCase().trim();
+        console.log(
+          "🔍 Searching for sentence containing:",
+          searchText.substring(0, 50)
+        );
+
+        // First try: Find exact match with clicked text
+        for (let i = 0; i < sentences.length; i++) {
+          const sentence = sentences[i];
+          if (
+            sentence.text.toLowerCase().includes(searchText.substring(0, 30))
+          ) {
+            console.log(
+              `✅ Found matching sentence ${i}: "${sentence.text.substring(
+                0,
+                50
+              )}..."`
+            );
+            return sentences.slice(i);
+          }
+        }
+
+        // Second try: Just first few words
+        const firstWords = searchText.split(/\s+/).slice(0, 5).join(" ");
+        if (firstWords.length > 10) {
+          for (let i = 0; i < sentences.length; i++) {
+            const sentence = sentences[i];
+            if (sentence.text.toLowerCase().includes(firstWords)) {
+              console.log(
+                `✅ Found partial match at sentence ${i}: "${sentence.text.substring(
+                  0,
+                  50
+                )}..."`
+              );
+              return sentences.slice(i);
+            }
+          }
+        }
+
+        console.log("⚠️ Could not find clicked text in sentences");
+      }
+
+      // Try to use CFI to estimate position
+      if (locator.cfi && sentences.length > 0) {
+        console.log("🔍 Trying to estimate position from CFI:", locator.cfi);
+
+        // Extract element index from CFI
+        const elementMatch = locator.cfi.match(/\/4\/(\d+)/);
+        if (elementMatch) {
+          const elementIndex = parseInt(elementMatch[1]);
+          console.log("📍 Extracted element index from CFI:", elementIndex);
+
+          // Rough estimate: ~2-3 elements per sentence
+          const estimatedSentenceIndex = Math.floor(elementIndex / 2);
+
+          if (
+            estimatedSentenceIndex > 0 &&
+            estimatedSentenceIndex < sentences.length
+          ) {
+            console.log(
+              `📍 Starting from estimated sentence ${estimatedSentenceIndex}: "${sentences[
+                estimatedSentenceIndex
+              ].text.substring(0, 50)}..."`
+            );
+            return sentences.slice(estimatedSentenceIndex);
+          }
+        }
+
+        // Try page number extraction
+        const pageMatch = locator.cfi.match(/\[page(\d+)\]/);
+        if (pageMatch) {
+          const pageNum = parseInt(pageMatch[1]);
+          console.log("📍 Extracted page number from CFI:", pageNum);
+
+          // Estimate based on page number
+          // Assuming first page is around 341 based on your logs
+          const pagesIn = pageNum - 341;
+          if (pagesIn > 0) {
+            // Rough estimate: ~17 sentences per page
+            const estimatedSentenceIndex = Math.min(
+              Math.floor(pagesIn * 17),
+              sentences.length - 1
+            );
+
+            if (estimatedSentenceIndex > 0) {
+              console.log(
+                `📍 Page-based estimate: sentence ${estimatedSentenceIndex}: "${sentences[
+                  estimatedSentenceIndex
+                ].text.substring(0, 50)}..."`
+              );
+              return sentences.slice(estimatedSentenceIndex);
+            }
+          }
+        }
+      }
+
+      // Fallback: return all sentences
+      console.log("📍 Using all sentences from beginning");
       return sentences;
     }
 
@@ -278,6 +379,7 @@ export class SentenceIndexer implements TTSSentenceIndex {
         pageKey: String(locator.page),
         totalSentences: sentences.length,
         clickedChar: locator.char,
+        clickedText: (locator as any).clickedText?.substring(0, 50),
         firstFewSentences: sentences.slice(0, 3).map((s) => ({
           id: s.id,
           charStart: s.char_start,
@@ -286,7 +388,37 @@ export class SentenceIndexer implements TTSSentenceIndex {
         })),
       });
 
-      // If we have a specific character position, try to find the sentence that contains it
+      // First try: use clicked text if available
+      const clickedText = (locator as any).clickedText;
+      if (clickedText && sentences.length > 0) {
+        const searchText = clickedText.toLowerCase().trim();
+        console.log("🔍 Searching PDF for text:", searchText.substring(0, 50));
+
+        for (let i = 0; i < sentences.length; i++) {
+          const sentence = sentences[i];
+          if (
+            sentence.text.toLowerCase().includes(searchText.substring(0, 30))
+          ) {
+            console.log(
+              `✅ Found matching PDF sentence ${i}: "${sentence.text.substring(
+                0,
+                50
+              )}..."`
+            );
+            const result = sentences.slice(i);
+            console.log(
+              "📋 Returning",
+              result.length,
+              "sentences starting from match"
+            );
+            return result;
+          }
+        }
+
+        console.log("⚠️ Could not find clicked text in PDF sentences");
+      }
+
+      // Second try: use character position if available
       if (locator.char !== undefined && locator.char > 0) {
         const targetSentence = sentences.find(
           (s) => s.char_start <= locator.char! && s.char_end >= locator.char!
@@ -388,6 +520,8 @@ export class SentenceIndexer implements TTSSentenceIndex {
     }
   }
 
+  // In SentenceIndexer.ts, update the buildEPUBIndex method:
+
   private async buildEPUBIndex(
     bookId: string,
     href: string,
@@ -397,9 +531,15 @@ export class SentenceIndexer implements TTSSentenceIndex {
     if (indexData.epub.spine[href]?.built) return; // Already built
 
     // Get EPUB content from your existing EPUB renderer
-    // This is a placeholder - you'll need to integrate with your EPUB.js setup
     const epubContent = await this.getEPUBContent(href);
     if (!epubContent) return;
+
+    // Extract text from HTML on the main thread (where DOMParser IS available)
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(epubContent.html, "text/html");
+    const textContent = doc.body?.textContent || "";
+
+    console.log(`📝 Extracted ${textContent.length} characters from ${href}`);
 
     return new Promise<void>((resolve, reject) => {
       if (!this.worker) {
@@ -426,6 +566,9 @@ export class SentenceIndexer implements TTSSentenceIndex {
           };
 
           this.storage.saveSentences(bookId, indexData);
+          console.log(
+            `✅ Built index for ${href}: ${sentences.length} sentences`
+          );
           resolve();
         }
       };
@@ -434,7 +577,7 @@ export class SentenceIndexer implements TTSSentenceIndex {
       this.worker.postMessage({
         type: "splitEPUB",
         data: {
-          html: epubContent.html,
+          text: textContent, // Send plain text instead of HTML
           href,
           baseCharOffset: 0,
         },

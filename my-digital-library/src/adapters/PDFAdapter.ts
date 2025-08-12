@@ -117,45 +117,143 @@ export class PDFAdapter implements TTSAdapter {
       const target = event.target as Element;
       if (!target) return;
 
-      // Find the page element
-      const pageElement = target.closest("[data-page-number]");
-      if (!pageElement) return;
-
-      const pageNumber = parseInt(
-        pageElement.getAttribute("data-page-number") || "1"
+      // Get the clicked text
+      const clickedText = target.textContent?.substring(0, 100) || "";
+      console.log(
+        "🎯 PDF Click target:",
+        target.tagName,
+        clickedText.substring(0, 50)
       );
 
-      // Try to find text layer element
-      const textLayer = pageElement.querySelector(".textLayer");
-      if (!textLayer) return;
+      // Find the page number
+      const pageElement = target.closest(
+        ".pdf-page, .page, [data-page-number]"
+      );
+      const pageNum =
+        pageElement?.getAttribute("data-page-number") ||
+        pageElement?.getAttribute("data-page") ||
+        this.getCurrentPageNumber();
 
-      // Get approximate character position based on click location
-      const charOffset = this.getCharacterOffsetFromClick(event, textLayer);
+      if (!pageNum) {
+        console.warn("Could not determine page number");
+        return;
+      }
+
+      // Try to get character position
+      let charPosition = 0;
+      const textLayer = target.closest(".textLayer");
+      if (textLayer) {
+        // Calculate approximate character position
+        const allTextNodes = textLayer.querySelectorAll("span");
+        let totalChars = 0;
+
+        for (const span of allTextNodes) {
+          if (span === target || span.contains(target)) {
+            charPosition = totalChars;
+            break;
+          }
+          totalChars += (span.textContent || "").length;
+        }
+      }
+
+      console.log(
+        "📍 PDF double-click at page",
+        pageNum,
+        "char position",
+        charPosition
+      );
 
       if (this.startHereCallback) {
-        this.startHereCallback({
-          type: "pdf",
+        const locator: any = {
+          type: "pdf" as const,
           sentenceId: "",
-          page: pageNumber,
-          char: charOffset,
+          page: parseInt(pageNum),
+          char: charPosition,
+          clickedText: clickedText.trim(), // Add clicked text for PDF too
+        };
+
+        console.log("📍 Sending PDF locator with text:", {
+          page: locator.page,
+          char: locator.char,
+          clickedText: locator.clickedText.substring(0, 50) + "...",
         });
+
+        this.startHereCallback(locator);
       }
     } catch (error) {
-      console.warn("Failed to handle double click:", error);
+      console.warn("Failed to handle PDF double click:", error);
     }
   }
 
   private handleLongPress(event: TouchEvent): void {
-    const touch = event.touches[0];
-    if (!touch) return;
+    try {
+      const touch = event.touches[0];
+      if (!touch) return;
 
-    // Convert touch to mouse event for consistent handling
-    const mouseEvent = new MouseEvent("click", {
-      clientX: touch.clientX,
-      clientY: touch.clientY,
-    });
+      const element = document.elementFromPoint(touch.clientX, touch.clientY);
+      if (!element) return;
 
-    this.handleDoubleClick(mouseEvent);
+      // Get the clicked text
+      const clickedText = element.textContent?.substring(0, 100) || "";
+      console.log("👆 PDF Touch target:", clickedText.substring(0, 50));
+
+      // Find the page number
+      const pageElement = element.closest(
+        ".pdf-page, .page, [data-page-number]"
+      );
+      const pageNum =
+        pageElement?.getAttribute("data-page-number") ||
+        pageElement?.getAttribute("data-page") ||
+        this.getCurrentPageNumber();
+
+      if (!pageNum) {
+        console.warn("Could not determine page number");
+        return;
+      }
+
+      // Try to get character position
+      let charPosition = 0;
+      const textLayer = element.closest(".textLayer");
+      if (textLayer) {
+        const allTextNodes = textLayer.querySelectorAll("span");
+        let totalChars = 0;
+
+        for (const span of allTextNodes) {
+          if (span === element || span.contains(element)) {
+            charPosition = totalChars;
+            break;
+          }
+          totalChars += (span.textContent || "").length;
+        }
+      }
+
+      console.log(
+        "📍 PDF long press at page",
+        pageNum,
+        "char position",
+        charPosition
+      );
+
+      if (this.startHereCallback) {
+        const locator: any = {
+          type: "pdf" as const,
+          sentenceId: "",
+          page: parseInt(pageNum),
+          char: charPosition,
+          clickedText: clickedText.trim(),
+        };
+
+        console.log("📍 Sending PDF touch locator with text:", {
+          page: locator.page,
+          char: locator.char,
+          clickedText: locator.clickedText.substring(0, 50) + "...",
+        });
+
+        this.startHereCallback(locator);
+      }
+    } catch (error) {
+      console.warn("Failed to handle PDF long press:", error);
+    }
   }
 
   private getCurrentlyVisiblePage(): number | null {
@@ -390,5 +488,51 @@ export class PDFAdapter implements TTSAdapter {
   destroy(): void {
     this.clearHighlight();
     this.startHereCallback = null;
+  }
+
+  private getCurrentPageNumber(): string {
+    // Try to get from PDF.js viewer if available
+    if ((window as any).PDFViewerApplication) {
+      return String((window as any).PDFViewerApplication.page || 1);
+    }
+
+    // Try to find visible page in the container
+    const visiblePage = this.container.querySelector(
+      ".page:not([hidden]), .pdf-page:not([hidden]), [data-page-number]:not([hidden])"
+    );
+    if (visiblePage) {
+      const pageNum =
+        visiblePage.getAttribute("data-page-number") ||
+        visiblePage.getAttribute("data-page") ||
+        visiblePage.id?.replace(/\D/g, ""); // Extract number from id like "page1"
+      if (pageNum) return pageNum;
+    }
+
+    // Try to find the page in viewport
+    const pages = this.container.querySelectorAll(
+      ".page, .pdf-page, [data-page-number]"
+    );
+    for (const page of pages) {
+      const rect = page.getBoundingClientRect();
+      const containerRect = this.container.getBoundingClientRect();
+
+      // Check if page is in viewport
+      if (rect.top >= containerRect.top && rect.top <= containerRect.bottom) {
+        const pageNum =
+          page.getAttribute("data-page-number") ||
+          page.getAttribute("data-page") ||
+          page.id?.replace(/\D/g, "");
+        if (pageNum) return pageNum;
+      }
+    }
+
+    // Last resort: try to get from PDFDocument
+    if (this.pdfDocument) {
+      // If you have access to current page through PDF.js
+      return "1"; // Default to first page
+    }
+
+    console.warn("Could not determine current page number, defaulting to 1");
+    return "1";
   }
 }

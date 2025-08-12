@@ -7,6 +7,7 @@ export interface TTSLocator {
   // EPUB specific
   href?: string;
   cfi?: string;
+  clickedText?: string; // ADD THIS LINE
   // PDF specific
   page?: number;
   char?: number;
@@ -144,39 +145,6 @@ export class TTSController extends EventEmitter {
     await this.startPlayback();
   }
 
-  async resumeFromBookmark() {
-    if (!this.bookId || !this.storage) return;
-
-    const bookmark = await this.storage.loadBookmark(this.bookId);
-    if (!bookmark?.lastSentenceId) return;
-
-    // FIXED: Added await
-    const sentence = await this.sentenceIndex?.getSentence(
-      bookmark.lastSentenceId
-    );
-    if (!sentence) return;
-
-    // Navigate to the sentence location
-    const adapter = this.adapters.get(sentence.cfi_start ? "epub" : "pdf");
-    if (adapter) {
-      const locator: TTSLocator = sentence.cfi_start
-        ? { type: "epub", sentenceId: sentence.id, cfi: sentence.cfi_start }
-        : {
-            type: "pdf",
-            sentenceId: sentence.id,
-            page: sentence.page!,
-            char: sentence.char_start,
-          };
-
-      await adapter.goToLocator(locator);
-    }
-
-    this.currentSentenceId = bookmark.lastSentenceId;
-    this.offsetInSentence = bookmark.offsetSec || 0;
-
-    await this.startPlayback();
-  }
-
   private async startPlayback() {
     if (!this.currentSentenceId || !this.audioContext || !this.synthesizer)
       return;
@@ -274,18 +242,63 @@ export class TTSController extends EventEmitter {
       adapter.highlightSentence(sentence);
     }
 
-    // Navigate to sentence if not already visible
+    // SMART NAVIGATION: Only navigate when switching pages/chapters
     if (adapter) {
-      const locator: TTSLocator = sentence.cfi_start
-        ? { type: "epub", sentenceId: sentence.id, cfi: sentence.cfi_start }
-        : {
+      const currentLocator = adapter.getLocator();
+
+      if (sentence.page !== undefined) {
+        // PDF: Navigate if on different page
+        if (currentLocator?.page !== sentence.page) {
+          console.log("📄 Navigating to PDF page:", sentence.page);
+          const locator: TTSLocator = {
             type: "pdf",
             sentenceId: sentence.id,
-            page: sentence.page!,
+            page: sentence.page,
             char: sentence.char_start,
           };
+          adapter.goToLocator(locator).catch(console.error);
+        }
+      } else if (sentence.cfi_start) {
+        // EPUB: Check if sentence is visible, if not navigate to it
+        if ("isLocationVisible" in adapter) {
+          const isVisible = await (adapter as any).isLocationVisible(
+            sentence.cfi_start
+          );
 
-      adapter.goToLocator(locator).catch(console.error);
+          if (!isVisible) {
+            console.log("📖 Sentence not visible, navigating to it");
+            const locator: TTSLocator = {
+              type: "epub",
+              sentenceId: sentence.id,
+              cfi: sentence.cfi_start,
+            };
+            await adapter.goToLocator(locator);
+          }
+        } else {
+          // Fallback: navigate if CFI is significantly different
+          if (currentLocator?.cfi) {
+            const currentNum = parseInt(
+              currentLocator.cfi.match(/\/(\d+)/)?.[1] || "0"
+            );
+            const sentenceNum = parseInt(
+              sentence.cfi_start.match(/\/(\d+)/)?.[1] || "0"
+            );
+
+            // If sentence is more than 50 elements away, probably need to turn page
+            if (Math.abs(sentenceNum - currentNum) > 50) {
+              console.log(
+                "📖 Sentence appears to be on different page, navigating"
+              );
+              const locator: TTSLocator = {
+                type: "epub",
+                sentenceId: sentence.id,
+                cfi: sentence.cfi_start,
+              };
+              await adapter.goToLocator(locator);
+            }
+          }
+        }
+      }
     }
 
     // Save bookmark
@@ -295,19 +308,137 @@ export class TTSController extends EventEmitter {
     this.preloadNextSentence(sentenceId);
   }
 
+  // Add this helper method to extract href from CFI
+  private extractHrefFromCFI(cfi: string): string | undefined {
+    // CFI format might include href information
+    // This is a simplified extraction - adjust based on your CFI format
+    const match = cfi.match(/\[(.*?)\]/);
+    if (match) {
+      return match[1];
+    }
+    // You might need to look this up from your sentence index
+    return undefined;
+  }
+
+  // Add this helper method to check if EPUB needs page turn
+  private async checkAndTurnEPUBPage(
+    adapter: TTSAdapter,
+    sentence: TTSSentence
+  ) {
+    try {
+      // For EPUB, we need to check if the sentence is visible in current view
+      // This is tricky because EPUB uses virtual pagination
+
+      // Get current location from adapter
+      const currentLoc = adapter.getLocator();
+      if (!currentLoc?.cfi || !sentence.cfi_start) return;
+
+      // Simple approach: if CFI is significantly different, turn page
+      // You might need to adjust this logic based on your EPUB viewer
+      const currentCFINum = this.extractCFINumber(currentLoc.cfi);
+      const sentenceCFINum = this.extractCFINumber(sentence.cfi_start);
+
+      // If sentence is more than a "page" away, navigate to it
+      if (Math.abs(currentCFINum - sentenceCFINum) > 100) {
+        console.log("📖 Turning EPUB page to show sentence");
+        const locator: TTSLocator = {
+          type: "epub",
+          sentenceId: sentence.id,
+          cfi: sentence.cfi_start,
+        };
+        await adapter.goToLocator(locator);
+      }
+    } catch (error) {
+      console.warn("Error checking EPUB page turn:", error);
+    }
+  }
+
+  // Helper to extract a comparable number from CFI
+  private extractCFINumber(cfi: string): number {
+    // Extract the main navigation number from CFI
+    // CFI format: epubcfi(/6/60!/4/160[page378]/6/2,/1:0,/1:1)
+    const match = cfi.match(/\/4\/(\d+)/);
+    if (match) {
+      return parseInt(match[1], 10);
+    }
+    return 0;
+  }
+
   private async playNextSentence() {
     if (!this.currentSentenceId) return;
 
-    const nextSentence = await this.sentenceIndex?.getNextSentence(
+    let nextSentence = await this.sentenceIndex?.getNextSentence(
       this.currentSentenceId
     );
+
+    // If no next sentence, try to load next page/chapter
+    if (!nextSentence?.id && this.sentenceIndex && this.bookId) {
+      console.log("📄 No more sentences, trying to load next page/chapter...");
+
+      // Get current sentence to know where we are
+      const currentSentence = await this.sentenceIndex.getSentence(
+        this.currentSentenceId
+      );
+
+      if (currentSentence?.page !== undefined) {
+        // PDF: Load next page
+        const nextPage = currentSentence.page + 1;
+        console.log(`📄 Loading PDF page ${nextPage}...`);
+
+        const nextLocator: TTSLocator = {
+          type: "pdf",
+          sentenceId: "",
+          page: nextPage,
+          char: 0,
+        };
+
+        // Build index for next page
+        await this.sentenceIndex.buildIndex(this.bookId, nextLocator);
+
+        // Get sentences from next page
+        const sentences = await this.sentenceIndex.getSentencesFromLocator(
+          nextLocator
+        );
+        if (sentences.length > 0) {
+          nextSentence = sentences[0];
+          console.log("✅ Loaded next PDF page");
+        }
+      } else if (currentSentence?.cfi_start) {
+        // EPUB: For now, just stop at chapter end
+        // (Implementing chapter navigation is more complex)
+        console.log("📖 Reached end of EPUB chapter");
+      }
+    }
+
     if (nextSentence?.id) {
       this.currentSentenceId = nextSentence.id;
       await this.playSentence(nextSentence.id);
     } else {
+      console.log("📚 No more content to play");
       await this.stop();
       this.emit("playbackEnded");
     }
+  }
+
+  // Add this helper method to get next EPUB chapter
+  private async getNextEPUBChapter(
+    currentSentence: TTSSentence
+  ): Promise<string | null> {
+    // This needs to be implemented based on your EPUB structure
+    // You might need to access the EPUB book's spine to get chapter order
+
+    // For now, return null - you'll need to implement this based on your EPUB adapter
+    // Ideally, you'd have access to the book's spine/TOC structure
+
+    // Example implementation (you'll need to adjust):
+    /*
+  const adapter = this.adapters.get("epub");
+  if (adapter && 'getNextChapter' in adapter) {
+    return await (adapter as any).getNextChapter();
+  }
+  */
+
+    return null;
   }
 
   private async preloadNextSentence(currentId: string) {
@@ -473,13 +604,75 @@ export class TTSController extends EventEmitter {
     if (!this.bookId || !this.currentSentenceId || !this.storage) return;
 
     try {
-      await this.storage.saveBookmark(this.bookId, {
-        lastSentenceId: this.currentSentenceId,
-        offsetSec: this.offsetInSentence,
-      });
+      // Get the actual sentence being played
+      const currentSentence = await this.sentenceIndex?.getSentence(
+        this.currentSentenceId
+      );
+
+      if (currentSentence) {
+        // Save the bookmark with sentence's actual position
+        const bookmark = {
+          lastSentenceId: this.currentSentenceId,
+          offsetSec: this.offsetInSentence,
+          // Also save position info for direct navigation
+          cfi: currentSentence.cfi_start,
+          page: currentSentence.page,
+          href: currentSentence.cfi_start ? undefined : currentSentence.page,
+        };
+
+        await this.storage.saveBookmark(this.bookId, bookmark as any);
+        console.log("📌 Bookmark saved:", {
+          sentenceId: this.currentSentenceId,
+          cfi: currentSentence.cfi_start?.substring(0, 50),
+          page: currentSentence.page,
+        });
+      }
     } catch (error) {
       console.warn("Failed to save bookmark:", error);
     }
+  }
+
+  // And update resumeFromBookmark to use the saved position:
+
+  async resumeFromBookmark() {
+    if (!this.bookId || !this.storage) return;
+
+    const bookmark = await this.storage.loadBookmark(this.bookId);
+    if (!bookmark?.lastSentenceId) return;
+
+    console.log("📖 Resuming from bookmark:", bookmark);
+
+    // Get the sentence
+    const sentence = await this.sentenceIndex?.getSentence(
+      bookmark.lastSentenceId
+    );
+    if (!sentence) return;
+
+    // Navigate to the exact position first
+    const adapter = this.adapters.get(sentence.cfi_start ? "epub" : "pdf");
+    if (adapter) {
+      const locator: TTSLocator = sentence.cfi_start
+        ? {
+            type: "epub",
+            sentenceId: sentence.id,
+            cfi: sentence.cfi_start,
+            href: (bookmark as any).href,
+          }
+        : {
+            type: "pdf",
+            sentenceId: sentence.id,
+            page: sentence.page!,
+            char: sentence.char_start,
+          };
+
+      console.log("📍 Navigating to bookmarked position:", locator);
+      await adapter.goToLocator(locator);
+    }
+
+    this.currentSentenceId = bookmark.lastSentenceId;
+    this.offsetInSentence = bookmark.offsetSec || 0;
+
+    await this.startPlayback();
   }
 
   private async saveSettings() {

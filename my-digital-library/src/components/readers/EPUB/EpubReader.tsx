@@ -531,7 +531,13 @@ const EpubReader = forwardRef<EpubReaderRef, EpubReaderProps>(
           );
 
           newRendition.on("relocated", (location: any) => {
+            if ((newRendition as any).ttsNavigating) {
+              console.log("📍 Skipping progress save - TTS is navigating");
+              return;
+            }
+
             selectionHandlerRef.current(null);
+
             if (locationTimeoutRef.current)
               clearTimeout(locationTimeoutRef.current);
 
