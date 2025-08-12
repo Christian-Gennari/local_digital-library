@@ -1,0 +1,32 @@
+/* index.css */
+@import url("https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Lora:ital,wght@0,400..700;1,400..700&display=swap");
+
+@import "tailwindcss";
+
+@theme {
+  /* Font families */
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Lora", Georgia, "Times New Roman", Times, serif;
+
+  /* Colors, breakpoints, spacing, etc. */
+  --color-primary: oklch(0.84 0.18 117.33);
+  /* …other tokens… */
+}
+
+/* React-PDF styles */
+.react-pdf__Page__canvas {
+  max-width: 100%;
+  height: auto !important;
+}
+
+.react-pdf__Page__textContent {
+  user-select: text;
+}
+
+.react-pdf__Page__annotations {
+  user-select: none;
+}
+
+@utility hide-scrollbar {
+  @apply [scrollbar-width:none] [&::-webkit-scrollbar]:hidden;
+}
