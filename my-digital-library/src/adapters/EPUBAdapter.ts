@@ -55,58 +55,6 @@ export class EPUBAdapter implements TTSAdapter {
       }
 
       // If we only have href and we're already in that chapter, don't navigate
-      if (!locator.cfi && locator.href && currentHref === locator.href) {
-        console.log(
-          "✅ Already in the correct chapter and no specific CFI provided, skipping navigation"
-        );
-        return;
-      }
-
-      // Set a flag to indicate this is TTS navigation (not user navigation)
-      // This prevents the relocated event from saving progress
-      (this.rendition as any).ttsNavigating = true;
-
-      // Navigate to the position
-      if (locator.cfi && locator.cfi.length > 0) {
-        console.log("📍 Navigating to specific CFI position:", locator.cfi);
-        await this.rendition.display(locator.cfi);
-      } else if (locator.href) {
-        console.log(
-          "📍 WARNING: No CFI, navigating to chapter start:",
-          locator.href
-        );
-        await this.rendition.display(locator.href);
-      } else {
-        console.log("❌ No CFI or href to navigate to!");
-      }
-
-      // Clear the flag after a short delay to ensure the relocated event has fired
-      setTimeout(() => {
-        (this.rendition as any).ttsNavigating = false;
-      }, 100);
-    } catch (error) {
-      console.warn("Failed to navigate to locator:", error);
-      // Make sure to clear the flag on error too
-      (this.rendition as any).ttsNavigating = false;
-    }
-
-    try {
-      // Check current location first
-      const currentLocation = this.rendition.currentLocation();
-      const currentCFI = currentLocation?.start?.cfi;
-      const currentHref = currentLocation?.start?.href;
-
-      console.log("📍 Current position:", { currentCFI, currentHref });
-
-      // If we have a CFI and we're already at that exact position, don't navigate
-      if (locator.cfi && currentCFI === locator.cfi) {
-        console.log(
-          "✅ Already at the correct CFI position, skipping navigation"
-        );
-        return;
-      }
-
-      // If we only have href and we're already in that chapter, don't navigate
       // (This prevents jumping to chapter start when clicking within the same chapter)
       if (!locator.cfi && locator.href && currentHref === locator.href) {
         console.log(
