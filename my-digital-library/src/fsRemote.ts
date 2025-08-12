@@ -16,6 +16,7 @@ const ok = async (res: Response) => {
 };
 
 export const RemoteFS = {
+  // ------- books -------
   listBooks: async (): Promise<RemoteBook[]> =>
     (await ok(await fetch("/api/books"))).json(),
 
@@ -65,7 +66,6 @@ export const RemoteFS = {
       book.fileName
     )}`,
 
-  // --- NEW: uploads ---
   uploadBook: async (
     file: File,
     metadata: Partial<BookMetadata>,
@@ -119,4 +119,29 @@ export const RemoteFS = {
         })
       )
     ).json(),
+
+  // ------- collections -------
+  getCollections: async (): Promise<Collection[]> =>
+    (await ok(await fetch("/api/collections"))).json(),
+
+  saveCollections: async (collections: Collection[]) =>
+    (
+      await ok(
+        await fetch("/api/collections", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ collections }),
+        })
+      )
+    ).json(),
+};
+
+// Re-export Collection type for convenience
+export type Collection = {
+  id: string;
+  name: string;
+  parentId?: string;
+  bookIds: string[];
+  createdAt: string;
+  updatedAt: string;
 };

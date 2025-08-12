@@ -1,351 +1,526 @@
-// my-digital-library/src/components/TTSPlayer.tsx
-import React, { forwardRef, useImperativeHandle } from "react";
-import { Book } from "../types";
-import { useEpubTTS } from "../hooks/useEpubTTS";
-
-export interface TTSPlayerRef {
-  play: () => void;
-  stop: () => void;
-}
+// src/components/TTSPlayer.tsx
+import React, { useEffect, useRef, useState } from "react";
+import {
+  PlayIcon,
+  PauseIcon,
+  StopIcon,
+  ForwardIcon,
+  BackwardIcon,
+  SpeakerWaveIcon,
+  Cog6ToothIcon,
+} from "@heroicons/react/24/outline";
+import { TTSController } from "../services/TTSController";
+import { KokoroSynthesizer } from "../services/KokoroSynthesizer";
+import { LocalTTSStorage, SentenceIndexer } from "../services/SentenceIndexer";
+import { EPUBAdapter } from "../adapters/EPUBAdapter";
+import { PDFAdapter } from "../adapters/PDFAdapter";
 
 interface TTSPlayerProps {
-  book: Book;
-  rendition: any;
-  startCfi: string;
+  bookId: string;
+  bookType: "epub" | "pdf";
+  // For EPUB
+  epubBook?: any;
+  epubRendition?: any;
+  // For PDF
+  pdfDocument?: any;
+  pdfContainer?: HTMLElement;
+  // UI props
+  className?: string;
+  compact?: boolean;
 }
 
-export const TTSPlayer = forwardRef<TTSPlayerRef, TTSPlayerProps>(
-  ({ book, rendition, startCfi }, ref) => {
-    const {
-      isPlaying,
-      isPaused,
-      isLoading,
-      currentChunk,
-      totalChunks,
-      voices,
-      selectedVoice,
-      speed,
-      error,
-      playFromCfi,
-      pause,
-      resume,
-      stop,
-      setVoice,
-      setSpeed,
-      isAvailable,
-      skipNext,
-      skipPrevious,
-    } = useEpubTTS(book, rendition);
+interface Voice {
+  id: string;
+  name: string;
+  gender: string;
+}
 
-    useImperativeHandle(ref, () => ({
-      play: () => playFromCfi(startCfi),
-      stop,
-    }));
+export function TTSPlayer({
+  bookId,
+  bookType,
+  epubBook,
+  epubRendition,
+  pdfDocument,
+  pdfContainer,
+  className = "",
+  compact = false,
+}: TTSPlayerProps) {
+  const [isInitialized, setIsInitialized] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [currentSentence, setCurrentSentence] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
 
-    if (!isAvailable) {
-      return (
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-          <div className="flex items-center gap-2 text-amber-800">
-            <svg
-              className="h-5 w-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={1.5}
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z"
-              />
-            </svg>
-            <span className="text-sm font-medium">TTS service unavailable</span>
-          </div>
-        </div>
-      );
+  // Settings
+  const [voices, setVoices] = useState<Voice[]>([]);
+  const [selectedVoice, setSelectedVoice] = useState("af_heart");
+  const [rate, setRate] = useState(1.0);
+  const [volume, setVolume] = useState(1.0);
+  const [showSettings, setShowSettings] = useState(false);
+
+  // Core TTS system
+  const ttsControllerRef = useRef<TTSController | null>(null);
+  const synthesizerRef = useRef<KokoroSynthesizer | null>(null);
+  const indexerRef = useRef<SentenceIndexer | null>(null);
+  const storageRef = useRef<LocalTTSStorage | null>(null);
+  const adapterRef = useRef<EPUBAdapter | PDFAdapter | null>(null);
+
+  // Initialize TTS system
+  useEffect(() => {
+    initializeTTS();
+    loadVoices();
+
+    return () => {
+      cleanup();
+    };
+  }, [bookId, bookType]);
+
+  // Update adapters when props change
+  useEffect(() => {
+    if (!isInitialized) return;
+
+    updateAdapter();
+  }, [epubBook, epubRendition, pdfDocument, pdfContainer, isInitialized]);
+
+  const initializeTTS = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      // Create core components
+      synthesizerRef.current = new KokoroSynthesizer();
+      storageRef.current = new LocalTTSStorage();
+      indexerRef.current = new SentenceIndexer(storageRef.current);
+      ttsControllerRef.current = new TTSController();
+
+      // Set current book for indexer
+      indexerRef.current.setCurrentBook(bookId);
+
+      // Create appropriate adapter
+      let adapter = null;
+      if (bookType === "epub" && epubBook && epubRendition) {
+        adapter = new EPUBAdapter(epubBook, epubRendition);
+      } else if (bookType === "pdf" && pdfDocument && pdfContainer) {
+        adapter = new PDFAdapter(pdfDocument, pdfContainer);
+      }
+
+      if (adapter) {
+        adapterRef.current = adapter;
+
+        // Set up start-here handler
+        adapter.onStartHere((locator) => {
+          handleStartHere(locator);
+        });
+      }
+
+      // Initialize TTS Controller
+      await ttsControllerRef.current.init({
+        synthesizer: synthesizerRef.current,
+        storage: storageRef.current,
+        sentenceIndex: indexerRef.current,
+        adapters: {
+          epub: bookType === "epub" ? (adapter as EPUBAdapter) : undefined,
+          pdf: bookType === "pdf" ? (adapter as PDFAdapter) : undefined,
+        },
+      });
+
+      // Set up event handlers
+      setupEventHandlers();
+
+      // Set current book
+      await ttsControllerRef.current.setBook(bookId);
+
+      setIsInitialized(true);
+    } catch (error) {
+      console.error("Failed to initialize TTS:", error);
+      setError("Failed to initialize text-to-speech system");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const updateAdapter = () => {
+    if (!ttsControllerRef.current || !isInitialized) return;
+
+    let adapter = null;
+    if (bookType === "epub" && epubBook && epubRendition) {
+      adapter = new EPUBAdapter(epubBook, epubRendition);
+    } else if (bookType === "pdf" && pdfDocument && pdfContainer) {
+      adapter = new PDFAdapter(pdfDocument, pdfContainer);
     }
 
+    if (adapter) {
+      // Clean up old adapter
+      if (adapterRef.current) {
+        adapterRef.current.destroy();
+      }
+
+      adapterRef.current = adapter;
+
+      // Set up start-here handler
+      adapter.onStartHere((locator) => {
+        handleStartHere(locator);
+      });
+    }
+  };
+
+  const setupEventHandlers = () => {
+    if (!ttsControllerRef.current) return;
+
+    const controller = ttsControllerRef.current;
+
+    controller.on("playbackStarted", () => {
+      setIsPlaying(true);
+      setIsPaused(false);
+    });
+
+    controller.on("paused", () => {
+      setIsPaused(true);
+    });
+
+    controller.on("resumed", () => {
+      setIsPaused(false);
+    });
+
+    controller.on("stopped", () => {
+      setIsPlaying(false);
+      setIsPaused(false);
+      setCurrentSentence(null);
+    });
+
+    controller.on("sentence", (sentence) => {
+      setCurrentSentence(sentence);
+    });
+
+    controller.on("playbackEnded", () => {
+      setIsPlaying(false);
+      setIsPaused(false);
+      setCurrentSentence(null);
+    });
+  };
+
+  const loadVoices = async () => {
+    try {
+      const response = await fetch("/api/tts/voices");
+      if (response.ok) {
+        const voiceData = await response.json();
+        setVoices(voiceData);
+      }
+    } catch (error) {
+      console.error("Failed to load voices:", error);
+    }
+  };
+
+  const handleStartHere = async (locator: any) => {
+    if (!ttsControllerRef.current) return;
+
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      await ttsControllerRef.current.playFromLocator(locator);
+    } catch (error) {
+      console.error("Failed to start playback:", error);
+      setError("Failed to start playback from selected location");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handlePlay = async () => {
+    if (!ttsControllerRef.current) return;
+
+    try {
+      setError(null);
+
+      if (isPaused) {
+        await ttsControllerRef.current.resume();
+      } else {
+        // Try to resume from bookmark first
+        await ttsControllerRef.current.resumeFromBookmark();
+      }
+    } catch (error) {
+      console.error("Failed to start/resume playback:", error);
+      setError(
+        "Failed to start playback. Try double-tapping on text to select a starting point."
+      );
+    }
+  };
+
+  const handlePause = async () => {
+    if (!ttsControllerRef.current) return;
+
+    try {
+      await ttsControllerRef.current.pause();
+    } catch (error) {
+      console.error("Failed to pause:", error);
+    }
+  };
+
+  const handleStop = async () => {
+    if (!ttsControllerRef.current) return;
+
+    try {
+      await ttsControllerRef.current.stop();
+    } catch (error) {
+      console.error("Failed to stop:", error);
+    }
+  };
+
+  const handlePrevSentence = async () => {
+    if (!ttsControllerRef.current) return;
+
+    try {
+      await ttsControllerRef.current.prevSentence();
+    } catch (error) {
+      console.error("Failed to go to previous sentence:", error);
+    }
+  };
+
+  const handleNextSentence = async () => {
+    if (!ttsControllerRef.current) return;
+
+    try {
+      await ttsControllerRef.current.nextSentence();
+    } catch (error) {
+      console.error("Failed to go to next sentence:", error);
+    }
+  };
+
+  const handleVoiceChange = (voiceId: string) => {
+    setSelectedVoice(voiceId);
+    if (ttsControllerRef.current) {
+      ttsControllerRef.current.setVoice(voiceId);
+    }
+  };
+
+  const handleRateChange = (newRate: number) => {
+    setRate(newRate);
+    if (ttsControllerRef.current) {
+      ttsControllerRef.current.setRate(newRate);
+    }
+  };
+
+  const handleVolumeChange = (newVolume: number) => {
+    setVolume(newVolume);
+    if (ttsControllerRef.current) {
+      ttsControllerRef.current.setVolume(newVolume);
+    }
+  };
+
+  const cleanup = () => {
+    if (ttsControllerRef.current) {
+      ttsControllerRef.current.destroy();
+      ttsControllerRef.current = null;
+    }
+    if (adapterRef.current) {
+      adapterRef.current.destroy();
+      adapterRef.current = null;
+    }
+    if (indexerRef.current) {
+      indexerRef.current.destroy();
+      indexerRef.current = null;
+    }
+    if (synthesizerRef.current) {
+      synthesizerRef.current.clearCache();
+      synthesizerRef.current = null;
+    }
+  };
+
+  if (!isInitialized && isLoading) {
     return (
-      <div className="bg-white rounded-lg shadow-lg border border-slate-200 p-6">
-        {/* Header */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-lg font-semibold text-slate-900">
-              Text to Speech
-            </h3>
-            <button
-              onClick={stop}
-              className="text-slate-400 hover:text-slate-600 transition-colors"
-              title="Close TTS"
-            >
-              <svg
-                className="h-5 w-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={1.5}
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M6 18 18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
-          </div>
-
-          {/* Voice Selection */}
-          <div className="flex gap-4 mb-4">
-            <div className="flex-1">
-              <label className="block text-xs font-medium text-slate-600 mb-1">
-                Voice
-              </label>
-              <select
-                value={selectedVoice}
-                onChange={(e) => setVoice(e.target.value)}
-                disabled={isPlaying}
-                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-slate-500 bg-white disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {voices.map((voice) => (
-                  <option key={voice.id} value={voice.id}>
-                    {voice.name} ({voice.language})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="w-32">
-              <label className="block text-xs font-medium text-slate-600 mb-1">
-                Speed
-              </label>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setSpeed(speed - 0.1)}
-                  disabled={isPlaying || speed <= 0.5}
-                  className="h-8 w-8 rounded border border-slate-300 bg-white hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <svg
-                    className="h-3 w-3 mx-auto"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    strokeWidth={2}
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M5 12h14"
-                    />
-                  </svg>
-                </button>
-                <span className="text-sm font-medium text-slate-700 min-w-[3ch] text-center">
-                  {speed.toFixed(1)}x
-                </span>
-                <button
-                  onClick={() => setSpeed(speed + 0.1)}
-                  disabled={isPlaying || speed >= 2.0}
-                  className="h-8 w-8 rounded border border-slate-300 bg-white hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <svg
-                    className="h-3 w-3 mx-auto"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    strokeWidth={2}
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M12 4.5v15m0 0 6.75-6.75M12 19.5l-6.75-6.75"
-                    />
-                  </svg>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Progress */}
-          {totalChunks > 0 && (
-            <div className="mb-4">
-              <div className="flex justify-between text-xs text-slate-500 mb-1">
-                <span>
-                  Chunk {currentChunk + 1} of {totalChunks}
-                </span>
-                <span>
-                  {Math.round(((currentChunk + 1) / totalChunks) * 100)}%
-                </span>
-              </div>
-              <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-blue-500 transition-all duration-300"
-                  style={{
-                    width: `${((currentChunk + 1) / totalChunks) * 100}%`,
-                  }}
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Error Message */}
-          {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-sm text-red-800">{error}</p>
-            </div>
-          )}
-        </div>
-
-        {/* Controls */}
-        <div className="flex items-center justify-center gap-4">
-          <button
-            onClick={skipPrevious}
-            disabled={!isPlaying || currentChunk === 0}
-            className="h-10 w-10 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            title="Previous chunk"
-          >
-            <svg
-              className="h-5 w-5 mx-auto"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={1.5}
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M21 16.811c0 .864-.933 1.406-1.683.977l-7.108-4.061a1.125 1.125 0 0 1 0-1.954l7.108-4.061A1.125 1.125 0 0 1 21 8.688v8.123ZM11.25 16.811c0 .864-.933 1.406-1.683.977l-7.108-4.061a1.125 1.125 0 0 1 0-1.954L9.567 7.712a1.125 1.125 0 0 1 1.683.977v8.122Z"
-              />
-            </svg>
-          </button>
-
-      {!isPlaying ? (
-            <button
-              onClick={() => playFromCfi(startCfi)}
-              disabled={isLoading}
-              className="h-14 w-14 rounded-full bg-slate-900 text-white hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
-            >
-              {isLoading ? (
-                <svg
-                  className="h-6 w-6 animate-spin"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  />
-                </svg>
-              ) : (
-                <svg
-                  className="h-6 w-6 ml-1"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={1.5}
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 0 1 0 1.972l-11.54 6.347a1.125 1.125 0 0 1-1.667-.986V5.653Z"
-                  />
-                </svg>
-              )}
-            </button>
-          ) : isPaused ? (
-            <button
-              onClick={resume}
-              className="h-14 w-14 rounded-full bg-slate-900 text-white hover:bg-slate-800 transition-colors flex items-center justify-center"
-            >
-              <svg
-                className="h-6 w-6 ml-1"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={1.5}
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 0 1 0 1.972l-11.54 6.347a1.125 1.125 0 0 1-1.667-.986V5.653Z"
-                />
-              </svg>
-            </button>
-          ) : (
-            <button
-              onClick={pause}
-              className="h-14 w-14 rounded-full bg-slate-900 text-white hover:bg-slate-800 transition-colors flex items-center justify-center"
-            >
-              <svg
-                className="h-6 w-6"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={1.5}
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M15.75 5.25v13.5m-7.5-13.5v13.5"
-                />
-              </svg>
-            </button>
-          )}
-
-          <button
-            onClick={skipNext}
-            disabled={!isPlaying || currentChunk >= totalChunks - 1}
-            className="h-10 w-10 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            title="Next chunk"
-          >
-            <svg
-              className="h-5 w-5 mx-auto"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={1.5}
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="m3 8.689c0-.864.933-1.406 1.683-.977l7.108 4.061a1.125 1.125 0 0 1 0 1.954l-7.108 4.061A1.125 1.125 0 0 1 3 16.811V8.69ZM12.75 8.689c0-.864.933-1.406 1.683-.977l7.108 4.061a1.125 1.125 0 0 1 0 1.954l-7.108 4.061a1.125 1.125 0 0 1-1.683-.977V8.69Z"
-              />
-            </svg>
-          </button>
-
-          <button
-            onClick={stop}
-            disabled={!isPlaying}
-            className="h-10 w-10 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            title="Stop"
-          >
-            <svg
-              className="h-5 w-5 mx-auto"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={1.5}
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M5.25 7.5A2.25 2.25 0 0 1 7.5 5.25h9a2.25 2.25 0 0 1 2.25 2.25v9a2.25 2.25 0 0 1-2.25 2.25h-9a2.25 2.25 0 0 1-2.25-2.25v-9Z"
-              />
-            </svg>
-          </button>
-        </div>
-
-        {/* Reading options removed in CFI-based version */}
+      <div className={`flex items-center gap-2 ${className}`}>
+        <div className="animate-spin h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full" />
+        <span className="text-sm text-gray-600">Initializing TTS...</span>
       </div>
     );
   }
-);
 
-TTSPlayer.displayName = "TTSPlayer";
+  if (compact) {
+    return (
+      <div className={`flex items-center gap-1 ${className}`}>
+        {error && (
+          <div className="text-xs text-red-600 mr-2" title={error}>
+            ⚠️
+          </div>
+        )}
+
+        <button
+          onClick={isPlaying && !isPaused ? handlePause : handlePlay}
+          disabled={isLoading}
+          className="p-1 rounded hover:bg-gray-100 disabled:opacity-50"
+          title={isPlaying && !isPaused ? "Pause" : "Play"}
+        >
+          {isLoading ? (
+            <div className="h-4 w-4 animate-spin border-2 border-blue-600 border-t-transparent rounded-full" />
+          ) : isPlaying && !isPaused ? (
+            <PauseIcon className="h-4 w-4" />
+          ) : (
+            <PlayIcon className="h-4 w-4" />
+          )}
+        </button>
+
+        {isPlaying && (
+          <button
+            onClick={handleStop}
+            className="p-1 rounded hover:bg-gray-100"
+            title="Stop"
+          >
+            <StopIcon className="h-4 w-4" />
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={`bg-white rounded-lg shadow-sm border border-gray-200 ${className}`}
+    >
+      {/* Header */}
+      <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <SpeakerWaveIcon className="h-5 w-5 text-blue-600" />
+          <h3 className="font-medium text-gray-900">Text-to-Speech</h3>
+        </div>
+
+        <button
+          onClick={() => setShowSettings(!showSettings)}
+          className="p-1 rounded hover:bg-gray-100"
+          title="Settings"
+        >
+          <Cog6ToothIcon className="h-4 w-4 text-gray-600" />
+        </button>
+      </div>
+
+      {/* Error Display */}
+      {error && (
+        <div className="px-4 py-2 bg-red-50 border-b border-red-200">
+          <p className="text-sm text-red-700">{error}</p>
+        </div>
+      )}
+
+      {/* Current Sentence Display */}
+      {currentSentence && (
+        <div className="px-4 py-3 bg-blue-50 border-b border-blue-200">
+          <p className="text-sm text-blue-900 font-medium mb-1">Now Playing:</p>
+          <p className="text-sm text-blue-800 line-clamp-2">
+            {currentSentence.text}
+          </p>
+        </div>
+      )}
+
+      {/* Controls */}
+      <div className="px-4 py-4">
+        <div className="flex items-center justify-center gap-3">
+          <button
+            onClick={handlePrevSentence}
+            disabled={!isPlaying}
+            className="p-2 rounded-full hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Previous Sentence"
+          >
+            <BackwardIcon className="h-5 w-5" />
+          </button>
+
+          <button
+            onClick={isPlaying && !isPaused ? handlePause : handlePlay}
+            disabled={isLoading}
+            className="p-3 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            title={isPlaying && !isPaused ? "Pause" : "Play"}
+          >
+            {isLoading ? (
+              <div className="h-6 w-6 animate-spin border-2 border-white border-t-transparent rounded-full" />
+            ) : isPlaying && !isPaused ? (
+              <PauseIcon className="h-6 w-6" />
+            ) : (
+              <PlayIcon className="h-6 w-6" />
+            )}
+          </button>
+
+          <button
+            onClick={handleNextSentence}
+            disabled={!isPlaying}
+            className="p-2 rounded-full hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Next Sentence"
+          >
+            <ForwardIcon className="h-5 w-5" />
+          </button>
+
+          <button
+            onClick={handleStop}
+            disabled={!isPlaying}
+            className="p-2 rounded-full hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Stop"
+          >
+            <StopIcon className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Instructions */}
+        {!isPlaying && !currentSentence && (
+          <div className="mt-4 text-center">
+            <p className="text-sm text-gray-600">
+              Double-tap on text to start reading from that point
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Settings Panel */}
+      {showSettings && (
+        <div className="border-t border-gray-200 px-4 py-4 space-y-4">
+          {/* Voice Selection */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Voice
+            </label>
+            <select
+              value={selectedVoice}
+              onChange={(e) => handleVoiceChange(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {voices.map((voice) => (
+                <option key={voice.id} value={voice.id}>
+                  {voice.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Speed Control */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Speed: {rate.toFixed(1)}x
+            </label>
+            <input
+              type="range"
+              min="0.5"
+              max="2.0"
+              step="0.1"
+              value={rate}
+              onChange={(e) => handleRateChange(parseFloat(e.target.value))}
+              className="w-full"
+            />
+          </div>
+
+          {/* Volume Control */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Volume: {Math.round(volume * 100)}%
+            </label>
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.1"
+              value={volume}
+              onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
+              className="w-full"
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

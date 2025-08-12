@@ -1,6 +1,6 @@
 // src/collectionsStore.ts
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { RemoteFS } from "./fsRemote";
 
 export interface Collection {
   id: string;
@@ -11,193 +11,204 @@ export interface Collection {
   updatedAt: string;
 }
 
-interface CollectionsStore {
-  collections: Collection[];
+export interface CollectionNode extends Collection {
+  children: CollectionNode[];
+}
 
+interface CollectionsStore {
+  // state
+  collections: Collection[];
+  isLoaded: boolean;
+  lastSavedAt?: string;
+  isSaving: boolean;
+
+  // lifecycle
+  load: () => Promise<void>;
+  forceSave: () => Promise<void>;
+
+  // mutations
   createCollection: (name: string, parentId?: string) => Collection;
   updateCollection: (id: string, updates: Partial<Collection>) => void;
   deleteCollection: (id: string) => void;
   addBookToCollection: (collectionId: string, bookId: string) => void;
   removeBookFromCollection: (collectionId: string, bookId: string) => void;
-  getCollectionHierarchy: () => CollectionNode[];
+
+  // queries
   getCollectionById: (id: string) => Collection | undefined;
+  getCollectionHierarchy: () => CollectionNode[];
   getCollectionBooks: (collectionId: string, allBooks: any[]) => any[];
+  getCollectionCount: (collectionId: string) => number;
 }
 
-export interface CollectionNode extends Collection {
-  children: CollectionNode[];
+let saveTimer: number | null = null;
+const DEBOUNCE_MS = 300;
+
+async function persist(collections: Collection[], set: any) {
+  set({ isSaving: true });
+  const res = await RemoteFS.saveCollections(collections);
+  set({ isSaving: false, lastSavedAt: res?.updatedAt });
 }
 
-export const useCollectionsStore = create<CollectionsStore>()(
-  persist(
-    (set, get) => ({
-      collections: [],
+function scheduleSave(get: () => CollectionsStore, set: any) {
+  if (saveTimer) window.clearTimeout(saveTimer);
+  saveTimer = window.setTimeout(() => {
+    const { collections } = get();
+    persist(collections, set).catch(console.error);
+  }, DEBOUNCE_MS);
+}
 
-      createCollection: (name, parentId) => {
-        const newCollection: Collection = {
-          id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-          name,
-          parentId,
-          bookIds: [],
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
+export const useCollectionsStore = create<CollectionsStore>((set, get) => ({
+  collections: [],
+  isLoaded: false,
+  isSaving: false,
+  lastSavedAt: undefined,
 
-        set((state) => ({
-          collections: [...state.collections, newCollection],
-        }));
-
-        return newCollection;
-      },
-
-      updateCollection: (id, updates) => {
-        set((state) => ({
-          collections: state.collections.map((col) =>
-            col.id === id
-              ? { ...col, ...updates, updatedAt: new Date().toISOString() }
-              : col
-          ),
-        }));
-      },
-
-      deleteCollection: (id) => {
-        const deleteRecursive = (collectionId: string) => {
-          const { collections } = get();
-          const childCollections = collections.filter(
-            (col) => col.parentId === collectionId
-          );
-
-          // Delete all child collections recursively
-          childCollections.forEach((child) => deleteRecursive(child.id));
-
-          // Delete the collection itself
-          set((state) => ({
-            collections: state.collections.filter(
-              (col) => col.id !== collectionId
-            ),
-          }));
-        };
-
-        deleteRecursive(id);
-      },
-
-      addBookToCollection: (collectionId, bookId) => {
-        set((state) => ({
-          collections: state.collections.map((col) =>
-            col.id === collectionId
-              ? {
-                  ...col,
-                  bookIds: [...new Set([...col.bookIds, bookId])],
-                  updatedAt: new Date().toISOString(),
-                }
-              : col
-          ),
-        }));
-      },
-
-      removeBookFromCollection: (collectionId, bookId) => {
-        set((state) => ({
-          collections: state.collections.map((col) =>
-            col.id === collectionId
-              ? {
-                  ...col,
-                  bookIds: col.bookIds.filter((id) => id !== bookId),
-                  updatedAt: new Date().toISOString(),
-                }
-              : col
-          ),
-        }));
-      },
-
-      getCollectionById: (id) => {
-        return get().collections.find((col) => col.id === id);
-      },
-
-      // Get all books that belong to a collection (including subcollections)
-      getCollectionBooks: (collectionId: string, allBooks: any[]): any[] => {
-        const { collections } = get();
-
-        // Get all descendant collection IDs
-        const getAllDescendantIds = (id: string): string[] => {
-          const descendants = [id];
-          const children = collections.filter((c) => c.parentId === id);
-
-          children.forEach((child) => {
-            descendants.push(...getAllDescendantIds(child.id));
-          });
-
-          return descendants;
-        };
-
-        const allCollectionIds = getAllDescendantIds(collectionId);
-
-        // Get unique books across all these collections
-        const uniqueBookIds = new Set<string>();
-        const booksInCollection: any[] = [];
-
-        allBooks.forEach((book) => {
-          if (
-            book.metadata.collectionIds?.some((id: string) =>
-              allCollectionIds.includes(id)
-            )
-          ) {
-            if (!uniqueBookIds.has(book.id)) {
-              uniqueBookIds.add(book.id);
-              booksInCollection.push(book);
-            }
-          }
-        });
-
-        return booksInCollection;
-      },
-
-      getCollectionHierarchy: () => {
-        const { collections } = get();
-        const collectionMap = new Map<string, CollectionNode>();
-        const rootCollections: CollectionNode[] = [];
-
-        // First pass: create all nodes
-        collections.forEach((collection) => {
-          collectionMap.set(collection.id, {
-            ...collection,
-            children: [],
-          });
-        });
-
-        // Second pass: build hierarchy
-        collections.forEach((collection) => {
-          const node = collectionMap.get(collection.id)!;
-
-          if (collection.parentId) {
-            const parent = collectionMap.get(collection.parentId);
-            if (parent) {
-              parent.children.push(node);
-            } else {
-              // If parent doesn't exist, treat as root
-              rootCollections.push(node);
-            }
-          } else {
-            rootCollections.push(node);
-          }
-        });
-
-        // Sort collections alphabetically
-        const sortCollections = (collections: CollectionNode[]) => {
-          collections.sort((a, b) => a.name.localeCompare(b.name));
-          collections.forEach((col) => {
-            if (col.children.length > 0) {
-              sortCollections(col.children);
-            }
-          });
-        };
-
-        sortCollections(rootCollections);
-        return rootCollections;
-      },
-    }),
-    {
-      name: "collections-storage",
-      version: 1,
+  load: async () => {
+    try {
+      const data = await RemoteFS.getCollections();
+      if (Array.isArray(data)) set({ collections: data, isLoaded: true });
+      else set({ collections: [], isLoaded: true });
+    } catch (e) {
+      console.error("collections:load", e);
+      set({ collections: [], isLoaded: true });
     }
-  )
-);
+  },
+
+  forceSave: async () => {
+    const { collections } = get();
+    await persist(collections, set);
+  },
+
+  createCollection: (name, parentId) => {
+    const now = new Date().toISOString();
+    const col: Collection = {
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
+      name: name.trim(),
+      parentId,
+      bookIds: [],
+      createdAt: now,
+      updatedAt: now,
+    };
+    set((state: CollectionsStore) => ({
+      collections: [...state.collections, col],
+    }));
+    scheduleSave(get, set);
+    return col;
+  },
+
+  updateCollection: (id, updates) => {
+    set((state: CollectionsStore) => ({
+      collections: state.collections.map((c) =>
+        c.id === id
+          ? { ...c, ...updates, updatedAt: new Date().toISOString() }
+          : c
+      ),
+    }));
+    scheduleSave(get, set);
+  },
+
+  deleteCollection: (id) => {
+    const all = get().collections;
+    // gather descendants
+    const childrenByParent = new Map<string, string[]>();
+    for (const c of all) {
+      const p = c.parentId || "";
+      if (!childrenByParent.has(p)) childrenByParent.set(p, []);
+      childrenByParent.get(p)!.push(c.id);
+    }
+    const toDelete = new Set<string>();
+    const stack = [id];
+    while (stack.length) {
+      const x = stack.pop()!;
+      toDelete.add(x);
+      const kids = childrenByParent.get(x) || [];
+      for (const k of kids) stack.push(k);
+    }
+    set((state: CollectionsStore) => ({
+      collections: state.collections.filter((c) => !toDelete.has(c.id)),
+    }));
+    scheduleSave(get, set);
+  },
+
+  addBookToCollection: (collectionId, bookId) => {
+    set((state: CollectionsStore) => ({
+      collections: state.collections.map((c) =>
+        c.id === collectionId
+          ? {
+              ...c,
+              bookIds: c.bookIds.includes(bookId)
+                ? c.bookIds
+                : [...c.bookIds, bookId],
+              updatedAt: new Date().toISOString(),
+            }
+          : c
+      ),
+    }));
+    scheduleSave(get, set);
+  },
+
+  removeBookFromCollection: (collectionId, bookId) => {
+    set((state: CollectionsStore) => ({
+      collections: state.collections.map((c) =>
+        c.id === collectionId
+          ? {
+              ...c,
+              bookIds: c.bookIds.filter((b) => b !== bookId),
+              updatedAt: new Date().toISOString(),
+            }
+          : c
+      ),
+    }));
+    scheduleSave(get, set);
+  },
+
+  getCollectionById: (id) => get().collections.find((c) => c.id === id),
+
+  getCollectionHierarchy: () => {
+    const nodes = new Map<string, CollectionNode>();
+    const roots: CollectionNode[] = [];
+    for (const c of get().collections) nodes.set(c.id, { ...c, children: [] });
+    for (const c of get().collections) {
+      const node = nodes.get(c.id)!;
+      if (c.parentId && nodes.has(c.parentId)) {
+        nodes.get(c.parentId)!.children.push(node);
+      } else {
+        roots.push(node);
+      }
+    }
+    const sort = (arr: CollectionNode[]) => {
+      arr.sort((a, b) => a.name.localeCompare(b.name));
+      arr.forEach((n) => n.children.length && sort(n.children));
+    };
+    sort(roots);
+    return roots;
+  },
+
+  getCollectionBooks: (collectionId, allBooks) => {
+    const byId = new Map(get().collections.map((c) => [c.id, c]));
+    const gather = (id: string, acc: Set<string>) => {
+      const node = byId.get(id);
+      if (!node) return;
+      node.bookIds.forEach((b) => acc.add(b));
+      for (const c of get().collections) {
+        if (c.parentId === id) gather(c.id, acc);
+      }
+    };
+    const ids = new Set<string>();
+    gather(collectionId, ids);
+    return allBooks.filter((b: any) => ids.has(b.id));
+  },
+
+  getCollectionCount: (collectionId) => {
+    const allBooks = new Set<string>();
+    const byId = new Map(get().collections.map((c) => [c.id, c]));
+    const dfs = (id: string) => {
+      const c = byId.get(id);
+      if (!c) return;
+      c.bookIds.forEach((b) => allBooks.add(b));
+      for (const k of get().collections) if (k.parentId === id) dfs(k.id);
+    };
+    dfs(collectionId);
+    return allBooks.size;
+  },
+}));

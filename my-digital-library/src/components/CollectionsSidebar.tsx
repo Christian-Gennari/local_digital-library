@@ -42,6 +42,7 @@ export function CollectionsSidebar({
     deleteCollection,
     updateCollection,
     getCollectionHierarchy,
+    getCollectionCount, // <-- use store-provided counter
   } = useCollectionsStore();
 
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(
@@ -106,27 +107,8 @@ export function CollectionsSidebar({
   // Hierarchy
   const userCollections = useMemo(
     () => getCollectionHierarchy(),
-    [collections]
+    [collections, getCollectionHierarchy]
   );
-
-  // Count books in a collection (including descendants)
-  const getCollectionCount = (collectionId: string): number => {
-    const getAllDescendantIds = (id: string): string[] => {
-      const descendants = [id];
-      const children = collections.filter((c) => c.parentId === id);
-      for (const child of children)
-        descendants.push(...getAllDescendantIds(child.id));
-      return descendants;
-    };
-
-    const allIds = getAllDescendantIds(collectionId);
-    const uniqueBookIds = new Set<string>();
-    for (const b of books) {
-      const ids = b.metadata.collectionIds || [];
-      if (ids.some((id) => allIds.includes(id))) uniqueBookIds.add(b.id);
-    }
-    return uniqueBookIds.size;
-  };
 
   // Smart counts
   const currentlyReadingCount = books.filter(
@@ -319,7 +301,7 @@ export function CollectionsSidebar({
     const isSelected = selectedCollection === col.id;
     const isEditing = editingCollectionId === col.id;
     const isCreatingSub = creatingSubcollectionParentId === col.id;
-    const count = getCollectionCount(col.id);
+    const count = getCollectionCount(col.id); // <- uses store
 
     return (
       <Fragment key={col.id}>

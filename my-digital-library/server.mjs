@@ -82,6 +82,26 @@ const listBooks = async () => {
   return books;
 };
 
+// ---- Collections storage (.nostos/collections.json) ----
+const NOSTOS_DIR = path.join(LIBRARY_ROOT, ".nostos");
+const COLLECTIONS_PATH = path.join(NOSTOS_DIR, "collections.json");
+
+const ensureCollectionsFile = async () => {
+  await ensureDir(NOSTOS_DIR);
+  try {
+    await fs.stat(COLLECTIONS_PATH);
+  } catch {
+    const seed = {
+      version: 1,
+      updatedAt: new Date().toISOString(),
+      collections: [],
+    };
+    await writeJSON(COLLECTIONS_PATH, seed);
+  }
+};
+
+await ensureCollectionsFile(); // call once during boot
+
 // Add this debug route before your static middleware
 app.get("/debug/dist", async (req, res) => {
   try {
@@ -90,6 +110,54 @@ app.get("/debug/dist", async (req, res) => {
     res.json(files);
   } catch (error) {
     res.json({ error: error.message });
+  }
+});
+
+// ---------- COLLECTIONS API ----------
+// Shape on disk: { version: 1, updatedAt: string, collections: Collection[] }
+// Collection = { id, name, parentId?, bookIds: string[], createdAt, updatedAt }
+
+app.get("/api/collections", async (_req, res) => {
+  try {
+    await ensureCollectionsFile();
+    const data = await readJSON(COLLECTIONS_PATH, null);
+    res.json((data && data.collections) || []);
+  } catch (e) {
+    console.error("collections:get", e);
+    res.status(500).json({ error: "Could not read collections" });
+  }
+});
+
+app.put("/api/collections", async (req, res) => {
+  try {
+    const collections = Array.isArray(req.body?.collections)
+      ? req.body.collections
+      : null;
+    if (!collections) {
+      return res
+        .status(400)
+        .json({ error: "Body must be { collections: Collection[] }" });
+    }
+    // Minimal validation
+    for (const c of collections) {
+      if (!c || typeof c !== "object")
+        return res.status(400).json({ error: "Invalid collection" });
+      if (typeof c.id !== "string" || typeof c.name !== "string")
+        return res.status(400).json({ error: "Collection must have id/name" });
+      if (!Array.isArray(c.bookIds))
+        return res.status(400).json({ error: "bookIds must be an array" });
+    }
+    const payload = {
+      version: 1,
+      updatedAt: new Date().toISOString(),
+      collections,
+    };
+    await ensureCollectionsFile();
+    await writeJSON(COLLECTIONS_PATH, payload);
+    res.json({ ok: true, updatedAt: payload.updatedAt });
+  } catch (e) {
+    console.error("collections:put", e);
+    res.status(500).json({ error: "Could not write collections" });
   }
 });
 
@@ -340,12 +408,10 @@ app.listen(port, () => {
   console.log(`📂 root   ${LIBRARY_ROOT}`);
 });
 
-// Add these to your server.mjs file
-
 // ---------- TTS ENDPOINTS (OpenAI-Compatible Kokoro) ----------
 
 // Get available voices
-app.get("/api/tts/voices", async (req, res) => {
+app.get("/api/tts/voices", async (_req, res) => {
   try {
     const voices = await ttsService.getVoices();
     res.json(voices);
@@ -356,7 +422,7 @@ app.get("/api/tts/voices", async (req, res) => {
 });
 
 // Check TTS availability
-app.get("/api/tts/status", async (req, res) => {
+app.get("/api/tts/status", async (_req, res) => {
   try {
     const available = await ttsService.isAvailable();
     const voices = available ? await ttsService.getVoices() : [];
@@ -380,7 +446,6 @@ app.post("/api/tts/synthesize", async (req, res) => {
       return res.status(400).json({ error: "Text is required" });
     }
 
-    // Default to af_heart if no voice specified
     const selectedVoice = voice || "af_heart";
 
     const audioBuffer = await ttsService.synthesize(text, {
@@ -420,17 +485,14 @@ app.post("/api/books/:id/tts/extract", async (req, res) => {
     let extractedText = "";
 
     if (format === "pdf") {
-      // For PDFs - you'll need pdf-parse
       try {
         const pdfParse = (await import("pdf-parse")).default;
         const dataBuffer = await fs.readFile(path.join(bookPath, bookFile));
         const data = await pdfParse(dataBuffer);
 
         if (startPage && endPage) {
-          // Simple page extraction (you may need more sophisticated parsing)
           const allText = data.text;
-          const pages = allText.split(/\f/); // Form feed character often separates pages
-
+          const pages = allText.split(/\f/);
           const start = Math.max(0, startPage - 1);
           const end = Math.min(pages.length, endPage);
           extractedText = pages.slice(start, end).join("\n\n");
@@ -442,7 +504,6 @@ app.post("/api/books/:id/tts/extract", async (req, res) => {
         return res.status(500).json({ error: "Failed to extract PDF text" });
       }
     } else if (format === "epub") {
-      // For EPUBs - you'll need epub or epub-parser
       try {
         const EPub = (await import("epub")).default;
         const epub = new EPub(path.join(bookPath, bookFile));
@@ -462,7 +523,6 @@ app.post("/api/books/:id/tts/extract", async (req, res) => {
           });
           extractedText = chapterData;
         } else {
-          // Get first chapter as default
           if (epub.flow && epub.flow[0]) {
             const firstChapter = await new Promise((resolve, reject) => {
               epub.getChapter(epub.flow[0].id, (err, text) => {
@@ -481,15 +541,13 @@ app.post("/api/books/:id/tts/extract", async (req, res) => {
       return res.status(400).json({ error: "Format not supported for TTS" });
     }
 
-    // Clean the text
     extractedText = extractedText
-      .replace(/<[^>]*>/g, "") // Remove HTML tags
-      .replace(/\[.*?\]/g, "") // Remove markdown links
-      .replace(/\s+/g, " ") // Normalize whitespace
-      .replace(/[^\x00-\x7F]/g, "") // Remove non-ASCII for safety
+      .replace(/<[^>]*>/g, "")
+      .replace(/\[.*?\]/g, "")
+      .replace(/\s+/g, " ")
+      .replace(/[^\x00-\x7F]/g, "")
       .trim();
 
-    // Limit length if needed
     if (maxLength && extractedText.length > maxLength) {
       extractedText = extractedText.substring(0, maxLength) + "...";
     }
@@ -535,11 +593,292 @@ app.post("/api/tts/stream", async (req, res) => {
 });
 
 // Get TTS models (optional endpoint)
-app.get("/api/tts/models", async (req, res) => {
+app.get("/api/tts/models", async (_req, res) => {
   try {
     const models = await ttsService.getModels();
     res.json(models);
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch models" });
   }
+});
+
+// Load sentence index for a book
+app.get("/api/books/:id/tts/sentences", async (req, res) => {
+  try {
+    const bookPath = path.join(LIBRARY_ROOT, req.params.id);
+    const sentencesPath = path.join(bookPath, "sentences.json");
+
+    try {
+      const data = await fs.readFile(sentencesPath, "utf8");
+      res.json(JSON.parse(data));
+    } catch (error) {
+      // Return empty structure if file doesn't exist
+      res.json({
+        version: 1,
+        epub: { spine: {} },
+        pdf: { pages: {} },
+      });
+    }
+  } catch (error) {
+    console.error("Error loading sentences:", error);
+    res.status(500).json({ error: "Failed to load sentences" });
+  }
+});
+
+// Save sentence index for a book
+app.put("/api/books/:id/tts/sentences", async (req, res) => {
+  try {
+    const bookPath = path.join(LIBRARY_ROOT, req.params.id);
+    await ensureDir(bookPath);
+
+    const sentencesPath = path.join(bookPath, "sentences.json");
+    await fs.writeFile(sentencesPath, JSON.stringify(req.body, null, 2));
+
+    res.json({ ok: true });
+  } catch (error) {
+    console.error("Error saving sentences:", error);
+    res.status(500).json({ error: "Failed to save sentences" });
+  }
+});
+
+// Load TTS bookmark for a book
+app.get("/api/books/:id/tts/bookmark", async (req, res) => {
+  try {
+    const bookPath = path.join(LIBRARY_ROOT, req.params.id);
+    const bookmarkPath = path.join(bookPath, "tts-bookmark.json");
+
+    try {
+      const data = await fs.readFile(bookmarkPath, "utf8");
+      res.json(JSON.parse(data));
+    } catch (error) {
+      // Return null if no bookmark exists
+      res.json(null);
+    }
+  } catch (error) {
+    console.error("Error loading bookmark:", error);
+    res.status(500).json({ error: "Failed to load bookmark" });
+  }
+});
+
+// Save TTS bookmark for a book
+app.put("/api/books/:id/tts/bookmark", async (req, res) => {
+  try {
+    const bookPath = path.join(LIBRARY_ROOT, req.params.id);
+    await ensureDir(bookPath);
+
+    const bookmarkPath = path.join(bookPath, "tts-bookmark.json");
+    await fs.writeFile(bookmarkPath, JSON.stringify(req.body, null, 2));
+
+    res.json({ ok: true });
+  } catch (error) {
+    console.error("Error saving bookmark:", error);
+    res.status(500).json({ error: "Failed to save bookmark" });
+  }
+});
+
+// Load TTS settings for a book
+app.get("/api/books/:id/tts/settings", async (req, res) => {
+  try {
+    const bookPath = path.join(LIBRARY_ROOT, req.params.id);
+    const settingsPath = path.join(bookPath, "tts-settings.json");
+
+    try {
+      const data = await fs.readFile(settingsPath, "utf8");
+      res.json(JSON.parse(data));
+    } catch (error) {
+      // Return default settings if file doesn't exist
+      res.json({
+        voice: "af_heart",
+        rate: 1.0,
+        volume: 1.0,
+      });
+    }
+  } catch (error) {
+    console.error("Error loading TTS settings:", error);
+    res.status(500).json({ error: "Failed to load TTS settings" });
+  }
+});
+
+// Save TTS settings for a book
+app.put("/api/books/:id/tts/settings", async (req, res) => {
+  try {
+    const bookPath = path.join(LIBRARY_ROOT, req.params.id);
+    await ensureDir(bookPath);
+
+    const settingsPath = path.join(bookPath, "tts-settings.json");
+    await fs.writeFile(settingsPath, JSON.stringify(req.body, null, 2));
+
+    res.json({ ok: true });
+  } catch (error) {
+    console.error("Error saving TTS settings:", error);
+    res.status(500).json({ error: "Failed to save TTS settings" });
+  }
+});
+
+// Get EPUB chapter content for sentence indexing
+app.get("/api/books/:id/epub/chapter/:href", async (req, res) => {
+  try {
+    const bookPath = path.join(LIBRARY_ROOT, req.params.id);
+    const files = await fs.readdir(bookPath);
+    const epubFile = files.find((n) => n.endsWith(".epub"));
+
+    if (!epubFile) {
+      return res.status(404).json({ error: "EPUB file not found" });
+    }
+
+    // Use epub library to extract chapter content
+    const EPub = (await import("epub")).default;
+    const epubPath = path.join(bookPath, epubFile);
+
+    return new Promise((resolve, reject) => {
+      const epub = new EPub(epubPath);
+
+      epub.on("end", () => {
+        // Find the chapter by href
+        const chapter = epub.spine.contents.find(
+          (item) =>
+            item.href === req.params.href || item.href.endsWith(req.params.href)
+        );
+
+        if (!chapter) {
+          return res.status(404).json({ error: "Chapter not found" });
+        }
+
+        epub.getChapter(chapter.id, (error, text) => {
+          if (error) {
+            console.error("Error reading chapter:", error);
+            return res.status(500).json({ error: "Failed to read chapter" });
+          }
+
+          res.json({
+            href: chapter.href,
+            html: text,
+          });
+        });
+      });
+
+      epub.on("error", (error) => {
+        console.error("EPUB parsing error:", error);
+        res.status(500).json({ error: "Failed to parse EPUB" });
+      });
+
+      epub.parse();
+    });
+  } catch (error) {
+    console.error("Error extracting EPUB chapter:", error);
+    res.status(500).json({ error: "Failed to extract chapter" });
+  }
+});
+
+// Get PDF page text content for sentence indexing
+app.get("/api/books/:id/pdf/page/:page", async (req, res) => {
+  try {
+    const bookPath = path.join(LIBRARY_ROOT, req.params.id);
+    const files = await fs.readdir(bookPath);
+    const pdfFile = files.find((n) => n.endsWith(".pdf"));
+
+    if (!pdfFile) {
+      return res.status(404).json({ error: "PDF file not found" });
+    }
+
+    const pageNum = parseInt(req.params.page, 10);
+    if (isNaN(pageNum) || pageNum < 1) {
+      return res.status(400).json({ error: "Invalid page number" });
+    }
+
+    // Use pdf-parse to extract page text
+    const pdfParse = (await import("pdf-parse")).default;
+    const dataBuffer = await fs.readFile(path.join(bookPath, pdfFile));
+
+    // Parse with page-specific options
+    const data = await pdfParse(dataBuffer, {
+      pagerender: function (pageData) {
+        // Only render the requested page
+        if (pageData.pageIndex + 1 === pageNum) {
+          return pageData.getTextContent().then(function (textContent) {
+            return textContent.items.map((item) => item.str).join(" ");
+          });
+        }
+        return "";
+      },
+    });
+
+    // Extract just the text for the requested page
+    const allText = data.text;
+    const pages = allText.split(/\f/); // Form feed separates pages
+    const pageText = pages[pageNum - 1] || "";
+
+    res.json({
+      page: pageNum,
+      text: pageText.trim(),
+    });
+  } catch (error) {
+    console.error("Error extracting PDF page:", error);
+    res.status(500).json({ error: "Failed to extract page text" });
+  }
+});
+
+// Enhanced TTS synthesis endpoint that returns ArrayBuffer for AudioContext
+app.post("/api/tts/synthesize-buffer", async (req, res) => {
+  try {
+    const { text, voice, speed } = req.body;
+
+    if (!text) {
+      return res.status(400).json({ error: "Text is required" });
+    }
+
+    // Default to af_heart if no voice specified
+    const selectedVoice = voice || "af_heart";
+
+    const audioBuffer = await ttsService.synthesize(text, {
+      voice: selectedVoice,
+      speed: speed || 1.0,
+      format: "mp3",
+    });
+
+    res.set({
+      "Content-Type": "application/octet-stream",
+      "Content-Length": audioBuffer.length,
+      "Cache-Control": "public, max-age=3600",
+    });
+
+    res.send(audioBuffer);
+  } catch (error) {
+    console.error("TTS synthesis error:", error);
+    res
+      .status(500)
+      .json({ error: "Failed to synthesize speech: " + error.message });
+  }
+});
+
+// Throttled bookmark saving to avoid too frequent writes
+const bookmarkSaveQueues = new Map();
+
+app.put("/api/books/:id/tts/bookmark-throttled", async (req, res) => {
+  const bookId = req.params.id;
+
+  // Clear existing timer for this book
+  if (bookmarkSaveQueues.has(bookId)) {
+    clearTimeout(bookmarkSaveQueues.get(bookId));
+  }
+
+  // Set new timer to save after 2 seconds of inactivity
+  const timer = setTimeout(async () => {
+    try {
+      const bookPath = path.join(LIBRARY_ROOT, bookId);
+      await ensureDir(bookPath);
+
+      const bookmarkPath = path.join(bookPath, "tts-bookmark.json");
+      await fs.writeFile(bookmarkPath, JSON.stringify(req.body, null, 2));
+
+      bookmarkSaveQueues.delete(bookId);
+    } catch (error) {
+      console.error("Error saving throttled bookmark:", error);
+    }
+  }, 2000);
+
+  bookmarkSaveQueues.set(bookId, timer);
+
+  // Return immediately
+  res.json({ ok: true, queued: true });
 });
