@@ -1,5 +1,5 @@
 // src/services/SentenceIndexer.ts
-import { TTSLocator, TTSSentence, TTSSentenceIndex } from "./TTSController";
+import { TTSLocator, TTSSentence, SentenceIndex } from "./TTSController";
 
 export interface SentenceIndexData {
   version: number;
@@ -21,7 +21,7 @@ export interface SentenceIndexData {
   };
 }
 
-export class SentenceIndexer implements TTSSentenceIndex {
+export class SentenceIndexer implements SentenceIndex {
   private storage: any; // TTSStorage interface
   protected indexCache = new Map<string, SentenceIndexData>();
   private worker: Worker | null = null;

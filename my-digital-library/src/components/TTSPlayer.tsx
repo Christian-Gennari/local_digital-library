@@ -9,7 +9,7 @@ import {
   SpeakerWaveIcon,
   Cog6ToothIcon,
 } from "@heroicons/react/24/outline";
-import { TTSController } from "../services/TTSController";
+import { TTSController, PlaybackState } from "../services/TTSController";
 import { KokoroSynthesizer } from "../services/KokoroSynthesizer";
 import { LocalTTSStorage, SentenceIndexer } from "../services/SentenceIndexer";
 import { EPUBAdapter } from "../adapters/EPUBAdapter";
@@ -47,8 +47,7 @@ export function TTSPlayer({
   compact = false,
 }: TTSPlayerProps) {
   const [isInitialized, setIsInitialized] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [isPaused, setIsPaused] = useState(false);
+  const [playbackState, setPlaybackState] = useState<PlaybackState>(PlaybackState.IDLE);
   const [isLoading, setIsLoading] = useState(false);
   const [currentSentence, setCurrentSentence] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
@@ -80,7 +79,6 @@ export function TTSPlayer({
   // Update adapters when props change
   useEffect(() => {
     if (!isInitialized) return;
-
     updateAdapter();
   }, [epubBook, epubRendition, pdfDocument, pdfContainer, isInitialized]);
 
@@ -91,107 +89,73 @@ export function TTSPlayer({
       setError(null);
 
       // Create core components
-      console.log("🔧 Creating TTS components...");
       synthesizerRef.current = new KokoroSynthesizer();
       storageRef.current = new LocalTTSStorage();
       ttsControllerRef.current = new TTSController();
-
-      console.log("📖 Creating sentence indexer...");
       indexerRef.current = new SentenceIndexer(
         storageRef.current,
         ttsControllerRef.current
       );
 
       // Set current book for indexer
-      console.log(`📚 Setting book: ${bookId}`);
       indexerRef.current.setCurrentBook(bookId);
 
       // Create appropriate adapter
-      console.log(`🔌 Creating ${bookType} adapter...`);
-      let adapter = null;
-      if (bookType === "epub" && epubBook && epubRendition) {
-        adapter = new EPUBAdapter(epubBook, epubRendition);
-        console.log("✅ EPUB adapter created");
-      } else if (bookType === "pdf" && pdfDocument && pdfContainer) {
-        adapter = new PDFAdapter(pdfDocument, pdfContainer);
-        console.log("✅ PDF adapter created");
-      } else {
-        console.error("❌ No valid adapter could be created", {
-          bookType,
-          hasEpubBook: !!epubBook,
-          hasEpubRendition: !!epubRendition,
-          hasPdfDocument: !!pdfDocument,
-          hasPdfContainer: !!pdfContainer,
-        });
-      }
-
-      if (adapter) {
-        adapterRef.current = adapter;
-
-        // Set up start-here handler
-        console.log("🎯 Setting up start-here handler...");
-        adapter.onStartHere((locator) => {
-          console.log("🎯 Start-Here triggered:", locator);
-          handleStartHere(locator);
-        });
-      }
+      await createAdapter();
 
       // Initialize TTS Controller
-      console.log("🎮 Initializing TTS Controller...");
       await ttsControllerRef.current.init({
         synthesizer: synthesizerRef.current,
         storage: storageRef.current,
         sentenceIndex: indexerRef.current,
         adapters: {
-          epub: bookType === "epub" ? (adapter as EPUBAdapter) : undefined,
-          pdf: bookType === "pdf" ? (adapter as PDFAdapter) : undefined,
+          epub: bookType === "epub" ? (adapterRef.current as EPUBAdapter) : undefined,
+          pdf: bookType === "pdf" ? (adapterRef.current as PDFAdapter) : undefined,
         },
       });
 
       // Set up event handlers
-      console.log("📡 Setting up event handlers...");
       setupEventHandlers();
 
       // Set current book and load settings
-      console.log("⚙️ Setting book and loading settings...");
       await ttsControllerRef.current.setBook(bookId);
 
-      // Load voices
-      console.log("🗣️ Loading voices...");
-      await loadVoices();
-
-      console.log("✅ TTS initialization complete!");
       setIsInitialized(true);
       setIsLoading(false);
     } catch (error) {
-      console.error("❌ TTS initialization failed:", error);
-      setError("Failed to initialize text-to-speech system");
+      console.error("TTS initialization failed:", error);
+      setError("Failed to initialize text-to-speech");
       setIsLoading(false);
     }
   };
 
-  const updateAdapter = () => {
-    if (!ttsControllerRef.current || !isInitialized) return;
-
-    let adapter = null;
+  const createAdapter = async () => {
     if (bookType === "epub" && epubBook && epubRendition) {
-      adapter = new EPUBAdapter(epubBook, epubRendition);
+      adapterRef.current = new EPUBAdapter(epubBook, epubRendition);
     } else if (bookType === "pdf" && pdfDocument && pdfContainer) {
-      adapter = new PDFAdapter(pdfDocument, pdfContainer);
+      adapterRef.current = new PDFAdapter(pdfDocument, pdfContainer);
     }
 
-    if (adapter) {
-      // Clean up old adapter
-      if (adapterRef.current) {
-        adapterRef.current.destroy();
-      }
-
-      adapterRef.current = adapter;
-
-      // Set up start-here handler
-      adapter.onStartHere((locator) => {
+    if (adapterRef.current) {
+      adapterRef.current.onStartHere((locator) => {
         handleStartHere(locator);
       });
+    }
+  };
+
+  const updateAdapter = async () => {
+    // Clean up old adapter
+    if (adapterRef.current) {
+      adapterRef.current.destroy();
+      adapterRef.current = null;
+    }
+
+    await createAdapter();
+
+    // Re-register with controller if needed
+    if (ttsControllerRef.current) {
+      // Controller might need to be re-initialized with new adapter
+      // This depends on your implementation
     }
   };
 
@@ -201,21 +165,19 @@ export function TTSPlayer({
     const controller = ttsControllerRef.current;
 
     controller.on("playbackStarted", () => {
-      setIsPlaying(true);
-      setIsPaused(false);
+      setPlaybackState(PlaybackState.PLAYING);
     });
 
     controller.on("paused", () => {
-      setIsPaused(true);
+      setPlaybackState(PlaybackState.PAUSED);
     });
 
     controller.on("resumed", () => {
-      setIsPaused(false);
+      setPlaybackState(PlaybackState.PLAYING);
     });
 
     controller.on("stopped", () => {
-      setIsPlaying(false);
-      setIsPaused(false);
+      setPlaybackState(PlaybackState.IDLE);
       setCurrentSentence(null);
     });
 
@@ -224,8 +186,7 @@ export function TTSPlayer({
     });
 
     controller.on("playbackEnded", () => {
-      setIsPlaying(false);
-      setIsPaused(false);
+      setPlaybackState(PlaybackState.IDLE);
       setCurrentSentence(null);
     });
   };
@@ -243,14 +204,7 @@ export function TTSPlayer({
   };
 
   const handleStartHere = async (locator: TTSLocator) => {
-    console.log("🎯 handleStartHere called with DETAILED locator:", {
-      type: locator.type,
-      sentenceId: locator.sentenceId,
-      page: locator.page,
-      char: locator.char,
-      href: locator.href,
-      cfi: locator.cfi,
-    });
+    console.log("🎯 Starting playback from locator:", locator);
 
     if (!ttsControllerRef.current) {
       console.error("❌ TTS Controller not available");
@@ -258,11 +212,9 @@ export function TTSPlayer({
     }
 
     try {
-      console.log("▶️ Starting playback from locator...");
       await ttsControllerRef.current.playFromLocator(locator);
-      console.log("✅ Playback started successfully");
     } catch (error) {
-      console.error("❌ Failed to start playbook:", error);
+      console.error("❌ Failed to start playback:", error);
       setError("Failed to start text-to-speech");
     }
   };
@@ -272,18 +224,33 @@ export function TTSPlayer({
 
     try {
       setError(null);
+      const state = ttsControllerRef.current.getState();
 
-      if (isPaused) {
-        await ttsControllerRef.current.resume();
-      } else {
-        // Try to resume from bookmark first
-        await ttsControllerRef.current.resumeFromBookmark();
+      switch (state) {
+        case PlaybackState.PAUSED:
+          // Resume from pause
+          await ttsControllerRef.current.resume();
+          break;
+        case PlaybackState.IDLE:
+        case PlaybackState.STOPPED:
+          // Start from bookmark or beginning
+          try {
+            await ttsControllerRef.current.resumeFromBookmark();
+          } catch (bookmarkError) {
+            // No bookmark, need to select starting point
+            setError("Double-tap on text to select a starting point");
+          }
+          break;
+        case PlaybackState.PLAYING:
+          // Already playing, do nothing
+          console.log("Already playing");
+          break;
+        default:
+          console.warn("Unexpected state:", state);
       }
     } catch (error) {
       console.error("Failed to start/resume playback:", error);
-      setError(
-        "Failed to start playback. Try double-tapping on text to select a starting point."
-      );
+      setError("Failed to start playback. Try double-tapping on text to select a starting point.");
     }
   };
 
@@ -291,7 +258,10 @@ export function TTSPlayer({
     if (!ttsControllerRef.current) return;
 
     try {
-      await ttsControllerRef.current.pause();
+      const state = ttsControllerRef.current.getState();
+      if (state === PlaybackState.PLAYING) {
+        await ttsControllerRef.current.pause();
+      }
     } catch (error) {
       console.error("Failed to pause:", error);
     }
@@ -367,6 +337,13 @@ export function TTSPlayer({
     }
   };
 
+  // Derived UI states
+  const isPlaying = playbackState === PlaybackState.PLAYING;
+  const isPaused = playbackState === PlaybackState.PAUSED;
+  const canPlay = playbackState === PlaybackState.IDLE || 
+                  playbackState === PlaybackState.PAUSED || 
+                  playbackState === PlaybackState.STOPPED;
+
   if (!isInitialized && isLoading) {
     return (
       <div className={`flex items-center gap-2 ${className}`}>
@@ -386,138 +363,117 @@ export function TTSPlayer({
         )}
 
         <button
-          onClick={isPlaying && !isPaused ? handlePause : handlePlay}
-          disabled={isLoading}
+          onClick={isPlaying ? handlePause : handlePlay}
+          disabled={isLoading || (!canPlay && !isPlaying)}
           className="p-1 rounded hover:bg-gray-100 disabled:opacity-50"
-          title={isPlaying && !isPaused ? "Pause" : "Play"}
+          title={isPlaying ? "Pause" : isPaused ? "Resume" : "Play"}
         >
           {isLoading ? (
-            <div className="h-4 w-4 animate-spin border-2 border-blue-600 border-t-transparent rounded-full" />
-          ) : isPlaying && !isPaused ? (
+            <div className="animate-spin h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full" />
+          ) : isPlaying ? (
             <PauseIcon className="h-4 w-4" />
           ) : (
             <PlayIcon className="h-4 w-4" />
           )}
         </button>
 
-        {isPlaying && (
-          <button
-            onClick={handleStop}
-            className="p-1 rounded hover:bg-gray-100"
-            title="Stop"
-          >
-            <StopIcon className="h-4 w-4" />
-          </button>
+        <button
+          onClick={handleStop}
+          disabled={!isPlaying && !isPaused}
+          className="p-1 rounded hover:bg-gray-100 disabled:opacity-50"
+          title="Stop"
+        >
+          <StopIcon className="h-4 w-4" />
+        </button>
+
+        {currentSentence && (
+          <div className="text-xs text-gray-600 max-w-[200px] truncate">
+            {currentSentence.text}
+          </div>
         )}
       </div>
     );
   }
 
+  // Full player UI
   return (
-    <div
-      className={`bg-white rounded-lg shadow-sm border border-gray-200 ${className}`}
-    >
-      {/* Header */}
-      <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <SpeakerWaveIcon className="h-5 w-5 text-blue-600" />
-          <h3 className="font-medium text-gray-900">Text-to-Speech</h3>
+    <div className={`bg-white border rounded-lg shadow-sm p-4 ${className}`}>
+      {error && (
+        <div className="mb-3 p-2 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+          {error}
         </div>
+      )}
+
+      <div className="flex items-center gap-3 mb-3">
+        <button
+          onClick={handlePrevSentence}
+          disabled={!currentSentence}
+          className="p-2 rounded hover:bg-gray-100 disabled:opacity-50"
+          title="Previous sentence"
+        >
+          <BackwardIcon className="h-5 w-5" />
+        </button>
 
         <button
-          onClick={() => setShowSettings(!showSettings)}
-          className="p-1 rounded hover:bg-gray-100"
-          title="Settings"
+          onClick={isPlaying ? handlePause : handlePlay}
+          disabled={isLoading || (!canPlay && !isPlaying)}
+          className="p-3 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:opacity-50"
+          title={isPlaying ? "Pause" : isPaused ? "Resume" : "Play"}
         >
-          <Cog6ToothIcon className="h-4 w-4 text-gray-600" />
+          {isLoading ? (
+            <div className="animate-spin h-6 w-6 border-2 border-white border-t-transparent rounded-full" />
+          ) : isPlaying ? (
+            <PauseIcon className="h-6 w-6" />
+          ) : (
+            <PlayIcon className="h-6 w-6" />
+          )}
         </button>
+
+        <button
+          onClick={handleStop}
+          disabled={!isPlaying && !isPaused}
+          className="p-2 rounded hover:bg-gray-100 disabled:opacity-50"
+          title="Stop"
+        >
+          <StopIcon className="h-5 w-5" />
+        </button>
+
+        <button
+          onClick={handleNextSentence}
+          disabled={!currentSentence}
+          className="p-2 rounded hover:bg-gray-100 disabled:opacity-50"
+          title="Next sentence"
+        >
+          <ForwardIcon className="h-5 w-5" />
+        </button>
+
+        <div className="ml-auto">
+          <button
+            onClick={() => setShowSettings(!showSettings)}
+            className="p-2 rounded hover:bg-gray-100"
+            title="Settings"
+          >
+            <Cog6ToothIcon className="h-5 w-5" />
+          </button>
+        </div>
       </div>
 
-      {/* Error Display */}
-      {error && (
-        <div className="px-4 py-2 bg-red-50 border-b border-red-200">
-          <p className="text-sm text-red-700">{error}</p>
-        </div>
-      )}
-
-      {/* Current Sentence Display */}
       {currentSentence && (
-        <div className="px-4 py-3 bg-blue-50 border-b border-blue-200">
-          <p className="text-sm text-blue-900 font-medium mb-1">Now Playing:</p>
-          <p className="text-sm text-blue-800 line-clamp-2">
-            {currentSentence.text}
-          </p>
+        <div className="p-3 bg-gray-50 rounded text-sm">
+          <p className="text-gray-700 line-clamp-3">{currentSentence.text}</p>
         </div>
       )}
 
-      {/* Controls */}
-      <div className="px-4 py-4">
-        <div className="flex items-center justify-center gap-3">
-          <button
-            onClick={handlePrevSentence}
-            disabled={!isPlaying}
-            className="p-2 rounded-full hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-            title="Previous Sentence"
-          >
-            <BackwardIcon className="h-5 w-5" />
-          </button>
-
-          <button
-            onClick={isPlaying && !isPaused ? handlePause : handlePlay}
-            disabled={isLoading}
-            className="p-3 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            title={isPlaying && !isPaused ? "Pause" : "Play"}
-          >
-            {isLoading ? (
-              <div className="h-6 w-6 animate-spin border-2 border-white border-t-transparent rounded-full" />
-            ) : isPlaying && !isPaused ? (
-              <PauseIcon className="h-6 w-6" />
-            ) : (
-              <PlayIcon className="h-6 w-6" />
-            )}
-          </button>
-
-          <button
-            onClick={handleNextSentence}
-            disabled={!isPlaying}
-            className="p-2 rounded-full hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-            title="Next Sentence"
-          >
-            <ForwardIcon className="h-5 w-5" />
-          </button>
-
-          <button
-            onClick={handleStop}
-            disabled={!isPlaying}
-            className="p-2 rounded-full hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-            title="Stop"
-          >
-            <StopIcon className="h-5 w-5" />
-          </button>
-        </div>
-
-        {/* Instructions */}
-        {!isPlaying && !currentSentence && (
-          <div className="mt-4 text-center">
-            <p className="text-sm text-gray-600">
-              Double-tap on text to start reading from that point
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* Settings Panel */}
       {showSettings && (
-        <div className="border-t border-gray-200 px-4 py-4 space-y-4">
-          {/* Voice Selection */}
+        <div className="mt-4 p-3 bg-gray-50 rounded space-y-3">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               Voice
             </label>
             <select
               value={selectedVoice}
               onChange={(e) => handleVoiceChange(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               {voices.map((voice) => (
                 <option key={voice.id} value={voice.id}>
@@ -527,9 +483,8 @@ export function TTSPlayer({
             </select>
           </div>
 
-          {/* Speed Control */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               Speed: {rate.toFixed(1)}x
             </label>
             <input
@@ -543,9 +498,8 @@ export function TTSPlayer({
             />
           </div>
 
-          {/* Volume Control */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               Volume: {Math.round(volume * 100)}%
             </label>
             <input
