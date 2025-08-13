@@ -35,6 +35,7 @@ export interface TTSLocator {
   char?: number;
   href?: string;
   cfi?: string;
+  offsetMs?: number;
 }
 
 export interface TTSAdapter {
@@ -57,7 +58,7 @@ export enum PlaybackState {
   PLAYING = "playing",
   PAUSED = "paused",
   STOPPED = "stopped",
-  ERROR = "error"
+  ERROR = "error",
 }
 
 interface BufferedSentence {
@@ -90,24 +91,24 @@ export class TTSController extends EventEmitter {
   // Audio management
   private audioContext: AudioContext | null = null;
   private gainNode: GainNode | null = null;
-  
+
   // Buffer management
   private bufferQueue: BufferedSentence[] = [];
   private readonly maxBufferSize = 3; // Keep 3 sentences buffered
   private synthesisInProgress = new Set<string>(); // Track which sentences are being synthesized
-  
+
   // Playback scheduling
   private scheduledSources: ScheduledSource[] = [];
   private currentPlayingSentenceId: string | null = null;
   private lastScheduledEndTime: number = 0;
   private pausedAtTime: number = 0;
   private pausedSentenceOffset: number = 0;
-  
+
   // Current session info
   private bookId: string | null = null;
   private sentenceQueue: TTSSentence[] = [];
   private currentQueueIndex: number = 0;
-  
+
   // Settings with guaranteed default values
   private settings: Required<TTSOptions> = {
     voice: "af_heart",
@@ -135,7 +136,7 @@ export class TTSController extends EventEmitter {
     // Initialize AudioContext with gain node for volume control
     this.audioContext = new (window.AudioContext ||
       (window as any).webkitAudioContext)();
-    
+
     this.gainNode = this.audioContext.createGain();
     this.gainNode.connect(this.audioContext.destination);
     this.gainNode.gain.value = this.settings.volume || 1.0;
@@ -175,7 +176,9 @@ export class TTSController extends EventEmitter {
     await this.stop();
 
     // Generate new playback ID
-    this.playbackId = `playback-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    this.playbackId = `playback-${Date.now()}-${Math.random()
+      .toString(36)
+      .substr(2, 9)}`;
     this.synthesisAbortController = new AbortController();
 
     try {
@@ -185,7 +188,9 @@ export class TTSController extends EventEmitter {
       await this.sentenceIndex.buildIndex(this.bookId, locator);
 
       // Get sentences starting from locator
-      const sentences = await this.sentenceIndex.getSentencesFromLocator(locator);
+      const sentences = await this.sentenceIndex.getSentencesFromLocator(
+        locator
+      );
       if (sentences.length === 0) {
         throw new Error("No sentences found at locator");
       }
@@ -213,7 +218,9 @@ export class TTSController extends EventEmitter {
       throw new Error("No bookmark found");
     }
 
-    const sentence = await this.sentenceIndex.getSentence(bookmark.lastSentenceId);
+    const sentence = await this.sentenceIndex.getSentence(
+      bookmark.lastSentenceId
+    );
     if (!sentence) {
       throw new Error("Bookmarked sentence not found");
     }
@@ -232,6 +239,55 @@ export class TTSController extends EventEmitter {
         };
 
     await this.playFromLocator(locator, bookmark.offsetSec || 0);
+  }
+
+  getSettings(): Readonly<{ voice: string; rate: number; volume: number }> {
+    return {
+      voice: this.settings.voice || "af_heart",
+      rate: this.settings.rate || 1.0,
+      volume: this.settings.volume || 1.0,
+    };
+  }
+
+  // Add this method to get current playback position
+  getCurrentLocator(): TTSLocator | null {
+    if (!this.currentPlayingSentenceId) return null;
+
+    const currentSentence = this.sentenceQueue.find(
+      (s) => s.id === this.currentPlayingSentenceId
+    );
+
+    if (!currentSentence) return null;
+
+    // Calculate current offset within the sentence
+    let offsetMs = 0;
+    if (this.audioContext && this.scheduledSources.length > 0) {
+      const currentTime = this.audioContext.currentTime;
+      const currentSource = this.scheduledSources.find(
+        (s) => s.sentenceId === this.currentPlayingSentenceId
+      );
+      if (currentSource) {
+        const elapsed = currentTime - currentSource.startTime;
+        offsetMs = Math.max(0, elapsed * 1000);
+      }
+    }
+
+    const locator: TTSLocator = currentSentence.cfi_start
+      ? {
+          type: "epub",
+          sentenceId: currentSentence.id,
+          cfi: currentSentence.cfi_start,
+          offsetMs,
+        }
+      : {
+          type: "pdf",
+          sentenceId: currentSentence.id,
+          page: currentSentence.page!,
+          char: currentSentence.char_start,
+          offsetMs,
+        };
+
+    return locator;
   }
 
   private async start() {
@@ -259,7 +315,9 @@ export class TTSController extends EventEmitter {
     ) {
       // Check if we need to synthesize more sentences
       const needsMoreBuffers = this.bufferQueue.length < this.maxBufferSize;
-      const hasMoreSentences = this.currentQueueIndex + this.bufferQueue.length < this.sentenceQueue.length;
+      const hasMoreSentences =
+        this.currentQueueIndex + this.bufferQueue.length <
+        this.sentenceQueue.length;
 
       if (needsMoreBuffers && hasMoreSentences) {
         const nextIndex = this.currentQueueIndex + this.bufferQueue.length;
@@ -268,20 +326,27 @@ export class TTSController extends EventEmitter {
         if (sentence && !this.synthesisInProgress.has(sentence.id)) {
           // Start synthesis for this sentence
           this.synthesisInProgress.add(sentence.id);
-          
+
           try {
-            const audioBuffer = await this.synthesizeSentence(sentence, currentPlaybackId);
-            
+            const audioBuffer = await this.synthesizeSentence(
+              sentence,
+              currentPlaybackId
+            );
+
             if (audioBuffer && currentPlaybackId === this.playbackId) {
               // Add to buffer queue
               this.bufferQueue.push({
                 sentenceId: sentence.id,
                 sentence,
                 audioBuffer,
-                duration: audioBuffer.duration
+                duration: audioBuffer.duration,
               });
-              
-              console.log(`📦 Buffered sentence ${nextIndex + 1}/${this.sentenceQueue.length}, queue size: ${this.bufferQueue.length}`);
+
+              console.log(
+                `📦 Buffered sentence ${nextIndex + 1}/${
+                  this.sentenceQueue.length
+                }, queue size: ${this.bufferQueue.length}`
+              );
             }
           } catch (error) {
             console.error("Failed to synthesize sentence:", error);
@@ -292,18 +357,20 @@ export class TTSController extends EventEmitter {
       }
 
       // Check if we've reached the end
-      if (this.currentQueueIndex >= this.sentenceQueue.length && 
-          this.bufferQueue.length === 0) {
+      if (
+        this.currentQueueIndex >= this.sentenceQueue.length &&
+        this.bufferQueue.length === 0
+      ) {
         break;
       }
 
       // Small delay to prevent tight loop
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
     }
   }
 
   private async synthesizeSentence(
-    sentence: TTSSentence, 
+    sentence: TTSSentence,
     playbackId: string
   ): Promise<AudioBuffer | null> {
     if (!this.synthesizer || !this.audioContext) return null;
@@ -344,7 +411,10 @@ export class TTSController extends EventEmitter {
       this.audioContext
     ) {
       // Schedule any available buffers
-      while (this.bufferQueue.length > 0 && this.playbackState === PlaybackState.PLAYING) {
+      while (
+        this.bufferQueue.length > 0 &&
+        this.playbackState === PlaybackState.PLAYING
+      ) {
         const buffered = this.bufferQueue.shift();
         if (!buffered) break;
 
@@ -353,8 +423,10 @@ export class TTSController extends EventEmitter {
       }
 
       // Wait for more buffers or check if done
-      if (this.currentQueueIndex >= this.sentenceQueue.length &&
-          this.scheduledSources.length === 0) {
+      if (
+        this.currentQueueIndex >= this.sentenceQueue.length &&
+        this.scheduledSources.length === 0
+      ) {
         // Playback complete
         this.emit("playbackEnded");
         this.playbackState = PlaybackState.IDLE;
@@ -362,7 +434,7 @@ export class TTSController extends EventEmitter {
       }
 
       // Wait a bit before checking again
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await new Promise((resolve) => setTimeout(resolve, 50));
     }
   }
 
@@ -370,7 +442,11 @@ export class TTSController extends EventEmitter {
     buffered: BufferedSentence,
     playbackId: string
   ): Promise<void> {
-    if (!this.audioContext || !this.gainNode || playbackId !== this.playbackId) {
+    if (
+      !this.audioContext ||
+      !this.gainNode ||
+      playbackId !== this.playbackId
+    ) {
       return;
     }
 
@@ -386,8 +462,7 @@ export class TTSController extends EventEmitter {
     if (this.scheduledSources.length === 0) {
       // First buffer or resuming from pause
       startTime = currentTime;
-      if (this.pausedSentenceOffset > 0 && 
-          this.currentQueueIndex === 0) {
+      if (this.pausedSentenceOffset > 0 && this.currentQueueIndex === 0) {
         // Resume from middle of sentence
         startOffset = this.pausedSentenceOffset;
         this.pausedSentenceOffset = 0;
@@ -398,7 +473,8 @@ export class TTSController extends EventEmitter {
     }
 
     // Apply playback rate to duration
-    const adjustedDuration = (buffered.duration - startOffset) / this.settings.rate;
+    const adjustedDuration =
+      (buffered.duration - startOffset) / this.settings.rate;
     const endTime = startTime + adjustedDuration;
 
     // Set up source event handlers
@@ -406,15 +482,17 @@ export class TTSController extends EventEmitter {
       if (playbackId !== this.playbackId) return;
 
       // Remove from scheduled sources
-      const index = this.scheduledSources.findIndex(s => s.source === source);
+      const index = this.scheduledSources.findIndex((s) => s.source === source);
       if (index !== -1) {
         this.scheduledSources.splice(index, 1);
       }
 
       // Check if this was the last scheduled source
-      if (this.scheduledSources.length === 0 && 
-          this.currentQueueIndex >= this.sentenceQueue.length &&
-          this.bufferQueue.length === 0) {
+      if (
+        this.scheduledSources.length === 0 &&
+        this.currentQueueIndex >= this.sentenceQueue.length &&
+        this.bufferQueue.length === 0
+      ) {
         this.emit("playbackEnded");
         this.playbackState = PlaybackState.IDLE;
       }
@@ -430,33 +508,39 @@ export class TTSController extends EventEmitter {
       source,
       startTime,
       duration: adjustedDuration,
-      sentence: buffered.sentence
+      sentence: buffered.sentence,
     };
-    
+
     this.scheduledSources.push(scheduled);
     this.lastScheduledEndTime = endTime;
 
     // Emit sentence event when it starts playing
     const timeUntilStart = Math.max(0, startTime - currentTime);
     setTimeout(() => {
-      if (playbackId === this.playbackId && 
-          this.playbackState === PlaybackState.PLAYING) {
+      if (
+        playbackId === this.playbackId &&
+        this.playbackState === PlaybackState.PLAYING
+      ) {
         this.currentPlayingSentenceId = buffered.sentenceId;
         this.emit("sentence", buffered.sentence);
-        
+
         // Update highlight
         for (const adapter of this.adapters.values()) {
           if (adapter.highlight) {
             adapter.highlight(buffered.sentenceId, buffered.sentence);
           }
         }
-        
+
         // Save bookmark
         this.saveBookmark();
       }
     }, timeUntilStart * 1000);
 
-    console.log(`🎵 Scheduled sentence ${this.currentQueueIndex}/${this.sentenceQueue.length} to play at ${startTime.toFixed(2)}`);
+    console.log(
+      `🎵 Scheduled sentence ${this.currentQueueIndex}/${
+        this.sentenceQueue.length
+      } to play at ${startTime.toFixed(2)}`
+    );
   }
 
   async pause() {
@@ -473,13 +557,19 @@ export class TTSController extends EventEmitter {
     // Find the currently playing sentence and calculate offset
     for (const scheduled of this.scheduledSources) {
       const endTime = scheduled.startTime + scheduled.duration;
-      if (this.pausedAtTime >= scheduled.startTime && this.pausedAtTime < endTime) {
+      if (
+        this.pausedAtTime >= scheduled.startTime &&
+        this.pausedAtTime < endTime
+      ) {
         // This is the currently playing sentence
-        this.pausedSentenceOffset = (this.pausedAtTime - scheduled.startTime) * this.settings.rate;
+        this.pausedSentenceOffset =
+          (this.pausedAtTime - scheduled.startTime) * this.settings.rate;
         this.currentPlayingSentenceId = scheduled.sentenceId;
-        
+
         // Adjust queue index to restart from this sentence
-        const sentenceIndex = this.sentenceQueue.findIndex(s => s.id === scheduled.sentenceId);
+        const sentenceIndex = this.sentenceQueue.findIndex(
+          (s) => s.id === scheduled.sentenceId
+        );
         if (sentenceIndex !== -1) {
           this.currentQueueIndex = sentenceIndex;
         }
@@ -519,7 +609,7 @@ export class TTSController extends EventEmitter {
     this.lastScheduledEndTime = 0;
 
     await this.audioContext.resume();
-    
+
     this.playbackState = PlaybackState.PLAYING;
     this.emit("resumed");
 
@@ -529,11 +619,12 @@ export class TTSController extends EventEmitter {
   }
 
   async stop() {
-    const wasPlaying = this.playbackState === PlaybackState.PLAYING || 
-                      this.playbackState === PlaybackState.PAUSED;
+    const wasPlaying =
+      this.playbackState === PlaybackState.PLAYING ||
+      this.playbackState === PlaybackState.PAUSED;
 
     this.playbackState = PlaybackState.STOPPED;
-    
+
     // Abort synthesis
     if (this.synthesisAbortController) {
       this.synthesisAbortController.abort();
@@ -584,22 +675,23 @@ export class TTSController extends EventEmitter {
   }
 
   async nextSentence() {
-    if (!this.currentPlayingSentenceId || this.sentenceQueue.length === 0) return;
+    if (!this.currentPlayingSentenceId || this.sentenceQueue.length === 0)
+      return;
 
     // Find current sentence index
     const currentIndex = this.sentenceQueue.findIndex(
-      s => s.id === this.currentPlayingSentenceId
+      (s) => s.id === this.currentPlayingSentenceId
     );
-    
+
     if (currentIndex === -1 || currentIndex >= this.sentenceQueue.length - 1) {
       return; // No next sentence
     }
 
     const nextSentence = this.sentenceQueue[currentIndex + 1];
-    
+
     // Stop current playback and start from next sentence
     await this.stop();
-    
+
     const locator: TTSLocator = nextSentence.cfi_start
       ? {
           type: "epub",
@@ -617,18 +709,19 @@ export class TTSController extends EventEmitter {
   }
 
   async prevSentence() {
-    if (!this.currentPlayingSentenceId || this.sentenceQueue.length === 0) return;
+    if (!this.currentPlayingSentenceId || this.sentenceQueue.length === 0)
+      return;
 
     // Find current sentence index
     const currentIndex = this.sentenceQueue.findIndex(
-      s => s.id === this.currentPlayingSentenceId
+      (s) => s.id === this.currentPlayingSentenceId
     );
-    
+
     if (currentIndex <= 0) {
       // If at beginning or not found, restart current sentence
       const currentSentence = this.sentenceQueue[0];
       await this.stop();
-      
+
       const locator: TTSLocator = currentSentence.cfi_start
         ? {
             type: "epub",
@@ -647,10 +740,10 @@ export class TTSController extends EventEmitter {
     }
 
     const prevSentence = this.sentenceQueue[currentIndex - 1];
-    
+
     // Stop current playback and start from previous sentence
     await this.stop();
-    
+
     const locator: TTSLocator = prevSentence.cfi_start
       ? {
           type: "epub",
@@ -669,30 +762,40 @@ export class TTSController extends EventEmitter {
 
   setVoice(voice: string) {
     this.settings.voice = voice;
-    // Clear buffers to re-synthesize with new voice
+
+    // Clear all pending buffers to force re-synthesis with new voice
     this.bufferQueue = [];
+    this.synthesisInProgress.clear();
+
+    // Stop any ongoing synthesis
+    if (this.synthesisAbortController) {
+      this.synthesisAbortController.abort();
+      this.synthesisAbortController = new AbortController();
+    }
+
     this.saveSettings();
+    this.emit("voiceChanged", voice);
   }
 
   setRate(rate: number) {
     const newRate = Math.max(0.25, Math.min(4.0, rate));
-    
+
     // Update playback rate for currently playing sources
     for (const scheduled of this.scheduledSources) {
       scheduled.source.playbackRate.value = newRate;
     }
-    
+
     this.settings.rate = newRate;
     this.saveSettings();
   }
 
   setVolume(volume: number) {
     this.settings.volume = Math.max(0, Math.min(1.0, volume));
-    
+
     if (this.gainNode) {
       this.gainNode.gain.value = this.settings.volume;
     }
-    
+
     this.saveSettings();
   }
 
@@ -701,7 +804,7 @@ export class TTSController extends EventEmitter {
 
     try {
       const currentSentence = this.sentenceQueue.find(
-        s => s.id === this.currentPlayingSentenceId
+        (s) => s.id === this.currentPlayingSentenceId
       );
 
       if (currentSentence) {
@@ -736,13 +839,16 @@ export class TTSController extends EventEmitter {
 
   getCurrentSentence(): TTSSentence | null {
     if (!this.currentPlayingSentenceId) return null;
-    return this.sentenceQueue.find(s => s.id === this.currentPlayingSentenceId) || null;
+    return (
+      this.sentenceQueue.find((s) => s.id === this.currentPlayingSentenceId) ||
+      null
+    );
   }
 
   getProgress(): { current: number; total: number } {
     return {
       current: this.currentQueueIndex,
-      total: this.sentenceQueue.length
+      total: this.sentenceQueue.length,
     };
   }
 

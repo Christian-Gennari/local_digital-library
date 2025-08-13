@@ -34,6 +34,7 @@ interface Voice {
   id: string;
   name: string;
   gender: string;
+  displayName?: string;
 }
 
 export function TTSPlayer({
@@ -47,7 +48,9 @@ export function TTSPlayer({
   compact = false,
 }: TTSPlayerProps) {
   const [isInitialized, setIsInitialized] = useState(false);
-  const [playbackState, setPlaybackState] = useState<PlaybackState>(PlaybackState.IDLE);
+  const [playbackState, setPlaybackState] = useState<PlaybackState>(
+    PlaybackState.IDLE
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [currentSentence, setCurrentSentence] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
@@ -65,11 +68,25 @@ export function TTSPlayer({
   const indexerRef = useRef<SentenceIndexer | null>(null);
   const storageRef = useRef<LocalTTSStorage | null>(null);
   const adapterRef = useRef<EPUBAdapter | PDFAdapter | null>(null);
+  const [isAvailable, setIsAvailable] = useState(true);
+
+  const checkTTSAvailability = async () => {
+    try {
+      const response = await fetch("/api/tts/status");
+      if (response.ok) {
+        const status = await response.json();
+        setIsAvailable(status.available);
+      }
+    } catch (error) {
+      setIsAvailable(false);
+    }
+  };
 
   // Initialize TTS system
   useEffect(() => {
     initializeTTS();
     loadVoices();
+    checkTTSAvailability();
 
     return () => {
       cleanup();
@@ -109,8 +126,12 @@ export function TTSPlayer({
         storage: storageRef.current,
         sentenceIndex: indexerRef.current,
         adapters: {
-          epub: bookType === "epub" ? (adapterRef.current as EPUBAdapter) : undefined,
-          pdf: bookType === "pdf" ? (adapterRef.current as PDFAdapter) : undefined,
+          epub:
+            bookType === "epub"
+              ? (adapterRef.current as EPUBAdapter)
+              : undefined,
+          pdf:
+            bookType === "pdf" ? (adapterRef.current as PDFAdapter) : undefined,
         },
       });
 
@@ -119,6 +140,12 @@ export function TTSPlayer({
 
       // Set current book and load settings
       await ttsControllerRef.current.setBook(bookId);
+
+      // Hydrate UI state from controller's saved settings
+      const settings = ttsControllerRef.current.getSettings();
+      setSelectedVoice(settings.voice);
+      setRate(settings.rate);
+      setVolume(settings.volume);
 
       setIsInitialized(true);
       setIsLoading(false);
@@ -196,7 +223,12 @@ export function TTSPlayer({
       const response = await fetch("/api/tts/voices");
       if (response.ok) {
         const voiceData = await response.json();
-        setVoices(voiceData);
+        // Map voices to include displayName for better UI
+        const mappedVoices = voiceData.map((v: any) => ({
+          ...v,
+          displayName: v.name || v.id,
+        }));
+        setVoices(mappedVoices);
       }
     } catch (error) {
       console.error("Failed to load voices:", error);
@@ -250,7 +282,9 @@ export function TTSPlayer({
       }
     } catch (error) {
       console.error("Failed to start/resume playback:", error);
-      setError("Failed to start playback. Try double-tapping on text to select a starting point.");
+      setError(
+        "Failed to start playback. Try double-tapping on text to select a starting point."
+      );
     }
   };
 
@@ -297,10 +331,27 @@ export function TTSPlayer({
     }
   };
 
-  const handleVoiceChange = (voiceId: string) => {
+  const handleVoiceChange = async (voiceId: string) => {
     setSelectedVoice(voiceId);
-    if (ttsControllerRef.current) {
-      ttsControllerRef.current.setVoice(voiceId);
+    if (!ttsControllerRef.current) return;
+
+    const wasPlaying = playbackState === PlaybackState.PLAYING;
+
+    // Get current locator before changing voice
+    const currentLocator = wasPlaying
+      ? ttsControllerRef.current.getCurrentLocator()
+      : null;
+
+    // Set the new voice
+    ttsControllerRef.current.setVoice(voiceId);
+
+    // If currently playing, restart at current position with new voice
+    if (wasPlaying && currentLocator) {
+      await ttsControllerRef.current.stop();
+      await ttsControllerRef.current.playFromLocator(
+        currentLocator,
+        currentLocator.offsetMs || 0
+      );
     }
   };
 
@@ -340,9 +391,10 @@ export function TTSPlayer({
   // Derived UI states
   const isPlaying = playbackState === PlaybackState.PLAYING;
   const isPaused = playbackState === PlaybackState.PAUSED;
-  const canPlay = playbackState === PlaybackState.IDLE || 
-                  playbackState === PlaybackState.PAUSED || 
-                  playbackState === PlaybackState.STOPPED;
+  const canPlay =
+    playbackState === PlaybackState.IDLE ||
+    playbackState === PlaybackState.PAUSED ||
+    playbackState === PlaybackState.STOPPED;
 
   if (!isInitialized && isLoading) {
     return (
@@ -355,39 +407,72 @@ export function TTSPlayer({
 
   if (compact) {
     return (
-      <div className={`flex items-center gap-1 ${className}`}>
-        {error && (
-          <div className="text-xs text-red-600 mr-2" title={error}>
-            ⚠️
-          </div>
-        )}
-
-        <button
-          onClick={isPlaying ? handlePause : handlePlay}
-          disabled={isLoading || (!canPlay && !isPlaying)}
-          className="p-1 rounded hover:bg-gray-100 disabled:opacity-50"
-          title={isPlaying ? "Pause" : isPaused ? "Resume" : "Play"}
-        >
-          {isLoading ? (
-            <div className="animate-spin h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full" />
-          ) : isPlaying ? (
-            <PauseIcon className="h-4 w-4" />
-          ) : (
-            <PlayIcon className="h-4 w-4" />
+      <div className={`space-y-2 ${className}`}>
+        <div className="flex items-center gap-1">
+          {error && (
+            <div className="text-xs text-red-600 mr-2" title={error}>
+              ⚠️
+            </div>
           )}
-        </button>
 
-        <button
-          onClick={handleStop}
-          disabled={!isPlaying && !isPaused}
-          className="p-1 rounded hover:bg-gray-100 disabled:opacity-50"
-          title="Stop"
-        >
-          <StopIcon className="h-4 w-4" />
-        </button>
+          <button
+            onClick={isPlaying ? handlePause : handlePlay}
+            disabled={isLoading || (!canPlay && !isPlaying)}
+            className="p-1 rounded hover:bg-gray-100 disabled:opacity-50"
+            title={isPlaying ? "Pause" : isPaused ? "Resume" : "Play"}
+          >
+            {isLoading ? (
+              <div className="animate-spin h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full" />
+            ) : isPlaying ? (
+              <PauseIcon className="h-4 w-4" />
+            ) : (
+              <PlayIcon className="h-4 w-4" />
+            )}
+          </button>
+
+          <button
+            onClick={handleStop}
+            disabled={!isPlaying && !isPaused}
+            className="p-1 rounded hover:bg-gray-100 disabled:opacity-50"
+            title="Stop"
+          >
+            <StopIcon className="h-4 w-4" />
+          </button>
+
+          {/* Voice Selector - Compact */}
+          <select
+            value={selectedVoice}
+            onChange={(e) => handleVoiceChange(e.target.value)}
+            className="ml-1 px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50"
+            disabled={!isAvailable || voices.length === 0}
+            title="Select voice"
+          >
+            {voices.length === 0 ? (
+              <option value="">Loading...</option>
+            ) : (
+              voices.map((voice) => (
+                <option key={voice.id} value={voice.id}>
+                  {voice.displayName || voice.name || voice.id}
+                </option>
+              ))
+            )}
+          </select>
+
+          {/* Speed Control - Compact */}
+          <button
+            onClick={() => {
+              const newRate = rate >= 2.0 ? 0.5 : rate + 0.25;
+              handleRateChange(newRate);
+            }}
+            className="ml-1 px-2 py-1 text-xs border border-gray-300 rounded hover:bg-gray-100"
+            title={`Speed: ${rate}x (click to change)`}
+          >
+            {rate}x
+          </button>
+        </div>
 
         {currentSentence && (
-          <div className="text-xs text-gray-600 max-w-[200px] truncate">
+          <div className="text-xs text-gray-600 max-w-[300px] truncate">
             {currentSentence.text}
           </div>
         )}
@@ -473,14 +558,24 @@ export function TTSPlayer({
             <select
               value={selectedVoice}
               onChange={(e) => handleVoiceChange(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={!isAvailable || voices.length === 0}
             >
-              {voices.map((voice) => (
-                <option key={voice.id} value={voice.id}>
-                  {voice.name}
-                </option>
-              ))}
+              {voices.length === 0 ? (
+                <option value="">Loading voices...</option>
+              ) : (
+                voices.map((voice) => (
+                  <option key={voice.id} value={voice.id}>
+                    {voice.displayName || voice.name || voice.id}
+                  </option>
+                ))
+              )}
             </select>
+            {!isAvailable && (
+              <p className="text-xs text-red-600 mt-1">
+                TTS service is offline
+              </p>
+            )}
           </div>
 
           <div>
