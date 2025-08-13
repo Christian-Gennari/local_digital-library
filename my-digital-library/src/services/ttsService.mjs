@@ -12,8 +12,524 @@ class TTSService extends EventEmitter {
   }
 
   /**
+   * Parse voice string into structured format
+   */
+  parseVoiceString(voiceId) {
+    const parts = voiceId.split("_");
+    const prefix = parts[0];
+    const name = parts.slice(1).join("_");
+
+    const voiceInfo = this.getVoiceInfo(prefix, name);
+
+    return {
+      id: voiceId,
+      name: voiceInfo.name,
+      gender: voiceInfo.gender,
+      language: voiceInfo.language,
+      style: name || "default",
+    };
+  }
+
+  /**
+   * Get voice information based on prefix and name
+   */
+  getVoiceInfo(prefix, name) {
+    const prefixMap = {
+      af: { gender: "female", language: "American", region: "US" },
+      am: { gender: "male", language: "American", region: "US" },
+      bf: { gender: "female", language: "British", region: "UK" },
+      bm: { gender: "male", language: "British", region: "UK" },
+      ef: { gender: "female", language: "Spanish", region: "Spain" },
+      em: { gender: "male", language: "Spanish", region: "Spain" },
+      ff: { gender: "female", language: "French", region: "France" },
+      hf: { gender: "female", language: "Hindi", region: "India" },
+      hm: { gender: "male", language: "Hindi", region: "India" },
+      if: { gender: "female", language: "Italian", region: "Italy" },
+      im: { gender: "male", language: "Italian", region: "Italy" },
+      jf: { gender: "female", language: "Japanese", region: "Japan" },
+      jm: { gender: "male", language: "Japanese", region: "Japan" },
+      pf: { gender: "female", language: "Portuguese", region: "Portugal" },
+      pm: { gender: "male", language: "Portuguese", region: "Portugal" },
+      zf: { gender: "female", language: "Chinese", region: "China" },
+      zm: { gender: "male", language: "Chinese", region: "China" },
+    };
+
+    const info = prefixMap[prefix] || {
+      gender: "unknown",
+      language: "Unknown",
+      region: "",
+    };
+
+    // Format the display name
+    const formattedName = name
+      ? name.charAt(0).toUpperCase() + name.slice(1).replace(/_/g, " ")
+      : "Default";
+
+    // Special handling for specific voice names
+    const specialNames = {
+      v0: "V0",
+      v0bella: "V0 Bella",
+      v0irulan: "V0 Irulan",
+      v0nicole: "V0 Nicole",
+      v0sarah: "V0 Sarah",
+      v0sky: "V0 Sky",
+      v0adam: "V0 Adam",
+      v0gurney: "V0 Gurney",
+      v0michael: "V0 Michael",
+      v0emma: "V0 Emma",
+      v0isabella: "V0 Isabella",
+      v0george: "V0 George",
+      v0lewis: "V0 Lewis",
+    };
+
+    const displayName = specialNames[name] || formattedName;
+
+    return {
+      name: `${info.language} ${
+        info.gender === "female" ? "Female" : "Male"
+      } - ${displayName}`,
+      gender: info.gender,
+      language: info.language,
+    };
+  }
+
+  /**
+   * Get complete default voice list
+   */
+  getDefaultVoices() {
+    const allVoices = [
+      // American Female voices
+      {
+        id: "af_alloy",
+        name: "American Female - Alloy",
+        gender: "female",
+        language: "American",
+      },
+      {
+        id: "af_aoede",
+        name: "American Female - Aoede",
+        gender: "female",
+        language: "American",
+      },
+      {
+        id: "af_bella",
+        name: "American Female - Bella",
+        gender: "female",
+        language: "American",
+      },
+      {
+        id: "af_heart",
+        name: "American Female - Heart",
+        gender: "female",
+        language: "American",
+      },
+      {
+        id: "af_jadzia",
+        name: "American Female - Jadzia",
+        gender: "female",
+        language: "American",
+      },
+      {
+        id: "af_jessica",
+        name: "American Female - Jessica",
+        gender: "female",
+        language: "American",
+      },
+      {
+        id: "af_kore",
+        name: "American Female - Kore",
+        gender: "female",
+        language: "American",
+      },
+      {
+        id: "af_nicole",
+        name: "American Female - Nicole",
+        gender: "female",
+        language: "American",
+      },
+      {
+        id: "af_nova",
+        name: "American Female - Nova",
+        gender: "female",
+        language: "American",
+      },
+      {
+        id: "af_river",
+        name: "American Female - River",
+        gender: "female",
+        language: "American",
+      },
+      {
+        id: "af_sarah",
+        name: "American Female - Sarah",
+        gender: "female",
+        language: "American",
+      },
+      {
+        id: "af_sky",
+        name: "American Female - Sky",
+        gender: "female",
+        language: "American",
+      },
+      {
+        id: "af_v0",
+        name: "American Female - V0",
+        gender: "female",
+        language: "American",
+      },
+      {
+        id: "af_v0bella",
+        name: "American Female - V0 Bella",
+        gender: "female",
+        language: "American",
+      },
+      {
+        id: "af_v0irulan",
+        name: "American Female - V0 Irulan",
+        gender: "female",
+        language: "American",
+      },
+      {
+        id: "af_v0nicole",
+        name: "American Female - V0 Nicole",
+        gender: "female",
+        language: "American",
+      },
+      {
+        id: "af_v0sarah",
+        name: "American Female - V0 Sarah",
+        gender: "female",
+        language: "American",
+      },
+      {
+        id: "af_v0sky",
+        name: "American Female - V0 Sky",
+        gender: "female",
+        language: "American",
+      },
+
+      // American Male voices
+      {
+        id: "am_adam",
+        name: "American Male - Adam",
+        gender: "male",
+        language: "American",
+      },
+      {
+        id: "am_echo",
+        name: "American Male - Echo",
+        gender: "male",
+        language: "American",
+      },
+      {
+        id: "am_eric",
+        name: "American Male - Eric",
+        gender: "male",
+        language: "American",
+      },
+      {
+        id: "am_fenrir",
+        name: "American Male - Fenrir",
+        gender: "male",
+        language: "American",
+      },
+      {
+        id: "am_liam",
+        name: "American Male - Liam",
+        gender: "male",
+        language: "American",
+      },
+      {
+        id: "am_michael",
+        name: "American Male - Michael",
+        gender: "male",
+        language: "American",
+      },
+      {
+        id: "am_onyx",
+        name: "American Male - Onyx",
+        gender: "male",
+        language: "American",
+      },
+      {
+        id: "am_puck",
+        name: "American Male - Puck",
+        gender: "male",
+        language: "American",
+      },
+      {
+        id: "am_santa",
+        name: "American Male - Santa",
+        gender: "male",
+        language: "American",
+      },
+      {
+        id: "am_v0adam",
+        name: "American Male - V0 Adam",
+        gender: "male",
+        language: "American",
+      },
+      {
+        id: "am_v0gurney",
+        name: "American Male - V0 Gurney",
+        gender: "male",
+        language: "American",
+      },
+      {
+        id: "am_v0michael",
+        name: "American Male - V0 Michael",
+        gender: "male",
+        language: "American",
+      },
+
+      // British Female voices
+      {
+        id: "bf_alice",
+        name: "British Female - Alice",
+        gender: "female",
+        language: "British",
+      },
+      {
+        id: "bf_emma",
+        name: "British Female - Emma",
+        gender: "female",
+        language: "British",
+      },
+      {
+        id: "bf_lily",
+        name: "British Female - Lily",
+        gender: "female",
+        language: "British",
+      },
+      {
+        id: "bf_v0emma",
+        name: "British Female - V0 Emma",
+        gender: "female",
+        language: "British",
+      },
+      {
+        id: "bf_v0isabella",
+        name: "British Female - V0 Isabella",
+        gender: "female",
+        language: "British",
+      },
+
+      // British Male voices
+      {
+        id: "bm_daniel",
+        name: "British Male - Daniel",
+        gender: "male",
+        language: "British",
+      },
+      {
+        id: "bm_fable",
+        name: "British Male - Fable",
+        gender: "male",
+        language: "British",
+      },
+      {
+        id: "bm_george",
+        name: "British Male - George",
+        gender: "male",
+        language: "British",
+      },
+      {
+        id: "bm_lewis",
+        name: "British Male - Lewis",
+        gender: "male",
+        language: "British",
+      },
+      {
+        id: "bm_v0george",
+        name: "British Male - V0 George",
+        gender: "male",
+        language: "British",
+      },
+      {
+        id: "bm_v0lewis",
+        name: "British Male - V0 Lewis",
+        gender: "male",
+        language: "British",
+      },
+
+      // English voices
+      {
+        id: "ef_dora",
+        name: "Spanish Female - Dora",
+        gender: "female",
+        language: "Spanish",
+      },
+      {
+        id: "em_alex",
+        name: "Spanish Male - Alex",
+        gender: "male",
+        language: "Spanish",
+      },
+      {
+        id: "em_santa",
+        name: "Spanish Male - Santa",
+        gender: "male",
+        language: "Spanish",
+      },
+
+      // French voices
+      {
+        id: "ff_siwis",
+        name: "French Female - Siwis",
+        gender: "female",
+        language: "French",
+      },
+
+      // Hindi voices
+      {
+        id: "hf_alpha",
+        name: "Hindi Female - Alpha",
+        gender: "female",
+        language: "Hindi",
+      },
+      {
+        id: "hf_beta",
+        name: "Hindi Female - Beta",
+        gender: "female",
+        language: "Hindi",
+      },
+      {
+        id: "hm_omega",
+        name: "Hindi Male - Omega",
+        gender: "male",
+        language: "Hindi",
+      },
+      {
+        id: "hm_psi",
+        name: "Hindi Male - Psi",
+        gender: "male",
+        language: "Hindi",
+      },
+
+      // Italian voices
+      {
+        id: "if_sara",
+        name: "Italian Female - Sara",
+        gender: "female",
+        language: "Italian",
+      },
+      {
+        id: "im_nicola",
+        name: "Italian Male - Nicola",
+        gender: "male",
+        language: "Italian",
+      },
+
+      // Japanese voices
+      {
+        id: "jf_alpha",
+        name: "Japanese Female - Alpha",
+        gender: "female",
+        language: "Japanese",
+      },
+      {
+        id: "jf_gongitsune",
+        name: "Japanese Female - Gongitsune",
+        gender: "female",
+        language: "Japanese",
+      },
+      {
+        id: "jf_nezumi",
+        name: "Japanese Female - Nezumi",
+        gender: "female",
+        language: "Japanese",
+      },
+      {
+        id: "jf_tebukuro",
+        name: "Japanese Female - Tebukuro",
+        gender: "female",
+        language: "Japanese",
+      },
+      {
+        id: "jm_kumo",
+        name: "Japanese Male - Kumo",
+        gender: "male",
+        language: "Japanese",
+      },
+
+      // Portuguese voices
+      {
+        id: "pf_dora",
+        name: "Portuguese Female - Dora",
+        gender: "female",
+        language: "Portuguese",
+      },
+      {
+        id: "pm_alex",
+        name: "Portuguese Male - Alex",
+        gender: "male",
+        language: "Portuguese",
+      },
+      {
+        id: "pm_santa",
+        name: "Portuguese Male - Santa",
+        gender: "male",
+        language: "Portuguese",
+      },
+
+      // Chinese voices
+      {
+        id: "zf_xiaobei",
+        name: "Chinese Female - Xiaobei",
+        gender: "female",
+        language: "Chinese",
+      },
+      {
+        id: "zf_xiaoni",
+        name: "Chinese Female - Xiaoni",
+        gender: "female",
+        language: "Chinese",
+      },
+      {
+        id: "zf_xiaoxiao",
+        name: "Chinese Female - Xiaoxiao",
+        gender: "female",
+        language: "Chinese",
+      },
+      {
+        id: "zf_xiaoyi",
+        name: "Chinese Female - Xiaoyi",
+        gender: "female",
+        language: "Chinese",
+      },
+      {
+        id: "zm_yunjian",
+        name: "Chinese Male - Yunjian",
+        gender: "male",
+        language: "Chinese",
+      },
+      {
+        id: "zm_yunxi",
+        name: "Chinese Male - Yunxi",
+        gender: "male",
+        language: "Chinese",
+      },
+      {
+        id: "zm_yunxia",
+        name: "Chinese Male - Yunxia",
+        gender: "male",
+        language: "Chinese",
+      },
+      {
+        id: "zm_yunyang",
+        name: "Chinese Male - Yunyang",
+        gender: "male",
+        language: "Chinese",
+      },
+    ];
+
+    return allVoices;
+  }
+
+  /**
    * Get available voices from Kokoro TTS
    */
+
   async getVoices() {
     if (this.voices) return this.voices;
 
@@ -24,89 +540,32 @@ class TTSService extends EventEmitter {
       const voicesData = await response.json();
 
       // Transform the response into a consistent format
-      // The API might return voice names as strings or objects
       if (Array.isArray(voicesData)) {
         this.voices = voicesData.map((voice) => {
           if (typeof voice === "string") {
-            // Parse voice string like "af_heart" -> African Female Heart
-            const parts = voice.split("_");
-            const genderMap = {
-              af: "female",
-              am: "male",
-              bf: "female",
-              bm: "male",
-            };
-            return {
-              id: voice,
-              name: voice
-                .replace(/_/g, " ")
-                .replace(/\b\w/g, (l) => l.toUpperCase()),
-              gender: genderMap[parts[0]] || "unknown",
-              style: parts[1] || "default",
-            };
+            return this.parseVoiceString(voice);
+          }
+          return voice;
+        });
+      } else if (voicesData.voices && Array.isArray(voicesData.voices)) {
+        // Handle case where API returns {voices: [...]}
+        this.voices = voicesData.voices.map((voice) => {
+          if (typeof voice === "string") {
+            return this.parseVoiceString(voice);
           }
           return voice;
         });
       } else {
-        // Default voices based on Kokoro's standard set
-        this.voices = [
-          {
-            id: "af_heart",
-            name: "African Female - Heart",
-            gender: "female",
-            style: "heart",
-          },
-          {
-            id: "af_bella",
-            name: "African Female - Bella",
-            gender: "female",
-            style: "bella",
-          },
-          {
-            id: "am_michael",
-            name: "American Male - Michael",
-            gender: "male",
-            style: "michael",
-          },
-          {
-            id: "bf_emma",
-            name: "British Female - Emma",
-            gender: "female",
-            style: "emma",
-          },
-          {
-            id: "bf_isabella",
-            name: "British Female - Isabella",
-            gender: "female",
-            style: "isabella",
-          },
-          {
-            id: "bm_george",
-            name: "British Male - George",
-            gender: "male",
-            style: "george",
-          },
-        ];
+        // Fallback to complete voice list
+        this.voices = this.getDefaultVoices();
       }
 
       return this.voices;
     } catch (error) {
       console.error("Error fetching voices:", error);
-      // Return default voices if API call fails
-      return [
-        {
-          id: "af_heart",
-          name: "Default Female",
-          gender: "female",
-          style: "heart",
-        },
-        {
-          id: "am_michael",
-          name: "Default Male",
-          gender: "male",
-          style: "michael",
-        },
-      ];
+      // Return complete default voices if API call fails
+      this.voices = this.getDefaultVoices();
+      return this.voices;
     }
   }
 

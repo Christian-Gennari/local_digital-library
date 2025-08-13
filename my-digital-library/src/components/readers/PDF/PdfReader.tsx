@@ -368,7 +368,6 @@ const PdfReader = forwardRef<PdfReaderRef, PdfReaderProps>(
               pdfDocument={pdfDocument}
               pdfContainer={containerRef.current}
               className="bg-white shadow-lg rounded-lg border border-slate-200"
-              compact={true}
             />
           </div>
         )}

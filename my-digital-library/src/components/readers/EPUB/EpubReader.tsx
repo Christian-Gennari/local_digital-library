@@ -702,7 +702,6 @@ const EpubReader = forwardRef<EpubReaderRef, EpubReaderProps>(
               epubBook={book}
               epubRendition={rendition}
               className="bg-white shadow-lg rounded-lg border border-slate-200"
-              compact={true}
             />
           </div>
         )}

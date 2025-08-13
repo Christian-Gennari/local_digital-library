@@ -98,10 +98,11 @@ const getIconForFormat = (format: string) => {
 // BookCover Component - Memoized
 interface BookCoverProps {
   book: Book;
+  hideStarOverlay?: boolean; // Add this line
 }
 
 const BookCover = memo<BookCoverProps>(
-  ({ book }) => {
+  ({ book, hideStarOverlay = false }) => {
     const [coverSrc, setCoverSrc] = useState<string | null>(null);
     const [isVisible, setIsVisible] = useState(false);
     const imgRef = useRef<HTMLDivElement>(null);
@@ -154,7 +155,7 @@ const BookCover = memo<BookCoverProps>(
         <div className="absolute inset-0 bg-black/0 transition-colors duration-300 md:group-hover:bg-black/5" />
 
         {/* Favorite Star Overlay */}
-        {book.metadata.isFavorite && (
+        {book.metadata.isFavorite && !hideStarOverlay && (
           <div className="absolute top-2 left-2">
             <div className="bg-yellow-400 rounded-full p-1.5 shadow-lg">
               <StarIcon className="h-4 w-4 text-white" />
@@ -171,7 +172,8 @@ const BookCover = memo<BookCoverProps>(
       prevProps.book.metadata.isFavorite ===
         nextProps.book.metadata.isFavorite &&
       prevProps.book.metadata.coverUrl === nextProps.book.metadata.coverUrl &&
-      prevProps.book.metadata.coverFile === nextProps.book.metadata.coverFile
+      prevProps.book.metadata.coverFile === nextProps.book.metadata.coverFile &&
+      prevProps.hideStarOverlay === nextProps.hideStarOverlay // Add this line
     );
   }
 );
@@ -226,7 +228,7 @@ const BookListItem = memo<BookListItemProps>(
           <div className="flex gap-3">
             {/* Mini cover thumbnail */}
             <div className="flex-shrink-0 w-12 h-16 rounded overflow-hidden bg-slate-100">
-              <BookCover book={book} />
+              <BookCover book={book} hideStarOverlay={true} />
             </div>
 
             {/* Book info */}

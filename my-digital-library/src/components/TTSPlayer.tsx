@@ -1,14 +1,6 @@
 // src/components/TTSPlayer.tsx
 import React, { useEffect, useRef, useState } from "react";
-import {
-  PlayIcon,
-  PauseIcon,
-  StopIcon,
-  ForwardIcon,
-  BackwardIcon,
-  SpeakerWaveIcon,
-  Cog6ToothIcon,
-} from "@heroicons/react/24/outline";
+import { PlayIcon, PauseIcon, StopIcon } from "@heroicons/react/24/outline";
 import { TTSController, PlaybackState } from "../services/TTSController";
 import { KokoroSynthesizer } from "../services/KokoroSynthesizer";
 import { LocalTTSStorage, SentenceIndexer } from "../services/SentenceIndexer";
@@ -27,7 +19,6 @@ interface TTSPlayerProps {
   pdfContainer?: HTMLElement;
   // UI props
   className?: string;
-  compact?: boolean;
 }
 
 interface Voice {
@@ -45,7 +36,6 @@ export function TTSPlayer({
   pdfDocument,
   pdfContainer,
   className = "",
-  compact = false,
 }: TTSPlayerProps) {
   const [isInitialized, setIsInitialized] = useState(false);
   const [playbackState, setPlaybackState] = useState<PlaybackState>(
@@ -60,7 +50,6 @@ export function TTSPlayer({
   const [selectedVoice, setSelectedVoice] = useState("af_heart");
   const [rate, setRate] = useState(1.0);
   const [volume, setVolume] = useState(1.0);
-  const [showSettings, setShowSettings] = useState(false);
 
   // Core TTS system
   const ttsControllerRef = useRef<TTSController | null>(null);
@@ -311,26 +300,6 @@ export function TTSPlayer({
     }
   };
 
-  const handlePrevSentence = async () => {
-    if (!ttsControllerRef.current) return;
-
-    try {
-      await ttsControllerRef.current.prevSentence();
-    } catch (error) {
-      console.error("Failed to go to previous sentence:", error);
-    }
-  };
-
-  const handleNextSentence = async () => {
-    if (!ttsControllerRef.current) return;
-
-    try {
-      await ttsControllerRef.current.nextSentence();
-    } catch (error) {
-      console.error("Failed to go to next sentence:", error);
-    }
-  };
-
   const handleVoiceChange = async (voiceId: string) => {
     setSelectedVoice(voiceId);
     if (!ttsControllerRef.current) return;
@@ -359,13 +328,6 @@ export function TTSPlayer({
     setRate(newRate);
     if (ttsControllerRef.current) {
       ttsControllerRef.current.setRate(newRate);
-    }
-  };
-
-  const handleVolumeChange = (newVolume: number) => {
-    setVolume(newVolume);
-    if (ttsControllerRef.current) {
-      ttsControllerRef.current.setVolume(newVolume);
     }
   };
 
@@ -405,208 +367,74 @@ export function TTSPlayer({
     );
   }
 
-  if (compact) {
-    return (
-      <div className={`space-y-2 ${className}`}>
-        <div className="flex items-center gap-1">
-          {error && (
-            <div className="text-xs text-red-600 mr-2" title={error}>
-              ⚠️
-            </div>
-          )}
-
-          <button
-            onClick={isPlaying ? handlePause : handlePlay}
-            disabled={isLoading || (!canPlay && !isPlaying)}
-            className="p-1 rounded hover:bg-gray-100 disabled:opacity-50"
-            title={isPlaying ? "Pause" : isPaused ? "Resume" : "Play"}
-          >
-            {isLoading ? (
-              <div className="animate-spin h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full" />
-            ) : isPlaying ? (
-              <PauseIcon className="h-4 w-4" />
-            ) : (
-              <PlayIcon className="h-4 w-4" />
-            )}
-          </button>
-
-          <button
-            onClick={handleStop}
-            disabled={!isPlaying && !isPaused}
-            className="p-1 rounded hover:bg-gray-100 disabled:opacity-50"
-            title="Stop"
-          >
-            <StopIcon className="h-4 w-4" />
-          </button>
-
-          {/* Voice Selector - Compact */}
-          <select
-            value={selectedVoice}
-            onChange={(e) => handleVoiceChange(e.target.value)}
-            className="ml-1 px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50"
-            disabled={!isAvailable || voices.length === 0}
-            title="Select voice"
-          >
-            {voices.length === 0 ? (
-              <option value="">Loading...</option>
-            ) : (
-              voices.map((voice) => (
-                <option key={voice.id} value={voice.id}>
-                  {voice.displayName || voice.name || voice.id}
-                </option>
-              ))
-            )}
-          </select>
-
-          {/* Speed Control - Compact */}
-          <button
-            onClick={() => {
-              const newRate = rate >= 2.0 ? 0.5 : rate + 0.25;
-              handleRateChange(newRate);
-            }}
-            className="ml-1 px-2 py-1 text-xs border border-gray-300 rounded hover:bg-gray-100"
-            title={`Speed: ${rate}x (click to change)`}
-          >
-            {rate}x
-          </button>
-        </div>
-
-        {currentSentence && (
-          <div className="text-xs text-gray-600 max-w-[300px] truncate">
-            {currentSentence.text}
+  return (
+    <div className={`space-y-2 ${className}`}>
+      <div className="flex items-center gap-1">
+        {error && (
+          <div className="text-xs text-red-600 mr-2" title={error}>
+            ⚠️
           </div>
         )}
-      </div>
-    );
-  }
-
-  // Full player UI
-  return (
-    <div className={`bg-white border rounded-lg shadow-sm p-4 ${className}`}>
-      {error && (
-        <div className="mb-3 p-2 bg-red-50 border border-red-200 rounded text-sm text-red-700">
-          {error}
-        </div>
-      )}
-
-      <div className="flex items-center gap-3 mb-3">
-        <button
-          onClick={handlePrevSentence}
-          disabled={!currentSentence}
-          className="p-2 rounded hover:bg-gray-100 disabled:opacity-50"
-          title="Previous sentence"
-        >
-          <BackwardIcon className="h-5 w-5" />
-        </button>
 
         <button
           onClick={isPlaying ? handlePause : handlePlay}
           disabled={isLoading || (!canPlay && !isPlaying)}
-          className="p-3 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:opacity-50"
+          className="p-1 rounded hover:bg-gray-100 disabled:opacity-50"
           title={isPlaying ? "Pause" : isPaused ? "Resume" : "Play"}
         >
           {isLoading ? (
-            <div className="animate-spin h-6 w-6 border-2 border-white border-t-transparent rounded-full" />
+            <div className="animate-spin h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full" />
           ) : isPlaying ? (
-            <PauseIcon className="h-6 w-6" />
+            <PauseIcon className="h-4 w-4" />
           ) : (
-            <PlayIcon className="h-6 w-6" />
+            <PlayIcon className="h-4 w-4" />
           )}
         </button>
 
         <button
           onClick={handleStop}
           disabled={!isPlaying && !isPaused}
-          className="p-2 rounded hover:bg-gray-100 disabled:opacity-50"
+          className="p-1 rounded hover:bg-gray-100 disabled:opacity-50"
           title="Stop"
         >
-          <StopIcon className="h-5 w-5" />
+          <StopIcon className="h-4 w-4" />
         </button>
 
-        <button
-          onClick={handleNextSentence}
-          disabled={!currentSentence}
-          className="p-2 rounded hover:bg-gray-100 disabled:opacity-50"
-          title="Next sentence"
+        {/* Voice Selector - Compact */}
+        <select
+          value={selectedVoice}
+          onChange={(e) => handleVoiceChange(e.target.value)}
+          className="ml-1 px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50"
+          disabled={!isAvailable || voices.length === 0}
+          title="Select voice"
         >
-          <ForwardIcon className="h-5 w-5" />
-        </button>
+          {voices.length === 0 ? (
+            <option value="">Loading...</option>
+          ) : (
+            voices.map((voice) => (
+              <option key={voice.id} value={voice.id}>
+                {voice.displayName || voice.name || voice.id}
+              </option>
+            ))
+          )}
+        </select>
 
-        <div className="ml-auto">
-          <button
-            onClick={() => setShowSettings(!showSettings)}
-            className="p-2 rounded hover:bg-gray-100"
-            title="Settings"
-          >
-            <Cog6ToothIcon className="h-5 w-5" />
-          </button>
-        </div>
+        {/* Speed Control - Compact */}
+        <button
+          onClick={() => {
+            const newRate = rate >= 2.0 ? 0.5 : rate + 0.25;
+            handleRateChange(newRate);
+          }}
+          className="ml-1 px-2 py-1 text-xs border border-gray-300 rounded hover:bg-gray-100"
+          title={`Speed: ${rate}x (click to change)`}
+        >
+          {rate}x
+        </button>
       </div>
 
       {currentSentence && (
-        <div className="p-3 bg-gray-50 rounded text-sm">
-          <p className="text-gray-700 line-clamp-3">{currentSentence.text}</p>
-        </div>
-      )}
-
-      {showSettings && (
-        <div className="mt-4 p-3 bg-gray-50 rounded space-y-3">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Voice
-            </label>
-            <select
-              value={selectedVoice}
-              onChange={(e) => handleVoiceChange(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={!isAvailable || voices.length === 0}
-            >
-              {voices.length === 0 ? (
-                <option value="">Loading voices...</option>
-              ) : (
-                voices.map((voice) => (
-                  <option key={voice.id} value={voice.id}>
-                    {voice.displayName || voice.name || voice.id}
-                  </option>
-                ))
-              )}
-            </select>
-            {!isAvailable && (
-              <p className="text-xs text-red-600 mt-1">
-                TTS service is offline
-              </p>
-            )}
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Speed: {rate.toFixed(1)}x
-            </label>
-            <input
-              type="range"
-              min="0.5"
-              max="2.0"
-              step="0.1"
-              value={rate}
-              onChange={(e) => handleRateChange(parseFloat(e.target.value))}
-              className="w-full"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Volume: {Math.round(volume * 100)}%
-            </label>
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.1"
-              value={volume}
-              onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
-              className="w-full"
-            />
-          </div>
+        <div className="text-xs text-gray-600 max-w-[300px] truncate">
+          {currentSentence.text}
         </div>
       )}
     </div>
