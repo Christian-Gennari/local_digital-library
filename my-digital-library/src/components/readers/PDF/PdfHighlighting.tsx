@@ -25,11 +25,16 @@ class SimplePdfHighlightService implements HighlightService {
   private visible = true;
   private isReady = false;
   private pendingRenderTimer: number | null = null;
+
+  // cache of most recent selection
   private lastSelection: {
     text: string;
     page: number;
     rects: { x: number; y: number; width: number; height: number }[];
   } | null = null;
+
+  // throttle timer for noisy selectionchange on iOS
+  private selTimer: number | null = null;
 
   constructor(container: HTMLElement, scale: number = 1.0) {
     this.container = container;
@@ -40,54 +45,110 @@ class SimplePdfHighlightService implements HighlightService {
       this.isReady = true;
     }, 300);
 
-    // Cache the current text selection on mouseup so it can be turned into a
-    // highlight even after the selection is lost (e.g. when clicking the notes
-    // sidebar).
+    // Desktop mouse selection
     this.container.addEventListener("mouseup", this.cacheSelection);
+
+    // Mobile: use both touchend and pointerup, and listen for selectionchange
+    this.container.addEventListener("touchend", this.handleTouchEnd, {
+      passive: true,
+    });
+    this.container.addEventListener("pointerup", this.handlePointerUp, {
+      passive: true,
+    });
+    document.addEventListener("selectionchange", this.handleSelectionChange, {
+      passive: true,
+    });
   }
 
   destroy() {
     this.clearAllHighlights();
+
     this.container.removeEventListener("mouseup", this.cacheSelection);
+    this.container.removeEventListener("touchend", this.handleTouchEnd);
+    this.container.removeEventListener("pointerup", this.handlePointerUp);
+    document.removeEventListener("selectionchange", this.handleSelectionChange);
+
     if (this.pendingRenderTimer !== null) {
       window.clearTimeout(this.pendingRenderTimer);
       this.pendingRenderTimer = null;
     }
+    if (this.selTimer !== null) {
+      window.clearTimeout(this.selTimer);
+      this.selTimer = null;
+    }
   }
 
+  // --- event handlers ---
+
+  private handleTouchEnd = () => {
+    // Small delay to let the selection finalize on mobile (WebKit)
+    window.setTimeout(this.cacheSelection, 120);
+  };
+
+  private handlePointerUp = () => {
+    // Pointer events on some Android browsers finalize selection here
+    window.setTimeout(this.cacheSelection, 80);
+  };
+
+  private handleSelectionChange = () => {
+    // iOS fires this a lot; throttle to reduce work
+    if (this.selTimer !== null) window.clearTimeout(this.selTimer);
+    this.selTimer = window.setTimeout(
+      this.cacheSelection,
+      60
+    ) as unknown as number;
+  };
+
+  // --- selection capture ---
+
   private cacheSelection = () => {
-    const selection = window.getSelection();
-    if (!selection || selection.rangeCount === 0) {
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) {
       this.lastSelection = null;
       return;
     }
 
-    const range = selection.getRangeAt(0);
-    const selectedText = selection.toString().trim();
+    const range = sel.getRangeAt(0);
+    const selectedText = sel.toString().trim();
     if (!selectedText) {
       this.lastSelection = null;
       return;
     }
 
-    const pageEl =
+    // Find the page element (React-PDF uses .react-pdf__Page + [data-page-number])
+    const anchorEl =
       range.commonAncestorContainer.nodeType === Node.TEXT_NODE
-        ? (range.commonAncestorContainer as any).parentElement?.closest(
-            "[data-page-number]"
-          )
-        : (range.commonAncestorContainer as Element).closest(
-            "[data-page-number]"
-          );
+        ? (range.commonAncestorContainer as any).parentElement
+        : (range.commonAncestorContainer as Element | null);
+
+    const pageEl =
+      anchorEl?.closest(
+        ".react-pdf__Page, .pdf-page, .page, [data-page-number], [data-page]"
+      ) ?? null;
+
     if (!pageEl) {
       this.lastSelection = null;
       return;
     }
 
-    const pageNumber = parseInt(
-      pageEl.getAttribute("data-page-number") || "1",
-      10
-    );
-    const pageRect = pageEl.getBoundingClientRect();
-    const rects = Array.from(range.getClientRects())
+    const pageNumberAttr =
+      (pageEl as HTMLElement).getAttribute("data-page-number") ??
+      (pageEl as HTMLElement).getAttribute("data-page") ??
+      "1";
+    const pageNumber = parseInt(pageNumberAttr, 10) || 1;
+
+    const pageRect = (pageEl as HTMLElement).getBoundingClientRect();
+
+    // Primary: fine-grained rects
+    let rectList = Array.from(range.getClientRects());
+
+    // Fallback: iOS sometimes returns 0 rects; use the bounding box
+    if (rectList.length === 0) {
+      const b = range.getBoundingClientRect();
+      if (b.width > 0 && b.height > 0) rectList = [b];
+    }
+
+    const rects = rectList
       .map((r) => ({
         x: (r.left - pageRect.left) / this.currentScale,
         y: (r.top - pageRect.top) / this.currentScale,
@@ -103,6 +164,8 @@ class SimplePdfHighlightService implements HighlightService {
 
     this.lastSelection = { text: selectedText, page: pageNumber, rects };
   };
+
+  // --- public API used by the React component ---
 
   updateScale(newScale: number) {
     if (Math.abs(this.currentScale - newScale) < SCALE_EPS) return;
@@ -169,12 +232,10 @@ class SimplePdfHighlightService implements HighlightService {
     if (!highlight.pdf) return;
 
     const pageElement = this.container.querySelector(
-      `[data-page-number="${highlight.pdf.page}"]`
+      `[data-page-number="${highlight.pdf.page}"], [data-page="${highlight.pdf.page}"]`
     ) as HTMLElement | null;
 
-    if (!pageElement) {
-      return;
-    }
+    if (!pageElement) return;
 
     // Ensure positioning
     const style = window.getComputedStyle(pageElement);

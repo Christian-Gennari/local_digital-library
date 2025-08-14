@@ -303,56 +303,6 @@
   }
 }
 
-/* Dark Mode Support */
-@media (prefers-color-scheme: dark) {
-  .tts-player {
-    background: rgba(31, 41, 55, 0.95);
-    border-color: rgba(75, 85, 99, 0.3);
-    color: #f9fafb;
-  }
-
-  .tts-current-sentence {
-    background: linear-gradient(135deg, #1e3a8a, #1e40af);
-    color: #dbeafe;
-  }
-
-  .tts-error {
-    background: linear-gradient(135deg, #7f1d1d, #991b1b);
-    color: #fecaca;
-  }
-
-  .tts-settings {
-    background: rgba(17, 24, 39, 0.95);
-    border-color: rgba(75, 85, 99, 0.3);
-  }
-
-  .tts-btn.secondary {
-    background: rgba(31, 41, 55, 0.9);
-    border-color: rgba(75, 85, 99, 0.3);
-    color: #f9fafb;
-  }
-
-  .tts-btn.secondary:hover {
-    background: rgba(31, 41, 55, 1);
-    border-color: rgba(75, 85, 99, 0.5);
-  }
-
-  .tts-slider {
-    background: #4b5563;
-  }
-
-  .tts-highlight {
-    background: rgba(59, 130, 246, 0.3) !important;
-    box-shadow: 0 0 8px rgba(59, 130, 246, 0.5) !important;
-  }
-
-  .tts-pdf-highlight {
-    background: rgba(59, 130, 246, 0.3) !important;
-    border-color: rgba(59, 130, 246, 0.6) !important;
-    box-shadow: 0 0 10px rgba(59, 130, 246, 0.4) !important;
-  }
-}
-
 /* Accessibility */
 @media (prefers-reduced-motion: reduce) {
   .tts-player,
@@ -373,38 +323,6 @@
   }
 }
 
-/* High Contrast Mode */
-@media (prefers-contrast: high) {
-  .tts-player {
-    border: 2px solid currentColor;
-    background: white;
-    color: black;
-  }
-
-  .tts-btn.primary {
-    background: black;
-    color: white;
-    border: 2px solid white;
-  }
-
-  .tts-btn.secondary {
-    background: white;
-    color: black;
-    border: 2px solid black;
-  }
-
-  .tts-highlight {
-    background: yellow !important;
-    color: black !important;
-    border: 2px solid black !important;
-  }
-
-  .tts-pdf-highlight {
-    background: yellow !important;
-    border: 3px solid black !important;
-  }
-}
-
 /* Print Styles (hide TTS player when printing) */
 @media print {
   .tts-player,
@@ -413,14 +331,4 @@
   .tts-start-here-indicator {
     display: none !important;
   }
-}
-
-/* Duration Picker Styles */
-.duration-picker {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.duration-picker input {
-  @apply w-20 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20;
 }

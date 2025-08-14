@@ -55,10 +55,6 @@ const PdfReader = forwardRef<PdfReaderRef, PdfReaderProps>(
     const containerRef = useRef<HTMLDivElement>(null);
     const [containerWidth, setContainerWidth] = useState(0);
 
-    // Touch swipe (mobile)
-    const touchStartX = useRef<number | null>(null);
-    const touchEndX = useRef<number | null>(null);
-
     const progressSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     const clamp = (n: number, min: number, max: number) =>
@@ -323,23 +319,6 @@ const PdfReader = forwardRef<PdfReaderRef, PdfReaderProps>(
       return () => window.removeEventListener("keydown", onKeyDown);
     }, [goPrev, goNext, zoomIn, zoomOut]);
 
-    // Touch swipe navigation (mobile)
-    const onTouchStart = (e: React.TouchEvent) => {
-      touchEndX.current = null;
-      touchStartX.current = e.touches[0]?.clientX ?? null;
-    };
-    const onTouchMove = (e: React.TouchEvent) => {
-      touchEndX.current = e.touches[0]?.clientX ?? null;
-    };
-    const onTouchEnd = () => {
-      if (touchStartX.current == null || touchEndX.current == null) return;
-      const delta = touchStartX.current - touchEndX.current;
-      const threshold = 60;
-      if (Math.abs(delta) < threshold) return;
-      if (delta > 0) goNext();
-      else goPrev();
-    };
-
     return (
       <div className="flex h-full bg-slate-50 relative">
         {/* ToC FAB on desktop; on mobile it sits bottom-right by CSS below */}
@@ -452,9 +431,6 @@ const PdfReader = forwardRef<PdfReaderRef, PdfReaderProps>(
                   TOOLBAR_MOBILE_HEIGHT + 16
                 }px, env(safe-area-inset-bottom))`,
               }}
-              onTouchStart={onTouchStart}
-              onTouchMove={onTouchMove}
-              onTouchEnd={onTouchEnd}
             >
               <div>
                 <Document
