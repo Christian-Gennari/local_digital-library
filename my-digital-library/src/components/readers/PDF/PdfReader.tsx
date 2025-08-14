@@ -260,15 +260,46 @@ const PdfReader = forwardRef<PdfReaderRef, PdfReaderProps>(
     );
 
     // Capture selected text for note quoting
+    // Capture selected text for note quoting
     useEffect(() => {
       const el = containerRef.current;
       if (!el) return;
-      const handleMouseUp = () => {
+
+      const handleSelection = () => {
         const text = window.getSelection()?.toString().trim() || "";
         setSelectedText(text || null);
+        console.log(
+          "[PdfReader] Setting selected text:",
+          text?.substring(0, 50)
+        );
       };
-      el.addEventListener("mouseup", handleMouseUp);
-      return () => el.removeEventListener("mouseup", handleMouseUp);
+
+      // Desktop
+      el.addEventListener("mouseup", handleSelection);
+
+      // Mobile - add delay for selection to finalize
+      const handleTouchEnd = () => {
+        setTimeout(handleSelection, 100);
+      };
+      el.addEventListener("touchend", handleTouchEnd);
+
+      // Alternative: listen to selection changes
+      const handleSelectionChange = () => {
+        const selection = window.getSelection();
+        if (selection && selection.toString().trim()) {
+          const range = selection.getRangeAt(0);
+          if (el.contains(range.commonAncestorContainer as Node)) {
+            handleSelection();
+          }
+        }
+      };
+      document.addEventListener("selectionchange", handleSelectionChange);
+
+      return () => {
+        el.removeEventListener("mouseup", handleSelection);
+        el.removeEventListener("touchend", handleTouchEnd);
+        document.removeEventListener("selectionchange", handleSelectionChange);
+      };
     }, [setSelectedText]);
 
     useEffect(() => {
