@@ -420,3 +420,13 @@
     display: none !important;
   }
 }
+
+/* Duration Picker Styles */
+.duration-picker {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.duration-picker input {
+  @apply w-20 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20;
+}

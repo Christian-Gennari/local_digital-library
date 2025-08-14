@@ -322,11 +322,20 @@ export function formatDuration(seconds?: number): string {
 /**
  * Parse duration string to seconds
  */
-export function parseDuration(duration: string): number {
+export function parseDuration(duration: string): number | undefined {
+  // Return undefined for empty strings
+  if (!duration || !duration.trim()) {
+    return undefined;
+  }
+
+  // Match hours, minutes, and seconds
   const regex = /(?:(\d+)h)?\s*(?:(\d+)m)?\s*(?:(\d+)s)?/;
   const match = duration.match(regex);
 
-  if (!match) return 0;
+  // Return undefined if no match or if the match is empty (no digits captured)
+  if (!match || (!match[1] && !match[2] && !match[3])) {
+    return undefined;
+  }
 
   const hours = parseInt(match[1] || "0");
   const minutes = parseInt(match[2] || "0");

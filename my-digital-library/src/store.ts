@@ -20,10 +20,15 @@ const sanitizeFolderName = (name: string): string => {
 };
 
 const generateFolderName = (metadata: BookMetadata): string => {
-  const title = sanitizeFolderName(metadata.title || "Untitled Book");
+  const itemType = (metadata.itemType || "book").toUpperCase();
+  const title = sanitizeFolderName(metadata.title || "Untitled");
   const author = metadata.author ? sanitizeFolderName(metadata.author) : null;
-  if (author) return `${title} - ${author}`;
-  return title;
+
+  // Format: "ITEMTYPE - TITLE - AUTHOR" or "ITEMTYPE - TITLE" if no author
+  if (author) {
+    return `${itemType} - ${title} - ${author}`;
+  }
+  return `${itemType} - ${title}`;
 };
 
 const getFileFormat = (fileName: string): "pdf" | "epub" | "audio" | null => {

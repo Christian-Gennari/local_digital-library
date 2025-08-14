@@ -214,15 +214,42 @@ app.post(
     try {
       const mode = (req.query.mode || "auto-number").toString();
       const rawMeta = req.body.metadata ? JSON.parse(req.body.metadata) : {};
+
+      // Determine item type
+      const primary = req.files?.file?.[0];
+      if (!primary)
+        return res.status(400).json({ error: "Missing 'file' field" });
+
+      const ext = (primary.originalname.split(".").pop() || "").toLowerCase();
+      const format = fmt(`x.${ext}`);
+
+      // Determine itemType based on file format and metadata
+      let itemType = rawMeta.itemType;
+      if (!itemType) {
+        if (format === "audio") {
+          itemType = "audiobook";
+        } else if (format === "epub") {
+          itemType = "book";
+        } else if (rawMeta?.doi && !rawMeta?.isbn) {
+          itemType = "article";
+        } else {
+          itemType = "book";
+        }
+      }
+
+      // Build folder name with format: "ITEMTYPE - TITLE - AUTHOR"
       const baseTitle = sanitize(
         rawMeta.title ||
-          (req.files?.file?.[0]?.originalname || "Untitled").replace(
-            /\.[^/.]+$/,
-            ""
-          )
+          (primary.originalname || "Untitled").replace(/\.[^/.]+$/, "")
       );
-      const author = rawMeta.author ? ` - ${sanitize(rawMeta.author)}` : "";
-      const baseFolder = sanitize(`${baseTitle}${author}`);
+      const author = rawMeta.author ? sanitize(rawMeta.author) : "";
+      const itemTypeUpper = (itemType || "book").toUpperCase();
+
+      // Format: "ITEMTYPE - TITLE - AUTHOR" or "ITEMTYPE - TITLE" if no author
+      const baseFolder = author
+        ? sanitize(`${itemTypeUpper} - ${baseTitle} - ${author}`)
+        : sanitize(`${itemTypeUpper} - ${baseTitle}`);
+
       let folderName = baseFolder;
 
       const dirExists = async (name) => {
@@ -252,54 +279,39 @@ app.post(
       const dir = path.join(LIBRARY_ROOT, folderName);
       await ensureDir(dir);
 
-      // write primary file
-      if (!req.files?.file?.[0])
-        return res.status(400).json({ error: "Missing 'file' field" });
-      const primary = req.files.file[0];
-      const ext = (primary.originalname.split(".").pop() || "").toLowerCase();
-      const f = fmt(`x.${ext}`);
-      if (!f) return res.status(400).json({ error: "Unsupported file type" });
+      // Write primary file
       await fs.writeFile(path.join(dir, `book.${ext}`), primary.buffer);
 
-      // write metadata
+      // Write metadata with itemType
       const metadata = {
         ...rawMeta,
-        itemType:
-          f === "audio"
-            ? "audiobook"
-            : f === "epub"
-            ? "book"
-            : rawMeta?.doi && !rawMeta?.isbn
-            ? "article"
-            : rawMeta.itemType || "book",
+        itemType: itemType,
         dateAdded: rawMeta.dateAdded || new Date().toISOString(),
       };
       await writeJSON(path.join(dir, "metadata.json"), metadata);
 
-      // optional cover
+      // Optional cover (rest of the code remains the same)
       if (req.files?.cover?.[0]) {
         const cover = req.files.cover[0];
         const cext = (
           cover.originalname.split(".").pop() || "jpg"
         ).toLowerCase();
-        await fs.writeFile(path.join(dir, `cover.${cext}`), cover.buffer);
-        metadata.coverFile = `cover.${cext}`;
-        await writeJSON(path.join(dir, "metadata.json"), metadata);
+        await fs.writeFile(path.join(dir, `book.cover.${cext}`), cover.buffer);
       }
 
-      res.json({
-        ok: true,
-        book: {
-          id: folderName,
-          folderName,
-          fileName: `book.${ext}`,
-          format: f,
-          metadata,
-        },
-      });
+      // Return the created book
+      const book = {
+        id: folderName,
+        folderName,
+        fileName: `book.${ext}`,
+        format,
+        metadata,
+      };
+
+      res.json({ ok: true, book });
     } catch (e) {
-      console.error(e);
-      res.status(500).json({ error: "Upload failed" });
+      console.error("books:post", e);
+      res.status(500).json({ error: "Could not upload book" });
     }
   }
 );

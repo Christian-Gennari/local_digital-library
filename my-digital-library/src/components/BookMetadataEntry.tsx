@@ -3,6 +3,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { BookMetadata, ItemType } from "../types";
 import { cleanISBN, fetchBookDataFromISBN } from "../utils/isbn";
 import { fetchArticleDataFromDOI } from "../utils/doi";
+import { useStore } from "../store";
 import {
   getFieldVisibility,
   getIdentifier,
@@ -52,6 +53,45 @@ export function BookMetadataEntry({ fileName, onSave, onSkip }: Props) {
   const fieldVisibility = getFieldVisibility(itemType);
 
   const panelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // Auto-detect duration for audio files from the pending file
+    if (itemType === "audiobook" && fileName) {
+      const audioExtensions = [
+        ".mp3",
+        ".m4a",
+        ".m4b",
+        ".wav",
+        ".aac",
+        ".flac",
+        ".ogg",
+      ];
+      const hasAudioExtension = audioExtensions.some((ext) =>
+        fileName.toLowerCase().endsWith(ext)
+      );
+
+      if (hasAudioExtension) {
+        // Access the pending file from the store
+        const pendingFile = useStore.getState().pendingBook;
+        if (pendingFile) {
+          const audio = new Audio();
+          const url = URL.createObjectURL(pendingFile);
+
+          audio.addEventListener("loadedmetadata", () => {
+            const duration = Math.floor(audio.duration);
+            handleAudiobookFieldChange("duration", duration);
+            URL.revokeObjectURL(url);
+          });
+
+          audio.addEventListener("error", () => {
+            console.error("Failed to detect audio duration");
+          });
+
+          audio.src = url;
+        }
+      }
+    }
+  }, [fileName, itemType]);
 
   // Update metadata when item type changes
   useEffect(() => {
@@ -938,16 +978,37 @@ export function BookMetadataEntry({ fileName, onSave, onSkip }: Props) {
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                           Duration
                         </label>
-                        <input
-                          type="text"
-                          value={formatDuration(metadata.audiobook?.duration)}
-                          onChange={(e) => {
-                            const seconds = parseDuration(e.target.value);
-                            handleAudiobookFieldChange("duration", seconds);
-                          }}
-                          className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
-                          placeholder="e.g., 8h 30m"
-                        />
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={
+                              formatDuration(metadata.audiobook?.duration) ||
+                              "Detecting..."
+                            }
+                            readOnly
+                            className="flex-1 rounded-lg border border-gray-300 bg-gray-50 px-4 py-3 text-sm text-gray-600"
+                            placeholder="Auto-detected"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const input = prompt(
+                                "Enter duration (e.g., 8h 25m):"
+                              );
+                              if (input) {
+                                const seconds = parseDuration(input);
+                                if (seconds)
+                                  handleAudiobookFieldChange(
+                                    "duration",
+                                    seconds
+                                  );
+                              }
+                            }}
+                            className="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg"
+                          >
+                            Edit
+                          </button>
+                        </div>
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -989,7 +1050,6 @@ export function BookMetadataEntry({ fileName, onSave, onSkip }: Props) {
                     </div>
                   </div>
                 )}
-
                 {/* Series information for books and audiobooks */}
                 {(itemType === "book" || itemType === "audiobook") && (
                   <>
@@ -1063,7 +1123,6 @@ export function BookMetadataEntry({ fileName, onSave, onSkip }: Props) {
                     </div>
                   </>
                 )}
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     URL
@@ -1078,7 +1137,6 @@ export function BookMetadataEntry({ fileName, onSave, onSkip }: Props) {
                     placeholder="https://example.com/book"
                   />
                 </div>
-
                 {metadata.url && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">

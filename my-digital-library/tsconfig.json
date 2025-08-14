@@ -17,5 +17,5 @@
     "noFallthroughCasesInSwitch": true,
     "verbatimModuleSyntax": false
   },
-  "include": ["src", "server.mjs"]
+  "include": ["src", "server.mjs", "migration-script.mjs"]
 }

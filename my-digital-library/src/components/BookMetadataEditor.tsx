@@ -1067,35 +1067,37 @@ export function BookMetadataEditor({ book, onClose }: Props) {
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                           Duration
                         </label>
-                        <input
-                          type="text"
-                          value={formatDuration(metadata.audiobook?.duration)}
-                          onChange={(e) => {
-                            const seconds = parseDuration(e.target.value);
-                            handleAudiobookFieldChange("duration", seconds);
-                          }}
-                          className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
-                          placeholder="e.g., 8h 30m"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Audio Format
-                        </label>
-                        <select
-                          value={metadata.audiobook?.format || ""}
-                          onChange={(e) =>
-                            handleAudiobookFieldChange("format", e.target.value)
-                          }
-                          className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
-                        >
-                          <option value="">Select format...</option>
-                          <option value="mp3">MP3</option>
-                          <option value="m4a">M4A</option>
-                          <option value="m4b">M4B</option>
-                          <option value="audible">Audible</option>
-                          <option value="other">Other</option>
-                        </select>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={
+                              formatDuration(metadata.audiobook?.duration) ||
+                              "Detecting..."
+                            }
+                            readOnly
+                            className="flex-1 rounded-lg border border-gray-300 bg-gray-50 px-4 py-3 text-sm text-gray-600"
+                            placeholder="Auto-detected"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const input = prompt(
+                                "Enter duration (e.g., 8h 25m):"
+                              );
+                              if (input) {
+                                const seconds = parseDuration(input);
+                                if (seconds)
+                                  handleAudiobookFieldChange(
+                                    "duration",
+                                    seconds
+                                  );
+                              }
+                            }}
+                            className="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg"
+                          >
+                            Edit
+                          </button>
+                        </div>
                       </div>
                     </div>
 
@@ -1118,7 +1120,6 @@ export function BookMetadataEditor({ book, onClose }: Props) {
                     </div>
                   </div>
                 )}
-
                 {/* Series information for books and audiobooks */}
                 {(itemType === "book" || itemType === "audiobook") && (
                   <>
@@ -1192,7 +1193,6 @@ export function BookMetadataEditor({ book, onClose }: Props) {
                     </div>
                   </>
                 )}
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     URL
@@ -1207,7 +1207,6 @@ export function BookMetadataEditor({ book, onClose }: Props) {
                     placeholder="https://example.com/book"
                   />
                 </div>
-
                 {metadata.url && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
