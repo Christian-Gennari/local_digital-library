@@ -25,12 +25,26 @@ export interface PdfReaderRef {
 interface PdfReaderProps {
   pdfUrl: string;
   currentBook: any;
+  showTTS?: boolean; // Add this line
+  setShowTTS?: (show: boolean) => void; // Add this line
+  isTocOpen?: boolean; // Add this
+  setIsTocOpen?: (open: boolean) => void; // Add this
 }
 
 const TOOLBAR_MOBILE_HEIGHT = 64; // px, for safe padding
 
 const PdfReader = forwardRef<PdfReaderRef, PdfReaderProps>(
-  ({ pdfUrl, currentBook }, ref) => {
+  (
+    {
+      pdfUrl,
+      currentBook,
+      showTTS = false,
+      setShowTTS,
+      isTocOpen: tocOpenProp, // Add this
+      setIsTocOpen: setTocOpenProp, // Add this
+    },
+    ref
+  ) => {
     const {
       setCurrentReference,
       registerHighlightService,
@@ -44,11 +58,12 @@ const PdfReader = forwardRef<PdfReaderRef, PdfReaderProps>(
     const [currentPage, setCurrentPage] = useState(1);
     const [scale, setScale] = useState(1); // desktop zoom
     const [tableOfContents, setTableOfContents] = useState<TocItem[]>([]);
-    const [isTocOpen, setIsTocOpen] = useState(false);
+    const [localTocOpen, setLocalTocOpen] = useState(false);
+    const isTocOpen = tocOpenProp !== undefined ? tocOpenProp : localTocOpen;
+    const setIsTocOpen = setTocOpenProp || setLocalTocOpen;
     const [openChapters, setOpenChapters] = useState<Set<string>>(new Set());
     const [currentChapterId, setCurrentChapterId] = useState<string>("");
 
-    const [showTTS, setShowTTS] = useState(false);
     const [pdfDocument, setPdfDocument] = useState<any>(null);
 
     // Layout measurement for responsive fit-to-width on mobile
@@ -356,7 +371,7 @@ const PdfReader = forwardRef<PdfReaderRef, PdfReaderProps>(
         {!isTocOpen && tableOfContents.length > 0 && (
           <button
             onClick={() => setIsTocOpen(true)}
-            className="fixed z-30 md:left-4 md:top-1/2 md:-translate-y-1/2 right-3 md:right-auto md:bottom-auto bottom-[calc(60px+env(safe-area-inset-bottom))] flex h-11 w-11 md:h-12 md:w-12 items-center justify-center rounded-full bg-white shadow-lg border border-slate-200 text-slate-600 hover:bg-slate-50 hover:shadow-xl transition-all duration-200 cursor-pointer"
+            className="fixed z-30 md:left-4 md:top-1/2 md:-translate-y-1/2 right-3 md:right-auto md:bottom-auto bottom-[calc(60px+env(safe-area-inset-bottom))] flex h-11 w-11 md:h-12 md:w-12 hidden md:flex items-center justify-center rounded-full bg-white shadow-lg border border-slate-200 text-slate-600 hover:bg-slate-50 hover:shadow-xl transition-all duration-200 cursor-pointer"
             title="Show Contents"
             aria-label="Table of Contents"
           >
@@ -375,13 +390,14 @@ const PdfReader = forwardRef<PdfReaderRef, PdfReaderProps>(
         {/* 🔥 ADD THE TTS COMPONENTS RIGHT HERE 🔥 */}
         {/* TTS Player - only show when enabled */}
         {showTTS && pdfDocument && containerRef.current && (
-          <div className="fixed top-4 right-4 z-50">
+          <div className="fixed bottom-16 right-4 z-50 pb-[env(safe-area-inset-bottom)]">
             <TTSPlayer
               bookId={currentBook.id}
               bookType="pdf"
               pdfDocument={pdfDocument}
               pdfContainer={containerRef.current}
               className="bg-white shadow-lg rounded-lg border border-slate-200"
+              onClose={() => setShowTTS?.(false)}
             />
           </div>
         )}
@@ -389,8 +405,8 @@ const PdfReader = forwardRef<PdfReaderRef, PdfReaderProps>(
         {/* TTS Toggle Button */}
         {!showTTS && (
           <button
-            onClick={() => setShowTTS(true)}
-            className="fixed z-30 right-3 bottom-[calc(120px+env(safe-area-inset-bottom))] md:right-20 md:bottom-auto md:top-1/3 h-11 w-11 md:h-12 md:w-12 flex items-center justify-center rounded-full bg-blue-600 shadow-lg text-white hover:bg-blue-700 hover:shadow-xl transition-all duration-200 cursor-pointer"
+            onClick={() => setShowTTS?.(true)} // Note the optional chaining
+            className="fixed z-30 right-3 bottom-[calc(120px+env(safe-area-inset-bottom))] md:right-20 md:bottom-auto md:top-1/3 h-11 w-11 md:h-12 md:w-12 hidden md:flex items-center justify-center rounded-full bg-blue-600 shadow-lg text-white hover:bg-blue-700 hover:shadow-xl transition-all duration-200 cursor-pointer"
             title="Text-to-Speech"
             aria-label="Text-to-Speech"
           >
@@ -410,29 +426,6 @@ const PdfReader = forwardRef<PdfReaderRef, PdfReaderProps>(
           </button>
         )}
 
-        {/* Close TTS button when TTS is open */}
-        {showTTS && (
-          <button
-            onClick={() => setShowTTS(false)}
-            className="fixed z-50 top-4 right-[calc(100%+1rem)] md:right-4 md:top-16 h-8 w-8 flex items-center justify-center rounded-full bg-slate-600 text-white hover:bg-slate-700 transition-all cursor-pointer"
-            title="Close TTS"
-            aria-label="Close TTS"
-          >
-            <svg
-              className="h-4 w-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={2}
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
-        )}
         {/* 🔥 END OF TTS COMPONENTS 🔥 */}
 
         <TableOfContents

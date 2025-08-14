@@ -41,6 +41,7 @@ export interface TTSLocator {
 export interface TTSAdapter {
   highlight?(sentenceId: string, sentence: TTSSentence): void;
   clearHighlight?(): void;
+  goToLocator?(locator: TTSLocator): Promise<void>; // Add this line
   destroy(): void;
 }
 
@@ -87,6 +88,8 @@ export class TTSController extends EventEmitter {
   private playbackState: PlaybackState = PlaybackState.IDLE;
   private playbackId: string = "";
   private synthesisAbortController: AbortController | null = null;
+  private currentLocator: TTSLocator | null = null;
+  private isContinuousMode: boolean = true; // Enable continuous reading by default
 
   // Audio management
   private audioContext: AudioContext | null = null;
@@ -174,6 +177,7 @@ export class TTSController extends EventEmitter {
 
     // Stop any existing playback
     await this.stop();
+    this.currentLocator = locator; // Store the initial locator
 
     // Generate new playback ID
     this.playbackId = `playback-${Date.now()}-${Math.random()
@@ -206,6 +210,57 @@ export class TTSController extends EventEmitter {
       this.playbackState = PlaybackState.ERROR;
       throw error;
     }
+  }
+
+  private async loadNextPageSentences(): Promise<boolean> {
+    if (!this.sentenceIndex || !this.currentLocator) return false;
+
+    try {
+      // For PDF, increment page number
+      if (this.currentLocator.type === "pdf" && this.currentLocator.page) {
+        // Create a clean locator for the next page (start from beginning)
+        const nextPageLocator: TTSLocator = {
+          type: "pdf",
+          page: this.currentLocator.page + 1,
+          // DON'T include char offset - start from beginning of page
+          // Remove: char: this.currentLocator.char
+        };
+
+        console.log(`📖 Loading sentences from page ${nextPageLocator.page}`);
+
+        // Build index for next page
+        await this.sentenceIndex.buildIndex(this.bookId!, nextPageLocator);
+
+        // Get sentences from next page (will get ALL sentences from start)
+        const nextPageSentences =
+          await this.sentenceIndex.getSentencesFromLocator(nextPageLocator);
+
+        if (nextPageSentences.length > 0) {
+          // Navigate to next page in PDF viewer (will go to top of page)
+          const pdfAdapter = this.adapters.get("pdf");
+          if (pdfAdapter && "goToLocator" in pdfAdapter) {
+            await (pdfAdapter as any).goToLocator(nextPageLocator);
+          }
+
+          // Append new sentences to queue
+          this.sentenceQueue.push(...nextPageSentences);
+          this.currentLocator = nextPageLocator;
+
+          console.log(
+            `✅ Loaded ${nextPageSentences.length} sentences from page ${nextPageLocator.page}`
+          );
+
+          // Continue synthesis pipeline for new sentences
+          this.startSynthesisPipeline();
+
+          return true;
+        }
+      }
+    } catch (error) {
+      console.error("Failed to load next page sentences:", error);
+    }
+
+    return false;
   }
 
   async resumeFromBookmark() {
@@ -315,16 +370,13 @@ export class TTSController extends EventEmitter {
     ) {
       // Check if we need to synthesize more sentences
       const needsMoreBuffers = this.bufferQueue.length < this.maxBufferSize;
-      const hasMoreSentences =
-        this.currentQueueIndex + this.bufferQueue.length <
-        this.sentenceQueue.length;
+      const nextIndex = this.currentQueueIndex + this.bufferQueue.length;
+      const hasMoreSentences = nextIndex < this.sentenceQueue.length;
 
       if (needsMoreBuffers && hasMoreSentences) {
-        const nextIndex = this.currentQueueIndex + this.bufferQueue.length;
         const sentence = this.sentenceQueue[nextIndex];
 
         if (sentence && !this.synthesisInProgress.has(sentence.id)) {
-          // Start synthesis for this sentence
           this.synthesisInProgress.add(sentence.id);
 
           try {
@@ -334,7 +386,6 @@ export class TTSController extends EventEmitter {
             );
 
             if (audioBuffer && currentPlaybackId === this.playbackId) {
-              // Add to buffer queue
               this.bufferQueue.push({
                 sentenceId: sentence.id,
                 sentence,
@@ -356,17 +407,52 @@ export class TTSController extends EventEmitter {
         }
       }
 
-      // Check if we've reached the end
+      // Check if we're near the end of the current page and should pre-load next page
+      const nearEndOfQueue = nextIndex >= this.sentenceQueue.length - 2;
       if (
-        this.currentQueueIndex >= this.sentenceQueue.length &&
-        this.bufferQueue.length === 0
+        nearEndOfQueue &&
+        this.isContinuousMode &&
+        this.currentLocator?.type === "pdf"
       ) {
+        // Pre-emptively load next page sentences while still playing current page
+        const nextPageLocator: TTSLocator = {
+          type: "pdf",
+          page: (this.currentLocator.page || 0) + 1,
+        };
+
+        // Check if next page exists without loading it yet
+        try {
+          await this.sentenceIndex?.buildIndex(this.bookId!, nextPageLocator);
+          const nextPageSentences =
+            (await this.sentenceIndex?.getSentencesFromLocator(
+              nextPageLocator
+            )) || [];
+
+          if (
+            nextPageSentences.length > 0 &&
+            !this.sentenceQueue.some((s) => nextPageSentences[0].id === s.id)
+          ) {
+            console.log(
+              `📖 Pre-loading ${nextPageSentences.length} sentences from page ${nextPageLocator.page}`
+            );
+            this.sentenceQueue.push(...nextPageSentences);
+          }
+        } catch (error) {
+          console.log("No next page available for pre-loading");
+        }
+      }
+
+      // Exit condition: no more sentences and no more buffers
+      if (!hasMoreSentences && this.bufferQueue.length === 0) {
+        console.log("📚 Synthesis pipeline: No more sentences to synthesize");
         break;
       }
 
       // Small delay to prevent tight loop
       await new Promise((resolve) => setTimeout(resolve, 100));
     }
+
+    console.log("🔚 Synthesis pipeline ended");
   }
 
   private async synthesizeSentence(
@@ -478,7 +564,7 @@ export class TTSController extends EventEmitter {
     const endTime = startTime + adjustedDuration;
 
     // Set up source event handlers
-    source.onended = () => {
+    source.onended = async () => {
       if (playbackId !== this.playbackId) return;
 
       // Remove from scheduled sources
@@ -487,17 +573,44 @@ export class TTSController extends EventEmitter {
         this.scheduledSources.splice(index, 1);
       }
 
-      // Check if this was the last scheduled source
-      if (
-        this.scheduledSources.length === 0 &&
-        this.currentQueueIndex >= this.sentenceQueue.length &&
-        this.bufferQueue.length === 0
-      ) {
-        this.emit("playbackEnded");
-        this.playbackState = PlaybackState.IDLE;
+      // Check if we're approaching the end and need to load more
+      const isLastScheduledSource = this.scheduledSources.length === 0;
+      const noMoreBuffers = this.bufferQueue.length === 0;
+      const reachedEndOfQueue =
+        this.currentQueueIndex >= this.sentenceQueue.length;
+
+      if (isLastScheduledSource && noMoreBuffers && reachedEndOfQueue) {
+        // We've truly reached the end of current content
+
+        if (this.isContinuousMode && this.currentLocator?.type === "pdf") {
+          console.log(
+            "📚 End of page reached, attempting to load next page..."
+          );
+
+          // Small delay to ensure everything is cleaned up
+          await new Promise((resolve) => setTimeout(resolve, 100));
+
+          const hasNextPage = await this.loadNextPageSentences();
+
+          if (hasNextPage) {
+            console.log("✅ Next page loaded, continuing playback");
+            // Ensure playback continues - restart pipelines if needed
+            if (this.playbackState === PlaybackState.PLAYING) {
+              // Force restart both pipelines
+              this.startSynthesisPipeline();
+              this.startPlaybackPipeline();
+            }
+          } else {
+            console.log("📖 No more pages, ending playback");
+            this.emit("playbackEnded");
+            this.playbackState = PlaybackState.IDLE;
+          }
+        } else {
+          this.emit("playbackEnded");
+          this.playbackState = PlaybackState.IDLE;
+        }
       }
     };
-
     // Schedule the source
     source.playbackRate.value = this.settings.rate;
     source.start(startTime, startOffset);

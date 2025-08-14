@@ -19,6 +19,7 @@ interface TTSPlayerProps {
   pdfContainer?: HTMLElement;
   // UI props
   className?: string;
+  onClose?: () => void;
 }
 
 interface Voice {
@@ -36,6 +37,7 @@ export function TTSPlayer({
   pdfDocument,
   pdfContainer,
   className = "",
+  onClose,
 }: TTSPlayerProps) {
   const [isInitialized, setIsInitialized] = useState(false);
   const [playbackState, setPlaybackState] = useState<PlaybackState>(
@@ -368,7 +370,31 @@ export function TTSPlayer({
   }
 
   return (
-    <div className={`space-y-2 ${className}`}>
+    <div className={`space-y-2 ${className} relative`}>
+      {/* ADD THIS ENTIRE CLOSE BUTTON BLOCK HERE - LINE 357 */}
+      {onClose && (
+        <button
+          onClick={onClose}
+          className="absolute -top-2 -right-2 h-6 w-6 flex items-center justify-center rounded-full bg-slate-600 text-white hover:bg-slate-700 transition-all z-10"
+          title="Close TTS"
+          aria-label="Close TTS"
+        >
+          <svg
+            className="h-3 w-3"
+            fill="none"
+            viewBox="0 0 24 24"
+            strokeWidth={2}
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M6 18L18 6M6 6l12 12"
+            />
+          </svg>
+        </button>
+      )}
+      {/* END OF CLOSE BUTTON BLOCK */}
       <div className="flex items-center gap-1">
         {error && (
           <div className="text-xs text-red-600 mr-2" title={error}>

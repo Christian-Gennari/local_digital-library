@@ -110,24 +110,22 @@ export function LibraryLayout() {
 
         {/* MAIN */}
         <div className="flex-1 flex flex-col min-w-0">
-          {/* Sticky header */}
+          {/* Sticky header - Improved Layout */}
           <header
             className="sticky top-0 z-50 w-full border-b border-slate-200
-               bg-white/80 backdrop-blur-sm
-               supports-[backdrop-filter]:bg-white/70
-               pt-[env(safe-area-inset-top)]"
+     bg-white/80 backdrop-blur-sm
+     supports-[backdrop-filter]:bg-white/70
+     pt-[env(safe-area-inset-top)]"
           >
-            <div
-              className="flex flex-wrap md:flex-nowrap items-center gap-2 md:gap-3
-                    px-3 md:px-6 py-2.5 md:py-3"
-            >
-              {/* Logo (desktop only) */}
-              <div className="hidden md:block flex-none">
+            {/* Desktop Layout */}
+            <div className="hidden md:flex items-center px-6 py-4">
+              {/* Logo - Better spacing */}
+              <div className="flex-none mr-8">
                 <NostosLogo />
               </div>
 
-              {/* Search – allow shrink on small screens */}
-              <div className="flex-1 min-w-0 max-w-2xl md:mx-4">
+              {/* Search - Centered with max width */}
+              <div className="flex-1 max-w-3xl mx-auto">
                 <SearchBar
                   value={searchQuery}
                   onChange={setSearchQuery}
@@ -136,15 +134,45 @@ export function LibraryLayout() {
                 />
               </div>
 
-              {/* Actions */}
-              <div className="ml-auto flex items-center gap-2 md:gap-3 shrink-0">
+              {/* Actions - Better spacing */}
+              <div className="flex items-center gap-3 ml-8">
                 <FileUpload />
                 <button
-                  className="p-2 rounded-lg text-slate-500 hover:text-slate-700 hover:bg-slate-100"
+                  className="p-2.5 rounded-lg text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors"
                   aria-label="Settings"
                 >
                   <Cog6ToothIcon className="h-6 w-6" />
                 </button>
+              </div>
+            </div>
+
+            {/* Mobile Layout */}
+            <div className="md:hidden px-3 py-3">
+              {/* First Row: Logo and Actions */}
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex-none">
+                  <NostosLogo />
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <FileUpload />
+                  <button
+                    className="p-2 rounded-lg text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                    aria-label="Settings"
+                  >
+                    <Cog6ToothIcon className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Second Row: Search (full width) */}
+              <div className="w-full">
+                <SearchBar
+                  value={searchQuery}
+                  onChange={setSearchQuery}
+                  filters={filters}
+                  onFiltersChange={setFilters}
+                />
               </div>
             </div>
           </header>

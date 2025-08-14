@@ -41,12 +41,28 @@ interface EpubReaderProps {
   isNotesOpen: boolean;
   currentBook: any;
   onRenditionReady?: (rendition: any) => void;
+  showTTS?: boolean;
+  setShowTTS?: (show: boolean) => void;
+  isTocOpen?: boolean; // Make sure this line exists
+  setIsTocOpen?: (open: boolean) => void;
 }
 
 const TOOLBAR_MOBILE_HEIGHT = 64; // keep toolbar compact and predictable
 
 const EpubReader = forwardRef<EpubReaderRef, EpubReaderProps>(
-  ({ epubUrl, isNotesOpen, currentBook, onRenditionReady }, ref) => {
+  (
+    {
+      epubUrl,
+      isNotesOpen,
+      currentBook,
+      onRenditionReady,
+      showTTS = false,
+      setShowTTS,
+      isTocOpen: tocOpenProp, // Add this
+      setIsTocOpen: setTocOpenProp, // Add this
+    },
+    ref
+  ) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const viewerShellRef = useRef<HTMLDivElement>(null);
     const viewerRef = useRef<HTMLDivElement>(null);
@@ -64,12 +80,11 @@ const EpubReader = forwardRef<EpubReaderRef, EpubReaderProps>(
     const [fontSize, setFontSize] = useState<number>(100);
 
     const [tableOfContents, setTableOfContents] = useState<any[]>([]);
-    const [isTocOpen, setIsTocOpen] = useState(false);
+    const [localTocOpen, setLocalTocOpen] = useState(false);
+    const isTocOpen = tocOpenProp !== undefined ? tocOpenProp : localTocOpen;
+    const setIsTocOpen = setTocOpenProp || setLocalTocOpen;
     const [openChapters, setOpenChapters] = useState<Set<string>>(new Set());
     const [currentChapterId, setCurrentChapterId] = useState<string>("");
-
-    const [showTTS, setShowTTS] = useState(false);
-
     // Touch swipe (mobile)
     const touchStartX = useRef<number | null>(null);
     const touchEndX = useRef<number | null>(null);
@@ -695,13 +710,14 @@ const EpubReader = forwardRef<EpubReaderRef, EpubReaderProps>(
         {/* 🔥 ADD THE TTS COMPONENTS RIGHT HERE 🔥 */}
         {/* TTS Player - only show when enabled */}
         {showTTS && book && rendition && (
-          <div className="fixed top-4 right-4 z-50">
+          <div className="fixed bottom-4 right-4 z-50 pb-[env(safe-area-inset-bottom)]">
             <TTSPlayer
               bookId={currentBook.id}
               bookType="epub"
               epubBook={book}
               epubRendition={rendition}
               className="bg-white shadow-lg rounded-lg border border-slate-200"
+              onClose={() => setShowTTS?.(false)}
             />
           </div>
         )}
@@ -709,8 +725,8 @@ const EpubReader = forwardRef<EpubReaderRef, EpubReaderProps>(
         {/* TTS Toggle Button - position it near your ToC button */}
         {!showTTS && (
           <button
-            onClick={() => setShowTTS(true)}
-            className="fixed z-40 right-3 bottom-[calc(120px+env(safe-area-inset-bottom))] md:right-20 md:bottom-auto md:top-1/2 md:-translate-y-1/2 h-11 w-11 md:h-12 md:w-12 flex items-center justify-center rounded-full bg-blue-600 shadow-lg text-white hover:bg-blue-700 hover:shadow-xl transition-all cursor-pointer"
+            onClick={() => setShowTTS?.(true)} // Note the optional chaining
+            className="fixed z-40 right-3 bottom-[calc(120px+env(safe-area-inset-bottom))] md:right-20 md:bottom-auto md:top-1/2 md:-translate-y-1/2 h-11 w-11 md:h-12 md:w-12 hidden md:flex items-center justify-center rounded-full bg-blue-600 shadow-lg text-white hover:bg-blue-700 hover:shadow-xl transition-all cursor-pointer"
             title="Text-to-Speech"
             aria-label="Text-to-Speech"
           >
@@ -730,36 +746,13 @@ const EpubReader = forwardRef<EpubReaderRef, EpubReaderProps>(
           </button>
         )}
 
-        {/* Close TTS button when TTS is open */}
-        {showTTS && (
-          <button
-            onClick={() => setShowTTS(false)}
-            className="fixed z-50 top-4 right-[calc(100%+1rem)] md:right-4 md:top-16 h-8 w-8 flex items-center justify-center rounded-full bg-slate-600 text-white hover:bg-slate-700 transition-all cursor-pointer"
-            title="Close TTS"
-            aria-label="Close TTS"
-          >
-            <svg
-              className="h-4 w-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={2}
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
-        )}
         {/* 🔥 END OF TTS COMPONENTS 🔥 */}
 
         {/* ToC FAB — bottom-right on mobile, mid-left on desktop */}
         {!isTocOpen && (
           <button
             onClick={() => setIsTocOpen(true)}
-            className="fixed z-40 md:left-4 md:top-1/2 md:-translate-y-1/2 right-3 md:right-auto md:bottom-auto bottom-[calc(60px+env(safe-area-inset-bottom))] h-11 w-11 md:h-12 md:w-12 flex items-center justify-center rounded-full bg-white shadow-lg border border-slate-200 text-slate-600 hover:bg-slate-50 hover:shadow-xl transition-all cursor-pointer"
+            className="fixed z-40 md:left-4 md:top-1/2 md:-translate-y-1/2 right-3 md:right-auto md:bottom-auto bottom-[calc(60px+env(safe-area-inset-bottom))] h-11 w-11 md:h-12 md:w-12 hidden md:flex items-center justify-center rounded-full bg-white shadow-lg border border-slate-200 text-slate-600 hover:bg-slate-50 hover:shadow-xl transition-all cursor-pointer"
             title="Table of Contents"
             aria-label="Table of Contents"
           >

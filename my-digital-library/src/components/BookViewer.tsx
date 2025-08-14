@@ -29,6 +29,8 @@ function BookViewerContent() {
   const [isMobile, setIsMobile] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showTTS, setShowTTS] = useState(false);
+  const [isTocOpen, setIsTocOpen] = useState(false); // Add this line
 
   const viewerRef = useRef<HTMLDivElement>(null);
   const pdfReaderRef = useRef<PdfReaderRef>(null);
@@ -116,6 +118,10 @@ function BookViewerContent() {
             ref={pdfReaderRef}
             pdfUrl={currentBook.url!}
             currentBook={currentBook}
+            showTTS={showTTS}
+            setShowTTS={setShowTTS}
+            isTocOpen={isTocOpen} // Add this
+            setIsTocOpen={setIsTocOpen} // Add this
           />
         );
       case "epub":
@@ -126,6 +132,10 @@ function BookViewerContent() {
             isNotesOpen={isNotesOpen}
             currentBook={currentBook}
             onRenditionReady={setRendition}
+            showTTS={showTTS}
+            setShowTTS={setShowTTS}
+            isTocOpen={isTocOpen} // Add this
+            setIsTocOpen={setIsTocOpen} // Add this
           />
         );
       case "audio":
@@ -399,6 +409,62 @@ function BookViewerContent() {
           />
           <div className="absolute right-2 top-[56px] rounded-xl bg-white shadow-2xl border border-slate-200 w-60 overflow-hidden">
             <div className="p-2">
+              {/* TTS Toggle Button - Only show for PDF and EPUB */}
+              {(format === "pdf" || format === "epub") && (
+                <button
+                  onClick={() => {
+                    setShowTTS(!showTTS);
+                    setIsMenuOpen(false);
+                  }}
+                  className="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2"
+                >
+                  <svg
+                    className="h-5 w-5 text-slate-600"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth={1.5}
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M19.114 5.636a9 9 0 0 1 0 12.728M16.463 8.288a5.25 5.25 0 0 1 0 7.424M6.75 8.25l4.72-4.72a.75.75 0 0 1 1.28.53v15.88a.75.75 0 0 1-1.28.53l-4.72-4.72H4.5c-.69 0-1.25-.56-1.25-1.25v-6.5c0-.69.56-1.25 1.25-1.25h2.25Z"
+                    />
+                  </svg>
+                  <span>
+                    {showTTS ? "Hide Text-to-Speech" : "Open Text-to-Speech"}
+                  </span>
+                </button>
+              )}
+
+              {/* Table of Contents Button - ADD THIS */}
+              {(format === "pdf" || format === "epub") && (
+                <button
+                  onClick={() => {
+                    setIsTocOpen(!isTocOpen);
+                    setIsMenuOpen(false);
+                  }}
+                  className="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2"
+                >
+                  <svg
+                    className="h-5 w-5 text-slate-600"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth={1.5}
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"
+                    />
+                  </svg>
+                  <span>
+                    {isTocOpen ? "Hide Contents" : "Table of Contents"}
+                  </span>
+                </button>
+              )}
+
               <button
                 onClick={() => {
                   toggleNotes();
