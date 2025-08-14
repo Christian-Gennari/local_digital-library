@@ -192,11 +192,13 @@ export const fetchBookDataFromISBN = async (
         book.creators.forEach((creator: ZoteroCreator) => {
           const firstName = creator.firstName || "";
           const lastName = creator.lastName || "";
-          const fullName = firstName && lastName
-            ? `${firstName} ${lastName}`
-            : creator.lastName || (creator as any).name || firstName;
+          const fullName =
+            firstName && lastName
+              ? `${firstName} ${lastName}`
+              : creator.lastName || (creator as any).name || firstName;
           if (!fullName) return;
-          const role: CreatorRole = (creator.creatorType as CreatorRole) || "contributor";
+          const role: CreatorRole =
+            (creator.creatorType as CreatorRole) || "contributor";
 
           const structured: StructuredCreator = {
             firstName,
@@ -317,7 +319,9 @@ export const generateCitation = (
     ReferenceFormatter.joinCreators(
       ReferenceFormatter.getCreators(metadata, "authors"),
       style
-    ) || metadata.author || "Unknown Author";
+    ) ||
+    metadata.author ||
+    "Unknown Author";
 
   switch (style) {
     case "apa": {
@@ -388,7 +392,9 @@ const generateArticleCitation = (
     ReferenceFormatter.joinCreators(
       ReferenceFormatter.getCreators(article, "authors"),
       format
-    ) || article.author || "Unknown Author";
+    ) ||
+    article.author ||
+    "Unknown Author";
 
   switch (format) {
     case "apa":

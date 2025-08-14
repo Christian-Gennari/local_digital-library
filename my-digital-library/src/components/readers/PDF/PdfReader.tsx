@@ -65,10 +65,6 @@ const PdfReader = forwardRef<PdfReaderRef, PdfReaderProps>(
       Math.max(min, Math.min(max, n));
 
     const isMobile = containerWidth > 0 && containerWidth < 768;
-    // On mobile we clamp the page width for readability and consistent look.
-    const mobilePageWidth = isMobile
-      ? clamp(Math.floor(containerWidth - 24), 320, 560) // 12px side padding each side → 24
-      : undefined;
 
     // Observe container width changes
     useEffect(() => {
@@ -195,6 +191,13 @@ const PdfReader = forwardRef<PdfReaderRef, PdfReaderProps>(
       async (pdf: any) => {
         setPdfDocument(pdf);
         setNumPages(pdf.numPages);
+
+        // Set initial scale to fit width on mobile
+        if (containerWidth > 0 && containerWidth < 768) {
+          const targetWidth = Math.min(containerWidth - 24, 560);
+          setScale(targetWidth / 595); // 595 is typical PDF page width
+        }
+
         const initialPage = currentBook.metadata.lastReadPosition || 1;
         setCurrentPage(initialPage);
         setCurrentReference({
@@ -256,6 +259,7 @@ const PdfReader = forwardRef<PdfReaderRef, PdfReaderProps>(
         saveProgress,
         findCurrentToc,
         findParentPath,
+        containerWidth,
       ]
     );
 
@@ -442,7 +446,7 @@ const PdfReader = forwardRef<PdfReaderRef, PdfReaderProps>(
             {/* Scrollable PDF area */}
             <div
               ref={containerRef}
-              className="flex-1 overflow-auto relative grid place-items-center p-3 md:p-4 min-h-0"
+              className="flex-1 overflow-auto relative flex justify-center p-3 md:p-4 min-h-0"
               style={{
                 paddingBottom: `max(${
                   TOOLBAR_MOBILE_HEIGHT + 16
@@ -452,7 +456,7 @@ const PdfReader = forwardRef<PdfReaderRef, PdfReaderProps>(
               onTouchMove={onTouchMove}
               onTouchEnd={onTouchEnd}
             >
-              <div className="w-full">
+              <div>
                 <Document
                   file={pdfUrl}
                   onLoadSuccess={onDocumentLoadSuccess}
@@ -461,33 +465,19 @@ const PdfReader = forwardRef<PdfReaderRef, PdfReaderProps>(
                   }
                   className="flex justify-center"
                 >
-                  {/* On mobile we fit to width; on desktop we honor scale */}
-                  {mobilePageWidth ? (
-                    <Page
-                      pageNumber={currentPage}
-                      width={mobilePageWidth}
-                      renderAnnotationLayer
-                      renderTextLayer
-                    />
-                  ) : (
-                    <Page
-                      pageNumber={currentPage}
-                      scale={scale}
-                      renderAnnotationLayer
-                      renderTextLayer
-                    />
-                  )}
+                  <Page
+                    pageNumber={currentPage}
+                    scale={scale}
+                    renderAnnotationLayer
+                    renderTextLayer
+                  />
                 </Document>
 
                 <PdfHighlighting
                   containerRef={containerRef}
                   highlights={highlights}
                   visible={highlightsVisible}
-                  scale={
-                    mobilePageWidth
-                      ? mobilePageWidth / 800
-                      : scale /* fallback scale for overlay */
-                  }
+                  scale={scale}
                   currentPage={currentPage}
                   onRegisterService={registerHighlightService}
                 />
@@ -533,27 +523,17 @@ const PdfReader = forwardRef<PdfReaderRef, PdfReaderProps>(
                   <button
                     aria-label="Zoom out"
                     onClick={zoomOut}
-                    className="h-8 w-8 grid place-items-center rounded-md border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 active:bg-slate-100 cursor-pointer disabled:opacity-50"
-                    disabled={
-                      !!mobilePageWidth /* disable on mobile fit-to-width */
-                    }
-                    title={
-                      mobilePageWidth ? "Zoom disabled on mobile" : "Zoom out"
-                    }
+                    className="h-8 w-8 grid place-items-center rounded-md border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 active:bg-slate-100 cursor-pointer"
                   >
                     <MinusIcon className="h-4 w-4" />
                   </button>
                   <span className="tabular-nums text-sm text-slate-700 min-w-[3ch] text-center">
-                    {mobilePageWidth ? "Fit" : `${Math.round(scale * 100)}%`}
+                    {`${Math.round(scale * 100)}%`}
                   </span>
                   <button
                     aria-label="Zoom in"
                     onClick={zoomIn}
-                    className="h-8 w-8 grid place-items-center rounded-md border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 active:bg-slate-100 cursor-pointer disabled:opacity-50"
-                    disabled={!!mobilePageWidth}
-                    title={
-                      mobilePageWidth ? "Zoom disabled on mobile" : "Zoom in"
-                    }
+                    className="h-8 w-8 grid place-items-center rounded-md border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 active:bg-slate-100 cursor-pointer"
                   >
                     <PlusIcon className="h-4 w-4" />
                   </button>

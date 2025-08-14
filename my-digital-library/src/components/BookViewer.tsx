@@ -296,7 +296,11 @@ function BookViewerContent() {
       )}
 
       {/* CONTENT + notes drawer */}
-      <div className="flex-1 flex overflow-hidden relative min-h-0">
+      <div
+        className={`flex-1 flex overflow-hidden relative min-h-0 ${
+          isMobile ? "pt-[calc(env(safe-area-inset-top)+52px)]" : ""
+        }`}
+      >
         <div
           className={`flex-1 relative transition-all duration-300 min-h-0 ${
             !isMobile && isNotesOpen ? "mr-80" : "mr-0"
