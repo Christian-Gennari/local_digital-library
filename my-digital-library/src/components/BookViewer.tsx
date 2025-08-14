@@ -297,7 +297,7 @@ function BookViewerContent() {
 
       {/* CONTENT + notes drawer */}
       <div
-        className={`flex-1 flex overflow-hidden relative min-h-0 ${
+        className={`flex-1 flex overflow-y-hidden relative min-h-0 ${
           isMobile ? "pt-[calc(env(safe-area-inset-top)+52px)]" : ""
         }`}
       >

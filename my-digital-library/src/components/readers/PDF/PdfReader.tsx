@@ -456,21 +456,23 @@ const PdfReader = forwardRef<PdfReaderRef, PdfReaderProps>(
             {/* Scrollable PDF area */}
             <div
               ref={containerRef}
-              className="flex-1 overflow-auto relative flex justify-center p-3 md:p-4 min-h-0"
+              className="flex-1 overflow-auto relative p-3 md:p-4 min-h-0"
               style={{
                 paddingBottom: `max(${
                   TOOLBAR_MOBILE_HEIGHT + 16
                 }px, env(safe-area-inset-bottom))`,
               }}
             >
-              <div>
+              <div
+                className={isMobile && scale > 1 ? "" : "flex justify-center"}
+              >
                 <Document
                   file={pdfUrl}
                   onLoadSuccess={onDocumentLoadSuccess}
                   loading={
                     <div className="p-8 text-center">Loading PDF...</div>
                   }
-                  className="flex justify-center"
+                  className={isMobile && scale > 1 ? "" : "flex justify-center"}
                 >
                   <Page
                     pageNumber={currentPage}
