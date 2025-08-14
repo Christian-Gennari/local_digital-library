@@ -1,6 +1,11 @@
 // src/components/TTSPlayer.tsx
 import React, { useEffect, useRef, useState } from "react";
-import { PlayIcon, PauseIcon, StopIcon } from "@heroicons/react/24/outline";
+import {
+  PlayIcon,
+  PauseIcon,
+  StopIcon,
+  XMarkIcon,
+} from "@heroicons/react/24/outline";
 import { TTSController, PlaybackState } from "../services/TTSController";
 import { KokoroSynthesizer } from "../services/KokoroSynthesizer";
 import { LocalTTSStorage, SentenceIndexer } from "../services/SentenceIndexer";
@@ -49,7 +54,7 @@ export function TTSPlayer({
 
   // Settings
   const [voices, setVoices] = useState<Voice[]>([]);
-  const [selectedVoice, setSelectedVoice] = useState("af_heart");
+  const [selectedVoice, setSelectedVoice] = useState("af_sky");
   const [rate, setRate] = useState(1.0);
   const [volume, setVolume] = useState(1.0);
 
@@ -68,7 +73,7 @@ export function TTSPlayer({
         const status = await response.json();
         setIsAvailable(status.available);
       }
-    } catch (error) {
+    } catch {
       setIsAvailable(false);
     }
   };
@@ -78,21 +83,21 @@ export function TTSPlayer({
     initializeTTS();
     loadVoices();
     checkTTSAvailability();
-
     return () => {
       cleanup();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bookId, bookType]);
 
   // Update adapters when props change
   useEffect(() => {
     if (!isInitialized) return;
     updateAdapter();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [epubBook, epubRendition, pdfDocument, pdfContainer, isInitialized]);
 
   const initializeTTS = async () => {
     try {
-      console.log("🎵 Starting TTS initialization...");
       setIsLoading(true);
       setError(null);
 
@@ -162,19 +167,12 @@ export function TTSPlayer({
   };
 
   const updateAdapter = async () => {
-    // Clean up old adapter
     if (adapterRef.current) {
       adapterRef.current.destroy();
       adapterRef.current = null;
     }
-
     await createAdapter();
-
-    // Re-register with controller if needed
-    if (ttsControllerRef.current) {
-      // Controller might need to be re-initialized with new adapter
-      // This depends on your implementation
-    }
+    // If your controller needs re-registration, handle it here.
   };
 
   const setupEventHandlers = () => {
@@ -184,6 +182,7 @@ export function TTSPlayer({
 
     controller.on("playbackStarted", () => {
       setPlaybackState(PlaybackState.PLAYING);
+      setError(null); // ✅ clear warning once we actually start
     });
 
     controller.on("paused", () => {
@@ -192,6 +191,7 @@ export function TTSPlayer({
 
     controller.on("resumed", () => {
       setPlaybackState(PlaybackState.PLAYING);
+      setError(null); // ✅ also clear if we successfully resume
     });
 
     controller.on("stopped", () => {
@@ -214,7 +214,6 @@ export function TTSPlayer({
       const response = await fetch("/api/tts/voices");
       if (response.ok) {
         const voiceData = await response.json();
-        // Map voices to include displayName for better UI
         const mappedVoices = voiceData.map((v: any) => ({
           ...v,
           displayName: v.name || v.id,
@@ -227,17 +226,12 @@ export function TTSPlayer({
   };
 
   const handleStartHere = async (locator: TTSLocator) => {
-    console.log("🎯 Starting playback from locator:", locator);
-
-    if (!ttsControllerRef.current) {
-      console.error("❌ TTS Controller not available");
-      return;
-    }
-
+    if (!ttsControllerRef.current) return;
     try {
       await ttsControllerRef.current.playFromLocator(locator);
+      setError(null); // ✅ user provided a location; clear the warning
     } catch (error) {
-      console.error("❌ Failed to start playback:", error);
+      console.error("Failed to start playback:", error);
       setError("Failed to start text-to-speech");
     }
   };
@@ -246,42 +240,37 @@ export function TTSPlayer({
     if (!ttsControllerRef.current) return;
 
     try {
-      setError(null);
+      setError(null); // optimistic clear; controller events will also clear definitively
       const state = ttsControllerRef.current.getState();
 
       switch (state) {
         case PlaybackState.PAUSED:
-          // Resume from pause
           await ttsControllerRef.current.resume();
+          setError(null); // ✅ resumed successfully
           break;
         case PlaybackState.IDLE:
         case PlaybackState.STOPPED:
-          // Start from bookmark or beginning
           try {
             await ttsControllerRef.current.resumeFromBookmark();
-          } catch (bookmarkError) {
-            // No bookmark, need to select starting point
-            setError("Double-tap on text to select a starting point");
+            setError(null); // ✅ resumed from bookmark successfully
+          } catch {
+            setError("Double-tap text to choose a starting point");
           }
           break;
         case PlaybackState.PLAYING:
-          // Already playing, do nothing
-          console.log("Already playing");
+          // no-op
           break;
         default:
           console.warn("Unexpected state:", state);
       }
     } catch (error) {
       console.error("Failed to start/resume playback:", error);
-      setError(
-        "Failed to start playback. Try double-tapping on text to select a starting point."
-      );
+      setError("Could not start playback. Try double-tapping text first.");
     }
   };
 
   const handlePause = async () => {
     if (!ttsControllerRef.current) return;
-
     try {
       const state = ttsControllerRef.current.getState();
       if (state === PlaybackState.PLAYING) {
@@ -294,7 +283,6 @@ export function TTSPlayer({
 
   const handleStop = async () => {
     if (!ttsControllerRef.current) return;
-
     try {
       await ttsControllerRef.current.stop();
     } catch (error) {
@@ -307,22 +295,19 @@ export function TTSPlayer({
     if (!ttsControllerRef.current) return;
 
     const wasPlaying = playbackState === PlaybackState.PLAYING;
-
-    // Get current locator before changing voice
     const currentLocator = wasPlaying
       ? ttsControllerRef.current.getCurrentLocator()
       : null;
 
-    // Set the new voice
     ttsControllerRef.current.setVoice(voiceId);
 
-    // If currently playing, restart at current position with new voice
     if (wasPlaying && currentLocator) {
       await ttsControllerRef.current.stop();
       await ttsControllerRef.current.playFromLocator(
         currentLocator,
         currentLocator.offsetMs || 0
       );
+      setError(null); // ✅ restarted cleanly with new voice
     }
   };
 
@@ -363,53 +348,62 @@ export function TTSPlayer({
   if (!isInitialized && isLoading) {
     return (
       <div className={`flex items-center gap-2 ${className}`}>
-        <div className="animate-spin h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full" />
-        <span className="text-sm text-gray-600">Initializing TTS...</span>
+        <div className="animate-spin h-4 w-4 border-2 border-primary/80 border-t-transparent rounded-full" />
+        <span className="text-[11px] text-slate-600">Initializing TTS…</span>
       </div>
     );
   }
 
   return (
-    <div className={`space-y-2 ${className} relative`}>
-      {/* ADD THIS ENTIRE CLOSE BUTTON BLOCK HERE - LINE 357 */}
-      {onClose && (
-        <button
-          onClick={onClose}
-          className="absolute -top-2 -right-2 h-6 w-6 flex items-center justify-center rounded-full bg-slate-600 text-white hover:bg-slate-700 transition-all z-10"
-          title="Close TTS"
-          aria-label="Close TTS"
-        >
-          <svg
-            className="h-3 w-3"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth={2}
-            stroke="currentColor"
+    <div className={`space-y-1 ${className}`}>
+      {/* Compact pill toolbar */}
+      <div
+        className={[
+          "inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-white/80",
+          "backdrop-blur px-2 py-1 shadow-sm",
+        ].join(" ")}
+      >
+        {/* Close integrated into the group (left edge) */}
+        {onClose && (
+          <button
+            onClick={onClose}
+            title="Close"
+            aria-label="Close TTS"
+            className={[
+              "p-1 rounded-lg hover:bg-slate-100 focus:outline-none focus:ring-1 focus:ring-slate-300",
+              "text-slate-500 hover:text-slate-700",
+            ].join(" ")}
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M6 18L18 6M6 6l12 12"
-            />
-          </svg>
-        </button>
-      )}
-      {/* END OF CLOSE BUTTON BLOCK */}
-      <div className="flex items-center gap-1">
-        {error && (
-          <div className="text-xs text-red-600 mr-2" title={error}>
-            ⚠️
-          </div>
+            <XMarkIcon className="h-4 w-4" />
+          </button>
         )}
 
+        {/* Divider */}
+        {onClose && <span className="mx-1 h-4 w-px bg-slate-200" />}
+
+        {/* Error glyph (compact) */}
+        {error && (
+          <span
+            className="text-[11px] text-red-600 px-1"
+            title={error}
+            aria-live="polite"
+          >
+            ⚠︎
+          </span>
+        )}
+
+        {/* Play / Pause */}
         <button
           onClick={isPlaying ? handlePause : handlePlay}
           disabled={isLoading || (!canPlay && !isPlaying)}
-          className="p-1 rounded hover:bg-gray-100 disabled:opacity-50"
           title={isPlaying ? "Pause" : isPaused ? "Resume" : "Play"}
+          className={[
+            "p-1 rounded-lg hover:bg-slate-100 disabled:opacity-50",
+            "focus:outline-none focus:ring-1 focus:ring-slate-300",
+          ].join(" ")}
         >
           {isLoading ? (
-            <div className="animate-spin h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full" />
+            <div className="animate-spin h-4 w-4 border-2 border-primary/80 border-t-transparent rounded-full" />
           ) : isPlaying ? (
             <PauseIcon className="h-4 w-4" />
           ) : (
@@ -417,25 +411,41 @@ export function TTSPlayer({
           )}
         </button>
 
+        {/* Stop */}
         <button
           onClick={handleStop}
           disabled={!isPlaying && !isPaused}
-          className="p-1 rounded hover:bg-gray-100 disabled:opacity-50"
           title="Stop"
+          className={[
+            "p-1 rounded-lg hover:bg-slate-100 disabled:opacity-50",
+            "focus:outline-none focus:ring-1 focus:ring-slate-300",
+          ].join(" ")}
         >
           <StopIcon className="h-4 w-4" />
         </button>
 
-        {/* Voice Selector - Compact */}
+        {/* Divider */}
+        <span className="mx-1 h-4 w-px bg-slate-200" />
+
+        {/* Voice Selector (compact) */}
+        <label className="sr-only" htmlFor="tts-voice-select">
+          Select voice
+        </label>
         <select
+          id="tts-voice-select"
           value={selectedVoice}
           onChange={(e) => handleVoiceChange(e.target.value)}
-          className="ml-1 px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50"
           disabled={!isAvailable || voices.length === 0}
           title="Select voice"
+          className={[
+            "px-2 py-1 text-[11px] border border-slate-300 rounded-lg",
+            "bg-white focus:outline-none focus:ring-1 focus:ring-slate-300",
+            "max-w-[160px] truncate",
+            "disabled:opacity-50",
+          ].join(" ")}
         >
           {voices.length === 0 ? (
-            <option value="">Loading...</option>
+            <option value="">Loading…</option>
           ) : (
             voices.map((voice) => (
               <option key={voice.id} value={voice.id}>
@@ -445,21 +455,26 @@ export function TTSPlayer({
           )}
         </select>
 
-        {/* Speed Control - Compact */}
+        {/* Speed (tap to cycle) */}
         <button
           onClick={() => {
             const newRate = rate >= 2.0 ? 0.5 : rate + 0.25;
             handleRateChange(newRate);
           }}
-          className="ml-1 px-2 py-1 text-xs border border-gray-300 rounded hover:bg-gray-100"
-          title={`Speed: ${rate}x (click to change)`}
+          title={`Speed: ${rate}× (click to change)`}
+          className={[
+            "ml-1 px-2 py-1 text-[11px] border border-slate-300 rounded-lg",
+            "bg-white hover:bg-slate-50",
+            "focus:outline-none focus:ring-1 focus:ring-slate-300",
+          ].join(" ")}
         >
-          {rate}x
+          {rate}×
         </button>
       </div>
 
+      {/* Now-playing line (single row, truncates) */}
       {currentSentence && (
-        <div className="text-xs text-gray-600 max-w-[300px] truncate">
+        <div className="text-[11px] leading-tight text-slate-600 max-w-[360px] truncate">
           {currentSentence.text}
         </div>
       )}

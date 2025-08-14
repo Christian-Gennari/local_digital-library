@@ -396,7 +396,6 @@ const PdfReader = forwardRef<PdfReaderRef, PdfReaderProps>(
               bookType="pdf"
               pdfDocument={pdfDocument}
               pdfContainer={containerRef.current}
-              className="bg-white shadow-lg rounded-lg border border-slate-200"
               onClose={() => setShowTTS?.(false)}
             />
           </div>
