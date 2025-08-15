@@ -13,7 +13,12 @@ import { useReading } from "../../ReadingContext";
 import { useStore } from "../../../store";
 import { PdfHighlighting } from "./PdfHighlighting";
 import TableOfContents, { TocItem } from "./ToCForPdfReader";
-import { PlusIcon, MinusIcon } from "@heroicons/react/24/outline";
+import {
+  PlusIcon,
+  MinusIcon,
+  ChevronRightIcon,
+  ChevronLeftIcon,
+} from "@heroicons/react/24/outline";
 import { TTSPlayer } from "../../TTSPlayer";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
@@ -496,30 +501,30 @@ const PdfReader = forwardRef<PdfReaderRef, PdfReaderProps>(
                   <button
                     onClick={goPrev}
                     disabled={currentPage <= 1}
-                    className={`inline-flex items-center justify-center gap-1 px-3 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer ${
+                    className={`inline-flex items-center gap-1 px-3 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer ${
                       currentPage <= 1
                         ? "bg-slate-100 text-slate-400 cursor-not-allowed"
                         : "bg-slate-900 text-white hover:bg-slate-800"
                     }`}
                   >
+                    <ChevronLeftIcon className="h-4 w-4" />
                     <span className="hidden xs:inline">Prev</span>
-                    <span className="xs:hidden">←</span>
                   </button>
                   <button
                     onClick={goNext}
                     disabled={currentPage >= numPages}
-                    className={`inline-flex items-center justify-center gap-1 px-3 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer ${
+                    className={`inline-flex items-center gap-1 px-3 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer ${
                       currentPage >= numPages
                         ? "bg-slate-100 text-slate-400 cursor-not-allowed"
                         : "bg-slate-900 text-white hover:bg-slate-800"
                     }`}
                   >
                     <span className="hidden xs:inline">Next</span>
-                    <span className="xs:hidden">→</span>
+                    <ChevronRightIcon className="h-4 w-4" />
                   </button>
                 </div>
 
-                {/* Zoom + Page indicator */}
+                {/* Zoom */}
                 <div className="flex items-center justify-center gap-3">
                   <button
                     aria-label="Zoom out"
