@@ -65,8 +65,10 @@ export const fetchArticleDataFromDOI = async (
           role: "author",
         } as StructuredCreator;
       }) || [];
-    const authors =
-      structuredAuthors.map((a) => a.fullName).filter(Boolean).join(", ");
+    const authors = structuredAuthors
+      .map((a) => a.fullName)
+      .filter(Boolean)
+      .join(", ");
 
     // Extract publication date
     let publishedDate = "";
@@ -91,7 +93,9 @@ export const fetchArticleDataFromDOI = async (
       articleNumber: article["article-number"],
       publisher: article.publisher,
       publishedDate: publishedDate,
-      doi: cleanedDOI,
+      identifiers: {
+        doi: cleanedDOI,
+      },
       url: article.URL,
       description: article.abstract,
       creators: structuredAuthors.length

@@ -182,52 +182,35 @@ function BookViewerContent() {
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      d="M15.75 19.5 8.25 12l7.5-7.5"
+                      d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18"
                     />
                   </svg>
                   Back to Library
                 </button>
+
                 <div>
-                  <h1 className="text-lg font-semibold text-slate-900">
+                  <h1 className="font-semibold text-lg text-slate-900 leading-tight">
                     {currentBook.metadata.title}
                   </h1>
                   {currentBook.metadata.author && (
-                    <p className="text-sm text-slate-500">
-                      by {currentBook.metadata.author}
+                    <p className="text-sm text-slate-600">
+                      {currentBook.metadata.author}
                     </p>
                   )}
                 </div>
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
                 {displayReference && (
-                  <div className="flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1.5 text-xs text-slate-600">
-                    {/* location icon */}
-                    <svg
-                      className="h-3 w-3"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      strokeWidth={1.5}
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
-                      />
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z"
-                      />
-                    </svg>
+                  <div className="px-3 py-1.5 rounded-full bg-slate-100 text-xs text-slate-600 mr-2">
                     {displayReference}
                   </div>
                 )}
 
+                {/* Fullscreen Button */}
                 <button
                   onClick={toggleFullscreen}
-                  className="inline-flex items-center justify-center rounded-lg bg-slate-100 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-200 transition-colors cursor-pointer"
+                  className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors cursor-pointer"
                   title="Toggle Fullscreen"
                 >
                   {isFullscreen ? (
@@ -263,6 +246,35 @@ function BookViewerContent() {
                   )}
                 </button>
 
+                {/* TTS Button - NEW */}
+                {(format === "pdf" || format === "epub") && (
+                  <button
+                    onClick={() => setShowTTS(!showTTS)}
+                    className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors cursor-pointer ${
+                      showTTS
+                        ? "bg-slate-900 text-white"
+                        : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                    }`}
+                    title="Text-to-Speech"
+                  >
+                    <svg
+                      className="h-4 w-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      strokeWidth={1.5}
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M19.114 5.636a9 9 0 0 1 0 12.728M16.463 8.288a5.25 5.25 0 0 1 0 7.424M6.75 8.25l4.72-4.72a.75.75 0 0 1 1.28.53v15.88a.75.75 0 0 1-1.28.53l-4.72-4.72H4.5c-.69 0-1.25-.56-1.25-1.25v-6.5c0-.69.56-1.25 1.25-1.25h2.25Z"
+                      />
+                    </svg>
+                    TTS
+                  </button>
+                )}
+
+                {/* Notes Button */}
                 <button
                   onClick={toggleNotes}
                   className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors cursor-pointer ${
@@ -288,6 +300,7 @@ function BookViewerContent() {
                   Notes
                 </button>
 
+                {/* Format Badge */}
                 <span
                   className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${
                     format === "pdf"
@@ -324,7 +337,7 @@ function BookViewerContent() {
           className={`${
             isMobile
               ? "fixed inset-y-0 right-0 w-[88%] max-w-[26rem]"
-              : "fixed right-0 top-[64px] h-[calc(100%-64px)] w-80"
+              : "fixed right-0 h-[calc(100%-64px)] w-80"
           } z-40 transition-transform duration-300 bg-white border-l border-slate-200 shadow-lg`}
           style={{
             transform: isNotesOpen ? "translateX(0)" : "translateX(100%)",

@@ -376,7 +376,7 @@ const PdfReader = forwardRef<PdfReaderRef, PdfReaderProps>(
         {!isTocOpen && tableOfContents.length > 0 && (
           <button
             onClick={() => setIsTocOpen(true)}
-            className="fixed z-30 md:left-4 md:top-1/2 md:-translate-y-1/2 right-3 md:right-auto md:bottom-auto bottom-[calc(60px+env(safe-area-inset-bottom))] flex h-11 w-11 md:h-12 md:w-12 hidden md:flex items-center justify-center rounded-full bg-white shadow-lg border border-slate-200 text-slate-600 hover:bg-slate-50 hover:shadow-xl transition-all duration-200 cursor-pointer"
+            className="fixed z-30 md:left-4 md:top-1/2 md:-translate-y-1/2 right-3 md:right-auto md:bottom-auto bottom-[calc(60px+env(safe-area-inset-bottom))] h-11 w-11 md:h-12 md:w-12 hidden md:flex items-center justify-center rounded-full bg-white shadow-lg border border-slate-200 text-slate-600 hover:bg-slate-50 hover:shadow-xl transition-all duration-200 cursor-pointer"
             title="Show Contents"
             aria-label="Table of Contents"
           >
@@ -404,30 +404,6 @@ const PdfReader = forwardRef<PdfReaderRef, PdfReaderProps>(
               onClose={() => setShowTTS?.(false)}
             />
           </div>
-        )}
-
-        {/* TTS Toggle Button */}
-        {!showTTS && (
-          <button
-            onClick={() => setShowTTS?.(true)} // Note the optional chaining
-            className="fixed z-30 right-3 bottom-[calc(120px+env(safe-area-inset-bottom))] md:right-20 md:bottom-auto md:top-1/3 h-11 w-11 md:h-12 md:w-12 hidden md:flex items-center justify-center rounded-full bg-blue-600 shadow-lg text-white hover:bg-blue-700 hover:shadow-xl transition-all duration-200 cursor-pointer"
-            title="Text-to-Speech"
-            aria-label="Text-to-Speech"
-          >
-            <svg
-              className="h-6 w-6"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={1.5}
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M19.114 5.636a9 9 0 0 1 0 12.728M16.463 8.288a5.25 5.25 0 0 1 0 7.424M6.75 8.25l4.72-4.72a.75.75 0 0 1 1.28.53v15.88a.75.75 0 0 1-1.28.53l-4.72-4.72H4.5c-.69 0-1.25-.56-1.25-1.25v-6.5c0-.69.56-1.25 1.25-1.25h2.25Z"
-              />
-            </svg>
-          </button>
         )}
 
         {/* 🔥 END OF TTS COMPONENTS 🔥 */}

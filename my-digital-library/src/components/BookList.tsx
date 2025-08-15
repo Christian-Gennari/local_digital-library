@@ -12,6 +12,8 @@ import { BookMetadataEditor } from "./BookMetadataEditor";
 import { ConfirmationModal } from "./ConfirmationModal";
 import { Book } from "../types";
 import { useCollectionsStore } from "../collectionsStore";
+import { getIdentifier } from "../utils/metadataHelpers";
+
 import {
   PencilSquareIcon,
   PlayIcon,
@@ -627,7 +629,8 @@ export function BookList({
           book.metadata.title.toLowerCase().includes(query) ||
           (book.metadata.author &&
             book.metadata.author.toLowerCase().includes(query)) ||
-          (book.metadata.isbn && book.metadata.isbn.includes(query)) ||
+          (getIdentifier(book.metadata, "isbn") &&
+            String(getIdentifier(book.metadata, "isbn")).includes(query)) ||
           (book.metadata.description &&
             book.metadata.description.toLowerCase().includes(query));
 

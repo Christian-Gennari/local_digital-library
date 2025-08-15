@@ -119,7 +119,6 @@ export interface BookMetadata {
   };
 
   // Publication Information
-  isbn?: string; // DEPRECATED: Keep for backward compatibility, use identifiers.isbn instead
   publisher?: string; // For books, or journal publisher for articles
   publishedDate?: string;
   placeOfPublication?: string; // City/Location of publication
@@ -144,7 +143,6 @@ export interface BookMetadata {
   volume?: string; // Volume number for multi-volume works
 
   // Digital/Online Information
-  doi?: string; // DEPRECATED: Keep for backward compatibility, use identifiers.doi instead
   url?: string; // URL for online resources
   accessDate?: string; // When online resource was accessed
 

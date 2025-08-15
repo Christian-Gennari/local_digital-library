@@ -3,6 +3,7 @@ import { create } from "zustand";
 import type { Book, BookMetadata, ConflictResolution, ItemType } from "./types";
 import { fetchBookDataFromISBN } from "./utils/isbn";
 import { fetchArticleDataFromDOI } from "./utils/doi";
+import { getIdentifier } from "./utils/metadataHelpers";
 import { useCollectionsStore } from "./collectionsStore";
 import { RemoteFS } from "./fsRemote"; // remote API wrapper
 
@@ -55,8 +56,9 @@ const getFileFormatAndType = (
   if (ext.endsWith(".pdf")) {
     if (metadata?.itemType)
       return { format: "pdf", itemType: metadata.itemType };
-    if (metadata?.doi && !metadata?.isbn)
-      return { format: "pdf", itemType: "article" };
+    const doi = getIdentifier(metadata || {}, "doi");
+    const isbn = getIdentifier(metadata || {}, "isbn");
+    if (doi && !isbn) return { format: "pdf", itemType: "article" };
     return { format: "pdf", itemType: "book" };
   }
   return { format: null, itemType: "book" };
@@ -607,7 +609,6 @@ export const useStore = create<Store>((set, get) => ({
             ? bookData.categories
             : book.metadata.categories,
         language: bookData.language || book.metadata.language,
-        isbn: bookData.isbn || book.metadata.isbn,
         // extended
         subtitle: bookData.subtitle || book.metadata.subtitle,
         editors: bookData.editors || book.metadata.editors,
@@ -620,7 +621,7 @@ export const useStore = create<Store>((set, get) => ({
         volume: bookData.volume || book.metadata.volume,
         numberOfVolumes:
           bookData.numberOfVolumes || book.metadata.numberOfVolumes,
-        doi: bookData.doi || book.metadata.doi,
+        identifiers: bookData.identifiers || book.metadata.identifiers,
         url: bookData.url || book.metadata.url,
         accessDate: bookData.accessDate || book.metadata.accessDate,
         originalLanguage:
@@ -717,7 +718,7 @@ export const useStore = create<Store>((set, get) => ({
         articleNumber: articleData.articleNumber || book.metadata.articleNumber,
         publisher: articleData.publisher || book.metadata.publisher,
         publishedDate: articleData.publishedDate || book.metadata.publishedDate,
-        doi: articleData.doi || book.metadata.doi,
+        identifiers: articleData.identifiers || book.metadata.identifiers,
         url: articleData.url || book.metadata.url,
         description: articleData.description || book.metadata.description,
       };
@@ -818,12 +819,11 @@ export const useStore = create<Store>((set, get) => ({
       if (!book.metadata.itemType) {
         let itemType: ItemType = "book";
         if (book.format === "audio") itemType = "audiobook";
-        else if (
-          book.format === "pdf" &&
-          book.metadata.doi &&
-          !book.metadata.isbn
-        )
-          itemType = "article";
+        else if (book.format === "pdf") {
+          const doi = getIdentifier(book.metadata, "doi");
+          const isbn = getIdentifier(book.metadata, "isbn");
+          if (doi && !isbn) itemType = "article";
+        }
         await updateBookMetadata(book.id, { itemType });
       }
     }

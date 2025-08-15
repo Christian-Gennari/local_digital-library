@@ -1,5 +1,6 @@
 import { BookMetadata } from "../types";
 import { ReferenceFormatter } from "./referenceFormatter";
+import { getIdentifier } from "./metadataHelpers";
 
 export class HarvardCiteThemRight {
   static generateBook(metadata: BookMetadata): string {
@@ -7,7 +8,9 @@ export class HarvardCiteThemRight {
       ReferenceFormatter.joinCreators(
         ReferenceFormatter.getCreators(metadata, "authors"),
         "harvard"
-      ) || metadata.author || "Unknown Author";
+      ) ||
+      metadata.author ||
+      "Unknown Author";
 
     const year = metadata.publishedDate
       ? new Date(metadata.publishedDate).getFullYear()
@@ -36,15 +39,16 @@ export class HarvardCiteThemRight {
       ReferenceFormatter.joinCreators(
         ReferenceFormatter.getCreators(metadata, "authors"),
         "harvard"
-      ) || metadata.author || "Unknown Author";
+      ) ||
+      metadata.author ||
+      "Unknown Author";
 
     const year = metadata.publishedDate
       ? new Date(metadata.publishedDate).getFullYear()
       : "n.d.";
 
     let citation = `${authors} (${year}) '${metadata.title}'`;
-    if (metadata.journalTitle)
-      citation += `, <i>${metadata.journalTitle}</i>`;
+    if (metadata.journalTitle) citation += `, <i>${metadata.journalTitle}</i>`;
     if (metadata.volumeNumber) {
       citation += `, ${metadata.volumeNumber}`;
       if (metadata.issueNumber) citation += `(${metadata.issueNumber})`;
@@ -53,7 +57,8 @@ export class HarvardCiteThemRight {
     else if (metadata.articleNumber) citation += `, ${metadata.articleNumber}.`;
     else citation += ".";
 
-    if (metadata.doi) citation += ` https://doi.org/${metadata.doi}`;
+    const doi = getIdentifier(metadata, "doi");
+    if (doi) citation += ` https://doi.org/${doi}`;
     else if (metadata.url) citation += ` ${metadata.url}`;
 
     if (metadata.accessDate) {

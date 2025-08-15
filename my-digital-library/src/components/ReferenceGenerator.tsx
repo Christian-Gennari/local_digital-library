@@ -2,6 +2,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Book } from "../types";
 import { generateCitation } from "../utils/isbn";
+import { getIdentifier } from "../utils/metadataHelpers";
 import {
   DocumentDuplicateIcon,
   CheckIcon,
@@ -290,12 +291,13 @@ export function ReferenceGenerator({ book, onClose }: Props) {
                 requirements.
               </li>
               <li>• Include page numbers when citing specific passages.</li>
-              {selectedFormat === "apa" && book.metadata.doi && (
-                <li>• APA prefers DOI over URL when available.</li>
-              )}
+              {selectedFormat === "apa" &&
+                getIdentifier(book.metadata, "doi") && (
+                  <li>• APA prefers DOI over URL when available.</li>
+                )}
               {selectedFormat === "mla" &&
                 !book.metadata.url &&
-                !book.metadata.doi && (
+                !getIdentifier(book.metadata, "doi") && (
                   <li>
                     • Consider adding the medium of publication (e.g., “Print”).
                   </li>

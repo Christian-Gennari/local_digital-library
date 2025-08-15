@@ -18,8 +18,6 @@ interface TocProps {
   onTocClose: () => void;
 }
 
-const HEADER_PX = 73;
-
 // ---------------- Item ----------------
 const TOCItem = memo(function TOCItem({
   item,
@@ -141,15 +139,14 @@ const TableOfContents = memo(function TableOfContents({
         // Desktop: left sidebar under sticky app header
         // Mobile: full-screen drawer under header with safe-area padding
         className="
-          fixed z-50 bg-white border-slate-200 shadow-xl
-          md:left-0 md:top-[73px] md:h-[calc(100vh-73px)] md:w-80 md:border-r
-          left-0 top-0 h-screen w-full md:rounded-none
-        "
+  fixed z-50 bg-white border-slate-200 shadow-xl
+  md:left-0 md:top-[76px] md:h-[calc(100vh-73px)] md:w-80 md:border-r
+  left-0 top-0 h-screen w-full md:rounded-none
+"
         role="dialog"
         aria-modal="true"
         aria-label="Table of contents"
         style={{
-          paddingTop: `max(${HEADER_PX}px, env(safe-area-inset-top))`,
           paddingBottom: "env(safe-area-inset-bottom)",
         }}
       >

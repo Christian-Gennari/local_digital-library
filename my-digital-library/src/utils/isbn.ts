@@ -7,6 +7,7 @@ import {
 } from "../types";
 import { ReferenceFormatter } from "./referenceFormatter";
 import { HarvardCiteThemRight } from "./harvardCiteThemRight";
+import { getIdentifier } from "./metadataHelpers";
 
 //
 // === ISBN VALIDATION & FORMATTING UTILITIES ===
@@ -236,7 +237,15 @@ export const fetchBookDataFromISBN = async (
         editors: editors.length > 0 ? editors.join(", ") : undefined,
         translators:
           translators.length > 0 ? translators.join(", ") : undefined,
-        isbn: cleanedISBN,
+        identifiers: {
+          ...(cleanedISBN.length === 10
+            ? { isbn10: formatISBN(cleanedISBN) }
+            : {}),
+          ...(cleanedISBN.length === 13
+            ? { isbn13: formatISBN(cleanedISBN) }
+            : {}),
+          ...(extractDOI(book) ? { doi: extractDOI(book) } : {}),
+        },
         publisher: book.publisher,
         publishedDate: book.date || book.publicationDate,
         placeOfPublication: placeOfPublication,
@@ -245,7 +254,6 @@ export const fetchBookDataFromISBN = async (
         seriesNumber: book.seriesNumber,
         volume: book.volume,
         numberOfVolumes: book.numberOfVolumes,
-        doi: extractDOI(book),
         url: book.url,
         accessDate: book.accessDate
           ? new Date(book.accessDate).toISOString()
@@ -335,8 +343,9 @@ export const generateCitation = (
       if (metadata.publisher) {
         apa += ` ${metadata.publisher}.`;
       }
-      if (metadata.doi) {
-        apa += ` https://doi.org/${metadata.doi}`;
+      const doi = getIdentifier(metadata, "doi") as string;
+      if (doi) {
+        apa += ` https://doi.org/${doi}`;
       } else if (metadata.url) {
         apa += ` ${metadata.url}`;
       }
@@ -396,6 +405,8 @@ const generateArticleCitation = (
     article.author ||
     "Unknown Author";
 
+  const doi = getIdentifier(article, "doi") as string;
+
   switch (format) {
     case "apa":
       let apa = authors;
@@ -416,8 +427,8 @@ const generateArticleCitation = (
         }
         apa += ".";
       }
-      if (article.doi) {
-        apa += ` https://doi.org/${article.doi}`;
+      if (doi) {
+        apa += ` https://doi.org/${doi}`;
       } else if (article.url) {
         apa += ` ${article.url}`;
       }
@@ -441,8 +452,8 @@ const generateArticleCitation = (
         }
         mla += ".";
       }
-      if (article.doi) {
-        mla += ` doi:${article.doi}`;
+      if (doi) {
+        mla += ` doi:${doi}`;
       }
       return mla;
     case "chicago":
@@ -464,8 +475,8 @@ const generateArticleCitation = (
         }
         chicago += ".";
       }
-      if (article.doi) {
-        chicago += ` https://doi.org/${article.doi}`;
+      if (doi) {
+        chicago += ` https://doi.org/${doi}`;
       }
       return chicago;
 

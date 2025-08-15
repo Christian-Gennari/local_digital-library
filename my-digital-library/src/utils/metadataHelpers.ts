@@ -1,5 +1,5 @@
 // utils/metadataHelpers.ts
-// Helper functions for metadata migration and backward compatibility
+// Helper functions for metadata operations
 
 import { BookMetadata, Identifiers, ItemType } from "../types";
 
@@ -17,22 +17,28 @@ export function migrateMetadata<T extends Partial<BookMetadata>>(
     migrated.identifiers = {};
   }
 
-  // Migrate ISBN from old field to new identifiers
-  if (metadata.isbn && !migrated.identifiers.isbn) {
-    migrated.identifiers.isbn = metadata.isbn;
+  // Type assertion to handle legacy fields that might exist in stored data
+  const legacyData = metadata as any;
 
-    // Try to detect ISBN-10 vs ISBN-13
-    const cleanIsbn = metadata.isbn.replace(/[-\s]/g, "");
+  // Migrate old ISBN if it exists
+  if (
+    legacyData.isbn &&
+    !migrated.identifiers.isbn10 &&
+    !migrated.identifiers.isbn13
+  ) {
+    const cleanIsbn = String(legacyData.isbn).replace(/[-\s]/g, "");
     if (cleanIsbn.length === 10) {
-      migrated.identifiers.isbn10 = metadata.isbn;
+      migrated.identifiers.isbn10 = legacyData.isbn;
     } else if (cleanIsbn.length === 13) {
-      migrated.identifiers.isbn13 = metadata.isbn;
+      migrated.identifiers.isbn13 = legacyData.isbn;
     }
+    delete (migrated as any).isbn;
   }
 
-  // Migrate DOI from old field to new identifiers
-  if (metadata.doi && !migrated.identifiers.doi) {
-    migrated.identifiers.doi = metadata.doi;
+  // Migrate old DOI if it exists
+  if (legacyData.doi && !migrated.identifiers.doi) {
+    migrated.identifiers.doi = legacyData.doi;
+    delete (migrated as any).doi;
   }
 
   // Initialize audiobook metadata for audiobook items
@@ -44,30 +50,31 @@ export function migrateMetadata<T extends Partial<BookMetadata>>(
 }
 
 /**
- * Gets an identifier value, checking both old and new locations
- * Works with both full and partial BookMetadata
+ * Gets an identifier value from the new structure
  */
 export function getIdentifier<T extends Partial<BookMetadata>>(
   metadata: T,
   type: keyof Identifiers | "isbn" | "doi"
 ): string | string[] | undefined {
-  // Check new identifiers structure first
+  // Special handling for generic ISBN request - return whichever exists
+  if (type === "isbn") {
+    if (metadata.identifiers?.isbn13) return metadata.identifiers.isbn13;
+    if (metadata.identifiers?.isbn10) return metadata.identifiers.isbn10;
+    return undefined;
+  }
+
+  // Check new identifiers structure
   if (metadata.identifiers) {
     const value = metadata.identifiers[type as keyof Identifiers];
     if (value !== undefined && type !== "custom")
       return value as string | string[];
   }
 
-  // Fall back to old fields for backward compatibility
-  if (type === "isbn" && metadata.isbn) return metadata.isbn;
-  if (type === "doi" && metadata.doi) return metadata.doi;
-
   return undefined;
 }
 
 /**
- * Sets an identifier value, updating both old and new locations for compatibility
- * Works with both full and partial BookMetadata
+ * Sets an identifier value in the new structure
  */
 export function setIdentifier<T extends Partial<BookMetadata>>(
   metadata: T,
@@ -81,18 +88,27 @@ export function setIdentifier<T extends Partial<BookMetadata>>(
     updated.identifiers = {};
   }
 
-  // Set in new location
+  // Handle ISBN - auto-detect type
+  if (type === "isbn" && value) {
+    const cleanValue = String(Array.isArray(value) ? value[0] : value).replace(
+      /[-\s]/g,
+      ""
+    );
+    if (cleanValue.length === 10) {
+      updated.identifiers.isbn10 = Array.isArray(value) ? value[0] : value;
+      delete updated.identifiers.isbn13; // Remove other type if exists
+    } else if (cleanValue.length === 13) {
+      updated.identifiers.isbn13 = Array.isArray(value) ? value[0] : value;
+      delete updated.identifiers.isbn10; // Remove other type if exists
+    }
+    return updated;
+  }
+
+  // Set or delete the identifier
   if (value === undefined || value === "") {
     delete updated.identifiers[type as keyof Identifiers];
   } else {
     (updated.identifiers as any)[type] = value;
-  }
-
-  // Also update old fields for backward compatibility
-  if (type === "isbn") {
-    updated.isbn = Array.isArray(value) ? value[0] : value;
-  } else if (type === "doi") {
-    updated.doi = Array.isArray(value) ? value[0] : value;
   }
 
   return updated;
@@ -100,7 +116,6 @@ export function setIdentifier<T extends Partial<BookMetadata>>(
 
 /**
  * Gets all identifiers for display
- * Works with both full and partial BookMetadata
  */
 export function getAllIdentifiers<T extends Partial<BookMetadata>>(
   metadata: T
@@ -111,10 +126,9 @@ export function getAllIdentifiers<T extends Partial<BookMetadata>>(
 }> {
   const identifiers: Array<{ type: string; label: string; value: string }> = [];
 
-  // Check new identifiers structure
+  // Only check new identifiers structure
   if (metadata.identifiers) {
     const labelMap: Record<string, string> = {
-      isbn: "ISBN",
       isbn10: "ISBN-10",
       isbn13: "ISBN-13",
       asin: "ASIN",
@@ -129,6 +143,9 @@ export function getAllIdentifiers<T extends Partial<BookMetadata>>(
     };
 
     for (const [key, value] of Object.entries(metadata.identifiers)) {
+      // Skip the generic isbn field if it somehow exists
+      if (key === "isbn") continue;
+
       if (value && key !== "custom") {
         const label =
           labelMap[key] || key.charAt(0).toUpperCase() + key.slice(1);
@@ -158,16 +175,6 @@ export function getAllIdentifiers<T extends Partial<BookMetadata>>(
     }
   }
 
-  // Check old fields if no new identifiers found
-  if (identifiers.length === 0) {
-    if (metadata.isbn) {
-      identifiers.push({ type: "isbn", label: "ISBN", value: metadata.isbn });
-    }
-    if (metadata.doi) {
-      identifiers.push({ type: "doi", label: "DOI", value: metadata.doi });
-    }
-  }
-
   return identifiers;
 }
 
@@ -182,6 +189,8 @@ export interface FieldVisibility {
 
   // Identifiers
   isbn: boolean;
+  isbn10: boolean;
+  isbn13: boolean;
   asin: boolean;
   audibleAsin: boolean;
   doi: boolean;
@@ -220,6 +229,8 @@ export function getFieldVisibility(itemType: ItemType): FieldVisibility {
     editors: false,
     translators: false,
     isbn: false,
+    isbn10: false,
+    isbn13: false,
     asin: false,
     audibleAsin: false,
     doi: false,
@@ -250,6 +261,8 @@ export function getFieldVisibility(itemType: ItemType): FieldVisibility {
         editors: true,
         translators: true,
         isbn: true,
+        isbn10: true,
+        isbn13: true,
         asin: true,
         doi: true, // Some academic books have DOIs
         publisher: true,
@@ -268,6 +281,8 @@ export function getFieldVisibility(itemType: ItemType): FieldVisibility {
         narrator: true,
         translators: true,
         isbn: true, // Many audiobooks also have ISBNs
+        isbn10: true,
+        isbn13: true,
         asin: true,
         audibleAsin: true,
         publisher: true,

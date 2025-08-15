@@ -136,7 +136,7 @@ const TableOfContents = memo(
           }`}
           style={
             !isMobile
-              ? { top: "73px", height: "calc(100vh - 73px)" }
+              ? { top: "76px", height: "calc(100vh - 73px)" }
               : undefined
           }
           role="dialog"

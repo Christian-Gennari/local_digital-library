@@ -7,6 +7,7 @@ import { SearchBar } from "./SearchBar";
 import { fetchBookDataFromISBN } from "../utils/isbn";
 import { NostosLogo } from "../assets/NostosLogo";
 import { FileUpload } from "./FileUpload";
+import { getIdentifier } from "../utils/metadataHelpers";
 
 import {
   XMarkIcon,
@@ -63,10 +64,13 @@ export function LibraryLayout() {
   // Fetch missing cover by ISBN (keeps your current behavior)
   useEffect(() => {
     (async () => {
-      if (!selectedBook?.metadata?.isbn || selectedBook.metadata.coverUrl)
-        return;
+      if (!selectedBook) return;
+
+      const isbn = getIdentifier(selectedBook.metadata, "isbn");
+      if (!isbn || selectedBook.metadata.coverUrl) return;
+
       try {
-        const data = await fetchBookDataFromISBN(selectedBook.metadata.isbn);
+        const data = await fetchBookDataFromISBN(String(isbn));
         if (data?.coverUrl) {
           updateBookMetadata(selectedBook.id, {
             ...selectedBook.metadata,
