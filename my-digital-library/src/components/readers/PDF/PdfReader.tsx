@@ -18,6 +18,7 @@ import {
   MinusIcon,
   ChevronRightIcon,
   ChevronLeftIcon,
+  Bars3Icon,
 } from "@heroicons/react/24/outline";
 import { TTSPlayer } from "../../TTSPlayer";
 
@@ -376,19 +377,11 @@ const PdfReader = forwardRef<PdfReaderRef, PdfReaderProps>(
         {!isTocOpen && tableOfContents.length > 0 && (
           <button
             onClick={() => setIsTocOpen(true)}
-            className="fixed z-30 md:left-4 md:top-1/2 md:-translate-y-1/2 right-3 md:right-auto md:bottom-auto bottom-[calc(60px+env(safe-area-inset-bottom))] h-11 w-11 md:h-12 md:w-12 hidden md:flex items-center justify-center rounded-full bg-white shadow-lg border border-slate-200 text-slate-600 hover:bg-slate-50 hover:shadow-xl transition-all duration-200 cursor-pointer"
+            className="fixed z-40 md:left-4 md:top-1/2 md:-translate-y-1/2 right-3 md:right-auto md:bottom-auto bottom-[calc(60px+env(safe-area-inset-bottom))] h-11 w-11 md:h-12 md:w-12 hidden md:flex items-center justify-center rounded-full bg-white shadow-lg border border-slate-200 text-slate-600 hover:bg-slate-50 hover:shadow-xl transition-all cursor-pointer"
             title="Show Contents"
             aria-label="Table of Contents"
           >
-            <svg
-              className="h-6 w-6"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={1.5}
-              stroke="currentColor"
-            >
-              {/* SVG path */}
-            </svg>
+            <Bars3Icon className="h-6 w-6" />
           </button>
         )}
 
