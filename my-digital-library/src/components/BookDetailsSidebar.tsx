@@ -283,21 +283,20 @@ export function BookDetailsSidebar() {
         </div>
 
         {/* Reading Progress */}
-        {selectedBook.metadata.readingProgress &&
-          selectedBook.metadata.readingProgress > 0 && (
-            <div className="mt-3">
-              <div className="flex justify-between text-xs sm:text-sm text-gray-600 mb-1">
-                <span>Reading Progress</span>
-                <span>{selectedBook.metadata.readingProgress}%</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div
-                  className="bg-emerald-500 h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${selectedBook.metadata.readingProgress}%` }}
-                />
-              </div>
+        {(selectedBook.metadata.readingProgress ?? 0) > 0 && (
+          <div className="mt-3">
+            <div className="flex justify-between text-xs sm:text-sm text-gray-600 mb-1">
+              <span>Reading Progress</span>
+              <span>{selectedBook.metadata.readingProgress}%</span>
             </div>
-          )}
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div
+                className="bg-emerald-500 h-2 rounded-full transition-all duration-300"
+                style={{ width: `${selectedBook.metadata.readingProgress}%` }}
+              />
+            </div>
+          </div>
+        )}
 
         {/* User Rating */}
         {selectedBook.metadata.userRating && (
