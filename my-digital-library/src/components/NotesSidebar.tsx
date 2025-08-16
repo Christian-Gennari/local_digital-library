@@ -8,12 +8,7 @@ interface Props {
   book: Book;
   isOpen: boolean;
   onToggle: () => void;
-  currentReference: {
-    type: "page" | "cfi" | "timestamp";
-    value: string;
-    raw: number | string;
-  } | null;
-  selectedText: string | null;
+  selectedText: string | null; // Keep this
   onNavigateToNote?: (reference: {
     type: "page" | "cfi" | "timestamp";
     value: string;
@@ -25,7 +20,6 @@ export function NotesSidebar({
   book,
   isOpen,
   onToggle,
-  currentReference,
   selectedText,
   onNavigateToNote,
 }: Props) {
@@ -33,6 +27,7 @@ export function NotesSidebar({
     useNotesStore();
 
   const {
+    currentReference,
     highlightsVisible,
     pendingHighlight,
     canCreateHighlight,
@@ -514,7 +509,20 @@ export function NotesSidebar({
                           />
                         </svg>
                       </button>
-                      <span>{new Date(note.createdAt).toLocaleString()}</span>
+                      <span>
+                        {
+                          book.format === "audio" &&
+                          note.reference.type === "timestamp"
+                            ? note.reference.value // Shows "15:32" format
+                            : book.format === "pdf" &&
+                              note.reference.type === "page"
+                            ? note.reference.value // Shows "Page 42"
+                            : book.format === "epub" &&
+                              note.reference.type === "cfi"
+                            ? note.reference.value // Shows chapter name
+                            : new Date(note.createdAt).toLocaleString() // Fallback to creation date
+                        }
+                      </span>{" "}
                     </div>
                     <div className="flex items-center gap-2">
                       <button

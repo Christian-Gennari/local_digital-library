@@ -352,7 +352,6 @@ function BookViewerContent() {
             book={currentBook}
             isOpen={true}
             onToggle={toggleNotes}
-            currentReference={currentReference}
             selectedText={selectedText}
             onNavigateToNote={handleNavigateToNote}
           />
