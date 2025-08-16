@@ -38,6 +38,8 @@ export function CollectionsSidebar({
   const { books } = useStore();
   const {
     collections,
+    load,
+    isLoaded,
     createCollection,
     deleteCollection,
     updateCollection,
@@ -60,6 +62,13 @@ export function CollectionsSidebar({
   // Kebab popover
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
+
+  // Load collections on mount
+  useEffect(() => {
+    if (!isLoaded) {
+      load().catch(console.error);
+    }
+  }, [isLoaded, load]);
 
   // Close menu on outside click / Esc
   useEffect(() => {
