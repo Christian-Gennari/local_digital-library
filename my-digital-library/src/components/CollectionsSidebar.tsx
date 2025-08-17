@@ -16,6 +16,7 @@ import {
   PencilIcon,
   XMarkIcon,
   EllipsisVerticalIcon,
+  PlusCircleIcon,
 } from "@heroicons/react/24/outline";
 
 interface SmartCollection {
@@ -29,11 +30,13 @@ interface SmartCollection {
 interface Props {
   selectedCollection: string | null;
   onSelectCollection: (collectionId: string | null) => void;
+  isMobile?: boolean; // ADD THIS LINE
 }
 
 export function CollectionsSidebar({
   selectedCollection,
   onSelectCollection,
+  isMobile = false,
 }: Props) {
   const { books } = useStore();
   const {
@@ -455,18 +458,12 @@ export function CollectionsSidebar({
 
   return (
     <div className="h-full flex flex-col select-none">
-      <div className="p-4 border-b border-slate-200 flex items-center justify-between">
-        <h2 className="font-semibold text-slate-900">Collections</h2>
-        <button
-          onClick={() => setIsCreatingCollection(true)}
-          className="h-8 px-3 inline-flex items-center justify-center rounded hover:bg-slate-200"
-          title="Create collection"
-          aria-label="Create collection"
-        >
-          <PlusIcon className="h-4 w-4 text-slate-600" />
-          <span className="ml-1 text-xs hidden sm:inline">New</span>
-        </button>
-      </div>
+      {/* Header - Only show on desktop */}
+      {!isMobile && (
+        <div className="p-4 border-b border-slate-200">
+          <h2 className="font-semibold text-slate-900">Collections</h2>
+        </div>
+      )}
 
       <div className="flex-1 overflow-y-auto">
         {/* All Books */}
@@ -520,7 +517,8 @@ export function CollectionsSidebar({
 
         {/* Create root collection row */}
         {isCreatingCollection && (
-          <div className="px-3 mt-4 flex items-center gap-2">
+          <div className="px-3 mb-2 flex items-center gap-2">
+            <FolderIcon className="h-4 w-4 flex-shrink-0 text-slate-400" />
             <input
               value={newCollectionName}
               onChange={(e) => setNewCollectionName(e.target.value)}
@@ -529,12 +527,12 @@ export function CollectionsSidebar({
                 if (e.key === "Escape") handleCancelCreateRoot();
               }}
               placeholder="Collection name"
-              className="flex-1 h-9 px-2 text-sm border border-slate-300 rounded focus:outline-none focus:border-slate-500"
+              className="flex-1 h-8 px-2 text-sm border border-slate-300 rounded focus:outline-none focus:border-slate-500"
               autoFocus
             />
             <button
               onClick={() => handleCreateCollection()}
-              className="h-9 px-3 inline-flex items-center justify-center rounded bg-slate-900 text-white hover:bg-slate-800 disabled:opacity-50"
+              className="h-8 px-2 inline-flex items-center justify-center rounded bg-slate-900 text-white hover:bg-slate-800 disabled:opacity-50"
               title="Add collection"
               aria-label="Add collection"
               disabled={!newCollectionName.trim()}
@@ -543,7 +541,7 @@ export function CollectionsSidebar({
             </button>
             <button
               onClick={handleCancelCreateRoot}
-              className="h-9 px-3 inline-flex items-center justify-center rounded hover:bg-slate-200"
+              className="h-8 px-2 inline-flex items-center justify-center rounded hover:bg-slate-200"
               title="Cancel"
               aria-label="Cancel"
             >
@@ -554,10 +552,19 @@ export function CollectionsSidebar({
 
         {/* User Collections */}
         <div className="mt-6">
-          <div className="px-3 mb-2">
+          <div className="px-3 mb-2 flex items-center justify-between">
             <h3 className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
               My Collections
             </h3>
+            {/* New Collection Button - Clean simple plus */}
+            <button
+              onClick={() => setIsCreatingCollection(true)}
+              className="h-6 w-6 inline-flex items-center justify-center rounded hover:bg-slate-100 text-slate-600 hover:text-slate-900 transition-colors"
+              title="Create new collection (Cmd/Ctrl+N)"
+              aria-label="Create new collection"
+            >
+              <PlusIcon className="h-4 w-4" />
+            </button>
           </div>
 
           <div className="mt-2">
