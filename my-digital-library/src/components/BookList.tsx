@@ -414,7 +414,6 @@ export function BookList({
 }: BookListProps) {
   const {
     books,
-    libraryFolder,
     openBook,
     loadBooksFromFolder,
     isLoading,
@@ -477,12 +476,6 @@ export function BookList({
   const cancelDeleteBook = () => {
     setBookToDelete(null);
   };
-
-  useEffect(() => {
-    if (libraryFolder) {
-      loadBooksFromFolder();
-    }
-  }, [libraryFolder, loadBooksFromFolder]);
 
   const filteredBooks = useMemo(() => {
     return books.filter((book) => {

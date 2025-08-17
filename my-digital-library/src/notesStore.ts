@@ -2,11 +2,7 @@
 import { create } from "zustand";
 import { BookNote, BookNotes, HighlightData } from "./types";
 import { useStore } from "./store";
-import { RemoteFS } from "./fsRemote"; // <-- add this file from earlier step
-
-// Toggle this to switch between Local (FS Access) and Remote (Express API) modes.
-// You can also wire this to an env var if you prefer.
-const REMOTE_MODE = true;
+import { RemoteFS } from "./fsRemote";
 
 interface NotesStore {
   notesCache: Map<string, BookNote[]>;
@@ -51,71 +47,6 @@ interface NotesStore {
 const generateNoteId = () =>
   Date.now().toString() + Math.random().toString(36).slice(2, 11);
 
-// ---------- Local helpers (FS Access) ----------
-const saveNotesToFileLocal = async (
-  bookFolder: FileSystemDirectoryHandle,
-  notes: BookNote[]
-) => {
-  const notesData: BookNotes = {
-    bookId: bookFolder.name,
-    notes,
-    lastUpdated: new Date().toISOString(),
-  };
-
-  const notesHandle = await bookFolder.getFileHandle("notes.json", {
-    create: true,
-  });
-  const writable = await notesHandle.createWritable();
-  await writable.write(JSON.stringify(notesData, null, 2));
-  await writable.close();
-};
-
-const loadNotesFromFileLocal = async (
-  bookFolder: FileSystemDirectoryHandle
-): Promise<BookNote[]> => {
-  try {
-    const notesHandle = await bookFolder.getFileHandle("notes.json");
-    const file = await notesHandle.getFile();
-    const text = await file.text();
-    const notesData: BookNotes = JSON.parse(text);
-    return notesData.notes || [];
-  } catch {
-    return [];
-  }
-};
-
-const getBookMetadataFromFolderLocal = async (
-  bookFolder: FileSystemDirectoryHandle
-) => {
-  try {
-    const metadataHandle = await bookFolder.getFileHandle("metadata.json");
-    const file = await metadataHandle.getFile();
-    const text = await file.text();
-    return JSON.parse(text);
-  } catch {
-    return null;
-  }
-};
-
-const getBookFormatFromFolderLocal = async (
-  bookFolder: FileSystemDirectoryHandle
-) => {
-  try {
-    for await (const [name, handle] of bookFolder.entries()) {
-      if (handle.kind === "file" && name.startsWith("book.")) {
-        const ext = name.split(".").pop()?.toLowerCase();
-        if (ext === "pdf") return "pdf";
-        if (ext === "epub") return "epub";
-        if (
-          ["mp3", "wav", "m4a", "m4b", "aac", "flac", "ogg"].includes(ext || "")
-        )
-          return "audio";
-      }
-    }
-  } catch {}
-  return "unknown";
-};
-
 // ---------- Remote helpers (Express API) ----------
 const loadNotesRemote = async (bookId: string): Promise<BookNote[]> => {
   const data = await RemoteFS.getNotes(bookId);
@@ -144,9 +75,7 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
     if (!book) return [];
 
     try {
-      const notes = REMOTE_MODE
-        ? await loadNotesRemote(bookId)
-        : await loadNotesFromFileLocal(book.folderHandle);
+      const notes = await loadNotesRemote(bookId);
 
       const newCache = new Map(get().notesCache);
       newCache.set(bookId, notes);
@@ -171,11 +100,7 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
     const currentNotes = await get().getNotes(bookId);
     const updatedNotes = [...currentNotes, newNote];
 
-    if (REMOTE_MODE) {
-      await saveNotesRemote(bookId, updatedNotes);
-    } else {
-      await saveNotesToFileLocal(book.folderHandle, updatedNotes);
-    }
+    await saveNotesRemote(bookId, updatedNotes);
 
     const newCache = new Map(get().notesCache);
     newCache.set(bookId, updatedNotes);
@@ -194,11 +119,7 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
       n.id === noteId ? { ...n, ...updates } : n
     );
 
-    if (REMOTE_MODE) {
-      await saveNotesRemote(bookId, updatedNotes);
-    } else {
-      await saveNotesToFileLocal(book.folderHandle, updatedNotes);
-    }
+    await saveNotesRemote(bookId, updatedNotes);
 
     const newCache = new Map(get().notesCache);
     newCache.set(bookId, updatedNotes);
@@ -213,11 +134,7 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
     const currentNotes = await get().getNotes(bookId);
     const updatedNotes = currentNotes.filter((n) => n.id !== noteId);
 
-    if (REMOTE_MODE) {
-      await saveNotesRemote(bookId, updatedNotes);
-    } else {
-      await saveNotesToFileLocal(book.folderHandle, updatedNotes);
-    }
+    await saveNotesRemote(bookId, updatedNotes);
 
     const newCache = new Map(get().notesCache);
     newCache.set(bookId, updatedNotes);
@@ -233,16 +150,8 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
       const notes = await get().getNotes(bookId);
 
       // Get metadata + format for export header
-      let metadata: any = null;
-      let format: string = "unknown";
-
-      if (REMOTE_MODE) {
-        metadata = await RemoteFS.getMetadata(bookId);
-        format = book.format;
-      } else {
-        metadata = await getBookMetadataFromFolderLocal(book.folderHandle);
-        format = await getBookFormatFromFolderLocal(book.folderHandle);
-      }
+      const metadata = await RemoteFS.getMetadata(bookId);
+      const format = book.format;
 
       const title = (metadata?.title || fallbackTitle || "Notes").replace(
         /[<>:"/\\|?*]/g,
@@ -263,7 +172,7 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
 
         // Quote (for pdf/epub)
         if (n.quote) {
-          parts.push(`   “${n.quote}”`);
+          parts.push(`   "${n.quote}"`);
         }
 
         // Reference
@@ -315,31 +224,17 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
     if (!book) return null;
 
     const notes = await get().getNotes(bookId);
+    const metadata = await RemoteFS.getMetadata(bookId);
 
-    if (REMOTE_MODE) {
-      const metadata = await RemoteFS.getMetadata(bookId);
-      return {
-        bookId,
-        bookTitle: metadata?.title || "Unknown Title",
-        bookAuthor: metadata?.author,
-        bookCover: metadata?.coverFile,
-        bookFormat: book.format,
-        notes,
-        metadata,
-      };
-    } else {
-      const metadata = await getBookMetadataFromFolderLocal(book.folderHandle);
-      const format = await getBookFormatFromFolderLocal(book.folderHandle);
-      return {
-        bookId,
-        bookTitle: metadata?.title || "Unknown Title",
-        bookAuthor: metadata?.author,
-        bookCover: metadata?.coverFile,
-        bookFormat: format,
-        notes,
-        metadata,
-      };
-    }
+    return {
+      bookId,
+      bookTitle: metadata?.title || "Unknown Title",
+      bookAuthor: metadata?.author,
+      bookCover: metadata?.coverFile,
+      bookFormat: book.format,
+      notes,
+      metadata,
+    };
   },
 
   searchNotes: async (bookId: string, query: string) => {

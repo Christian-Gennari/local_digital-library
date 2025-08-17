@@ -5,10 +5,7 @@ import { fetchBookDataFromISBN } from "./utils/isbn";
 import { fetchArticleDataFromDOI } from "./utils/doi";
 import { getIdentifier } from "./utils/metadataHelpers";
 import { useCollectionsStore } from "./collectionsStore";
-import { RemoteFS } from "./fsRemote"; // remote API wrapper
-
-// Toggle remote vs local. In remote mode, we use the Express API (uploads included).
-export const REMOTE_MODE = true;
+import { RemoteFS } from "./fsRemote";
 
 // -------------------- Shared helpers --------------------
 const sanitizeFolderName = (name: string): string => {
@@ -74,150 +71,13 @@ const createDefaultMetadata = (fileName: string): BookMetadata => {
   };
 };
 
-// -------------------- Local FS helpers (kept for local mode) --------------------
-const saveMetadataLocal = async (
-  bookFolder: FileSystemDirectoryHandle,
-  metadata: BookMetadata
-) => {
-  try {
-    const metadataHandle = await bookFolder.getFileHandle("metadata.json", {
-      create: true,
-    });
-    const writable = await metadataHandle.createWritable();
-    await writable.write(JSON.stringify(metadata, null, 2));
-    await writable.close();
-  } catch (error) {
-    console.error("Failed to save metadata:", error);
-    throw error;
-  }
-};
-
-const loadMetadataLocal = async (
-  bookFolder: FileSystemDirectoryHandle
-): Promise<BookMetadata | null> => {
-  try {
-    const metadataHandle = await bookFolder.getFileHandle("metadata.json");
-    const file = await metadataHandle.getFile();
-    const text = await file.text();
-    return JSON.parse(text);
-  } catch {
-    return null;
-  }
-};
-
-const findAvailableFolderName = async (
-  libraryFolder: FileSystemDirectoryHandle,
-  baseName: string
-): Promise<string> => {
-  let folderName = baseName;
-  let counter = 2;
-  while (true) {
-    try {
-      await libraryFolder.getDirectoryHandle(folderName);
-      folderName = `${baseName} (${counter})`;
-      counter++;
-    } catch {
-      return folderName;
-    }
-  }
-};
-
-const getBookFile = async (
-  bookFolder: FileSystemDirectoryHandle
-): Promise<{ name: string; handle: FileSystemFileHandle } | null> => {
-  try {
-    for await (const [name, handle] of bookFolder.entries()) {
-      if (
-        handle.kind === "file" &&
-        !name.startsWith(".") &&
-        !name.endsWith(".json") &&
-        !name.includes(".cover.")
-      ) {
-        const format = getFileFormat(name);
-        if (format) return { name, handle: handle as FileSystemFileHandle };
-      }
-    }
-  } catch (error) {
-    console.error("Failed to find book file:", error);
-  }
-  return null;
-};
-
-const getFolderContents = async (
-  folder: FileSystemDirectoryHandle
-): Promise<string[]> => {
-  const contents: string[] = [];
-  try {
-    for await (const [name] of folder.entries()) contents.push(name);
-  } catch (error) {
-    console.error("Failed to get folder contents:", error);
-  }
-  return contents;
-};
-
-const downloadAndSaveCoverLocal = async (
-  bookFolder: FileSystemDirectoryHandle,
-  coverUrl: string
-): Promise<string | null> => {
-  try {
-    const response = await fetch(coverUrl, {
-      headers: { Accept: "image/*" },
-      signal: AbortSignal.timeout(10000),
-    });
-    if (!response.ok)
-      throw new Error(
-        `Failed to fetch cover: ${response.status} ${response.statusText}`
-      );
-    const blob = await response.blob();
-    const coverHandle = await bookFolder.getFileHandle("cover.jpg", {
-      create: true,
-    });
-    const writable = await coverHandle.createWritable();
-    await writable.write(blob);
-    await writable.close();
-    return "cover.jpg";
-  } catch (error) {
-    console.error("Failed to download cover:", error);
-    return null;
-  }
-};
-
-const saveManualCoverLocal = async (
-  bookFolder: FileSystemDirectoryHandle,
-  coverFile: File
-): Promise<string | null> => {
-  try {
-    const extension = coverFile.name.split(".").pop()?.toLowerCase() || "jpg";
-    const coverFileName = `cover.${extension}`;
-    const coverHandle = await bookFolder.getFileHandle(coverFileName, {
-      create: true,
-    });
-    const writable = await coverHandle.createWritable();
-    await writable.write(coverFile);
-    await writable.close();
-    return coverFileName;
-  } catch (error) {
-    console.error("Failed to save manual cover:", error);
-    return null;
-  }
-};
-
 // -------------------- Store --------------------
 interface Store {
   selectedBook: Book | null;
-
   books: Book[];
   currentBook: Book | null;
-  libraryFolder: FileSystemDirectoryHandle | null;
   pendingBook: File | null;
   showMetadataModal: boolean;
-  conflictResolution: {
-    show: boolean;
-    conflictingName: string;
-    suggestedAlternative: string;
-    existingContents: string[];
-    resolver?: (resolution: ConflictResolution) => void;
-  };
   isLoading: boolean;
 
   setSelectedBook: (book: Book | null) => void;
@@ -244,7 +104,6 @@ interface Store {
   saveManualCoverForBook: (bookId: string, coverFile: File) => Promise<void>;
   setCurrentBook: (book: Book | null) => void;
   openBook: (book: Book) => Promise<void>;
-  resolveConflict: (resolution: ConflictResolution) => void;
   migrateExistingBooks: () => Promise<void>;
   removeBook: (bookId: string) => Promise<void>;
 }
@@ -253,99 +112,35 @@ export const useStore = create<Store>((set, get) => ({
   selectedBook: null,
   books: [],
   currentBook: null,
-  libraryFolder: null,
   pendingBook: null,
   showMetadataModal: false,
-  conflictResolution: {
-    show: false,
-    conflictingName: "",
-    suggestedAlternative: "",
-    existingContents: [],
-  },
   isLoading: false,
 
   setSelectedBook: (book) => set({ selectedBook: book }),
 
-  // In remote mode this is not needed; keep for local mode
+  // In remote mode, just loads books
   selectLibraryFolder: async () => {
-    if (REMOTE_MODE) {
-      await get().loadBooksFromFolder();
-      return;
-    }
-    try {
-      const folderHandle = await (window as any).showDirectoryPicker({
-        mode: "readwrite",
-      });
-      set({ libraryFolder: folderHandle });
-      await get().loadBooksFromFolder();
-      localStorage.setItem("library-folder-name", folderHandle.name);
-    } catch (error) {
-      console.error("Failed to select folder:", error);
-    }
+    await get().loadBooksFromFolder();
   },
 
   loadBooksFromFolder: async () => {
     set({ isLoading: true });
     try {
-      if (REMOTE_MODE) {
-        const remoteBooks = await RemoteFS.listBooks();
-        const books: Book[] = remoteBooks.map((rb) => {
-          const derived = getFileFormatAndType(
-            rb.fileName,
-            rb.metadata || undefined
-          );
-          return {
-            id: rb.id,
-            folderName: rb.folderName,
-            fileName: rb.fileName,
-            format: rb.format,
-            itemType: (rb.metadata?.itemType as ItemType) || derived.itemType,
-            metadata: rb.metadata || createDefaultMetadata(rb.fileName),
-            folderHandle: null as any, // not used in remote mode
-          };
-        });
-        set({ books, isLoading: false });
-        return;
-      }
-
-      // --- Local mode ---
-      const { libraryFolder } = get();
-      if (!libraryFolder) return;
-      const books: Book[] = [];
-
-      for await (const [folderName, handle] of libraryFolder.entries()) {
-        if (handle.kind === "directory") {
-          const directoryHandle = handle as FileSystemDirectoryHandle;
-          const bookFile = await getBookFile(directoryHandle);
-          if (bookFile) {
-            const format = getFileFormat(bookFile.name);
-            if (format) {
-              let metadata = await loadMetadataLocal(directoryHandle);
-              const { itemType } = getFileFormatAndType(
-                bookFile.name,
-                metadata || undefined
-              );
-              if (!metadata) {
-                metadata = createDefaultMetadata(bookFile.name);
-                await saveMetadataLocal(directoryHandle, metadata);
-              } else if (!metadata.itemType) {
-                metadata.itemType = itemType;
-                await saveMetadataLocal(directoryHandle, metadata);
-              }
-              books.push({
-                id: folderName,
-                folderName,
-                folderHandle: directoryHandle,
-                fileName: bookFile.name,
-                format,
-                itemType: metadata.itemType || itemType,
-                metadata,
-              });
-            }
-          }
-        }
-      }
-
+      const remoteBooks = await RemoteFS.listBooks();
+      const books: Book[] = remoteBooks.map((rb) => {
+        const derived = getFileFormatAndType(
+          rb.fileName,
+          rb.metadata || undefined
+        );
+        return {
+          id: rb.id,
+          folderName: rb.folderName,
+          fileName: rb.fileName,
+          format: rb.format,
+          itemType: (rb.metadata?.itemType as ItemType) || derived.itemType,
+          metadata: rb.metadata || createDefaultMetadata(rb.fileName),
+        };
+      });
       set({ books, isLoading: false });
     } catch (error) {
       console.error("Failed to load books:", error);
@@ -362,164 +157,34 @@ export const useStore = create<Store>((set, get) => ({
     set({ pendingBook: file, showMetadataModal: true });
   },
 
-  // FULLY REMOTE-CAPABLE: uploads in remote mode; original flow in local mode
+  // Remote mode upload
   savePendingBookWithMetadata: async (metadata, coverFile) => {
     const { pendingBook } = get();
     if (!pendingBook) return;
 
     set({ isLoading: true });
     try {
-      if (REMOTE_MODE) {
-        const resp = await RemoteFS.uploadBook(pendingBook, metadata, {
-          mode: "auto-number", // server will auto-number on conflict
-          coverFile,
-        });
-        const newBook: Book = {
-          id: resp.book.id,
-          folderName: resp.book.folderName,
-          fileName: resp.book.fileName,
-          format: resp.book.format,
-          itemType: (resp.book.metadata?.itemType as ItemType) || "book",
-          metadata:
-            resp.book.metadata || createDefaultMetadata(resp.book.fileName),
-          folderHandle: null as any,
-        };
-        set((s) => ({
-          books: [newBook, ...s.books],
-          pendingBook: null,
-          showMetadataModal: false,
-          isLoading: false,
-        }));
-        return;
-      }
-
-      // --- Local mode flow ---
-      const { libraryFolder } = get();
-      if (!libraryFolder) return;
-
-      const folderName = generateFolderName(metadata);
-
-      // Conflict handling (local)
-      try {
-        await libraryFolder.getDirectoryHandle(folderName);
-        const suggestedAlternative = await findAvailableFolderName(
-          libraryFolder,
-          folderName
-        );
-        const conflictingHandle = await libraryFolder.getDirectoryHandle(
-          folderName
-        );
-        const existingContents = await getFolderContents(conflictingHandle);
-
-        return new Promise<void>((resolve) => {
-          set({
-            conflictResolution: {
-              show: true,
-              conflictingName: folderName,
-              suggestedAlternative,
-              existingContents,
-              resolver: async (resolution: ConflictResolution) => {
-                let finalFolderName: string;
-
-                switch (resolution.type) {
-                  case "auto-number":
-                    finalFolderName = suggestedAlternative;
-                    break;
-                  case "custom-name":
-                    finalFolderName = sanitizeFolderName(
-                      resolution.customName!
-                    );
-                    break;
-                  case "overwrite":
-                    await (libraryFolder as any).removeEntry(folderName, {
-                      recursive: true,
-                    });
-                    finalFolderName = folderName;
-                    break;
-                  case "cancel":
-                    set({
-                      conflictResolution: {
-                        ...get().conflictResolution,
-                        show: false,
-                      },
-                      pendingBook: null,
-                      showMetadataModal: false,
-                      isLoading: false,
-                    });
-                    resolve();
-                    return;
-                }
-
-                await saveBookToFolder(finalFolderName, metadata, coverFile);
-                set({
-                  conflictResolution: {
-                    ...get().conflictResolution,
-                    show: false,
-                  },
-                });
-                resolve();
-              },
-            },
-          });
-        });
-      } catch {
-        // No conflict
-        await saveBookToFolder(folderName, metadata, coverFile);
-      }
-
-      async function saveBookToFolder(
-        folderName: string,
-        finalMetadata: BookMetadata,
-        coverFile?: File
-      ) {
-        try {
-          const libraryFolder = get().libraryFolder!;
-          const bookFolder = await libraryFolder.getDirectoryHandle(
-            folderName,
-            { create: true }
-          );
-          const extension = pendingBook!.name.split(".").pop();
-          const standardizedName = `book.${extension}`;
-          const fileHandle = await bookFolder.getFileHandle(standardizedName, {
-            create: true,
-          });
-          const writable = await fileHandle.createWritable();
-          await writable.write(pendingBook!);
-          await writable.close();
-
-          const { itemType } = getFileFormatAndType(
-            pendingBook!.name,
-            finalMetadata
-          );
-          if (!finalMetadata.itemType) finalMetadata.itemType = itemType;
-
-          if (coverFile) {
-            const coverFileName = await saveManualCoverLocal(
-              bookFolder,
-              coverFile
-            );
-            if (coverFileName) {
-              finalMetadata.coverFile = coverFileName;
-              finalMetadata.coverUrl = undefined;
-            }
-          }
-
-          await saveMetadataLocal(bookFolder, finalMetadata);
-
-          set({
-            pendingBook: null,
-            showMetadataModal: false,
-            isLoading: false,
-          });
-
-          await get().loadBooksFromFolder();
-        } catch (error) {
-          console.error("Failed to save book:", error);
-          set({ isLoading: false });
-        }
-      }
+      const resp = await RemoteFS.uploadBook(pendingBook, metadata, {
+        mode: "auto-number", // server will auto-number on conflict
+        coverFile,
+      });
+      const newBook: Book = {
+        id: resp.book.id,
+        folderName: resp.book.folderName,
+        fileName: resp.book.fileName,
+        format: resp.book.format,
+        itemType: (resp.book.metadata?.itemType as ItemType) || "book",
+        metadata:
+          resp.book.metadata || createDefaultMetadata(resp.book.fileName),
+      };
+      set((s) => ({
+        books: [newBook, ...s.books],
+        pendingBook: null,
+        showMetadataModal: false,
+        isLoading: false,
+      }));
     } catch (e) {
-      console.error("Failed to save (remote/local):", e);
+      console.error("Failed to save (remote):", e);
       set({ isLoading: false });
       alert("Failed to save book");
     }
@@ -537,18 +202,11 @@ export const useStore = create<Store>((set, get) => ({
     const book = books.find((b) => b.id === bookId);
     if (!book) return;
 
-    // Persist remotely or locally
-    if (REMOTE_MODE) {
-      await RemoteFS.saveMetadata(bookId, {
-        ...book.metadata,
-        ...metadataUpdate,
-      });
-    } else {
-      await saveMetadataLocal(book.folderHandle, {
-        ...book.metadata,
-        ...metadataUpdate,
-      });
-    }
+    // Persist remotely
+    await RemoteFS.saveMetadata(bookId, {
+      ...book.metadata,
+      ...metadataUpdate,
+    });
 
     // Build the updated book (for the list)
     const updatedBook: Book = {
@@ -583,7 +241,7 @@ export const useStore = create<Store>((set, get) => ({
     });
   },
 
-  // Remote-aware: tries to upload cover into server; falls back to metadata.coverUrl if fetch fails (e.g., CORS)
+  // Remote-aware: tries to upload cover into server
   fetchMetadataByISBN: async (
     bookId: string,
     isbn: string
@@ -628,48 +286,27 @@ export const useStore = create<Store>((set, get) => ({
           bookData.originalLanguage || book.metadata.originalLanguage,
       };
 
-      if (REMOTE_MODE) {
-        // Try to fetch & upload cover to server so it becomes /files/.../cover.*
-        if (bookData.coverUrl) {
-          try {
-            const resp = await fetch(bookData.coverUrl);
-            if (resp.ok) {
-              const blob = await resp.blob();
-              const nameGuess = (blob.type && blob.type.split("/")[1]) || "jpg";
-              const file = new File([blob], `cover.${nameGuess}`, {
-                type: blob.type || "image/jpeg",
-              });
-              const u = await RemoteFS.uploadCover(bookId, file);
-              updatedMetadata.coverFile = u.coverFile;
-              updatedMetadata.coverUrl = undefined;
-            } else {
-              updatedMetadata.coverUrl = bookData.coverUrl; // fallback
-            }
-          } catch {
-            updatedMetadata.coverUrl = bookData.coverUrl; // fallback if CORS/other issue
+      // Try to fetch & upload cover to server so it becomes /files/.../cover.*
+      if (bookData.coverUrl) {
+        try {
+          const resp = await fetch(bookData.coverUrl);
+          if (resp.ok) {
+            const blob = await resp.blob();
+            const nameGuess = (blob.type && blob.type.split("/")[1]) || "jpg";
+            const file = new File([blob], `cover.${nameGuess}`, {
+              type: blob.type || "image/jpeg",
+            });
+            const u = await RemoteFS.uploadCover(bookId, file);
+            updatedMetadata.coverFile = u.coverFile;
+            updatedMetadata.coverUrl = undefined;
+          } else {
+            updatedMetadata.coverUrl = bookData.coverUrl; // fallback
           }
+        } catch {
+          updatedMetadata.coverUrl = bookData.coverUrl; // fallback if CORS/other issue
         }
-        await RemoteFS.saveMetadata(bookId, updatedMetadata);
-      } else {
-        // Local: download cover into folder if available
-        if (bookData.coverUrl) {
-          try {
-            const localCoverFile = await downloadAndSaveCoverLocal(
-              book.folderHandle,
-              bookData.coverUrl
-            );
-            if (localCoverFile) {
-              updatedMetadata.coverFile = localCoverFile;
-              updatedMetadata.coverUrl = undefined;
-            }
-          } catch {
-            // ignore, keep url fallback
-            updatedMetadata.coverUrl =
-              bookData.coverUrl || updatedMetadata.coverUrl;
-          }
-        }
-        await saveMetadataLocal(book.folderHandle, updatedMetadata);
       }
+      await RemoteFS.saveMetadata(bookId, updatedMetadata);
 
       // Update the store
       set({
@@ -723,11 +360,7 @@ export const useStore = create<Store>((set, get) => ({
         description: articleData.description || book.metadata.description,
       };
 
-      if (REMOTE_MODE) {
-        await RemoteFS.saveMetadata(bookId, updatedMetadata);
-      } else {
-        await saveMetadataLocal(book.folderHandle, updatedMetadata);
-      }
+      await RemoteFS.saveMetadata(bookId, updatedMetadata);
 
       set({
         books: get().books.map((b) =>
@@ -765,37 +398,16 @@ export const useStore = create<Store>((set, get) => ({
     const book = books.find((b) => b.id === bookId);
     if (!book) return;
 
-    if (REMOTE_MODE) {
-      const resp = await RemoteFS.uploadCover(bookId, coverFile);
-      await get().updateBookMetadata(bookId, {
-        coverFile: resp.coverFile,
-        coverUrl: undefined,
-      });
-    } else {
-      const coverFileName = await saveManualCoverLocal(
-        book.folderHandle,
-        coverFile
-      );
-      if (coverFileName) {
-        await get().updateBookMetadata(bookId, {
-          coverFile: coverFileName,
-          coverUrl: undefined,
-        });
-      }
-    }
+    const resp = await RemoteFS.uploadCover(bookId, coverFile);
+    await get().updateBookMetadata(bookId, {
+      coverFile: resp.coverFile,
+      coverUrl: undefined,
+    });
   },
 
   openBook: async (book) => {
     try {
-      let url: string;
-      if (REMOTE_MODE) {
-        url = RemoteFS.fileUrl(book as any);
-      } else {
-        const bookFile = await getBookFile(book.folderHandle);
-        if (!bookFile) return;
-        const file = await bookFile.handle.getFile();
-        url = URL.createObjectURL(file);
-      }
+      const url = RemoteFS.fileUrl(book as any);
       await get().updateBookMetadata(book.id, {
         lastRead: new Date().toISOString(),
       });
@@ -806,11 +418,6 @@ export const useStore = create<Store>((set, get) => ({
   },
 
   setCurrentBook: (book) => set({ currentBook: book }),
-
-  resolveConflict: (resolution) => {
-    const { conflictResolution } = get();
-    if (conflictResolution.resolver) conflictResolution.resolver(resolution);
-  },
 
   // Keeps parity with older metadata by deriving itemType where missing
   migrateExistingBooks: async () => {
@@ -834,18 +441,7 @@ export const useStore = create<Store>((set, get) => ({
     const book = books.find((b) => b.id === bookId);
     if (!book) return;
 
-    if (REMOTE_MODE) {
-      await RemoteFS.deleteBook(bookId);
-    } else {
-      if ("remove" in book.folderHandle) {
-        await (book.folderHandle as any).remove({ recursive: true });
-      } else {
-        // best-effort fallback; full removal may need parent handle
-        console.warn(
-          "Full folder removal may not be supported in this browser"
-        );
-      }
-    }
+    await RemoteFS.deleteBook(bookId);
 
     // remove from collections, if you maintain them here
     const { removeBookFromCollection, collections } =

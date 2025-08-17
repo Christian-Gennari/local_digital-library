@@ -180,7 +180,7 @@ export interface BookMetadata {
 export interface Book {
   id: string;
   folderName: string;
-  folderHandle: FileSystemDirectoryHandle;
+  // REMOVED: folderHandle: FileSystemDirectoryHandle - no longer needed in remote-only mode
   fileName: string;
   format: "pdf" | "epub" | "audio";
   itemType?: ItemType; // NEW: Type of item (book, audiobook, article)
