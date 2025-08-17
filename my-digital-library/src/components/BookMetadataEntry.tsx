@@ -5,6 +5,7 @@ import { cleanISBN, fetchBookDataFromISBN } from "../utils/isbn";
 import { fetchArticleDataFromDOI } from "../utils/doi";
 import { useStore } from "../store";
 import CoverPreview from "./CoverPreview";
+import { TagInput } from "./CategoriesInput";
 import {
   getFieldVisibility,
   getIdentifier,
@@ -897,20 +898,11 @@ export function BookMetadataEntry({ fileName, onSave, onSkip }: Props) {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Categories
                   </label>
-                  <input
-                    type="text"
-                    value={(metadata.categories || []).join(", ")}
-                    onChange={(e) =>
-                      setMetadata({
-                        ...metadata,
-                        categories: e.target.value
-                          .split(",")
-                          .map((cat) => cat.trim())
-                          .filter(Boolean),
-                      })
+                  <TagInput
+                    value={metadata.categories}
+                    onChange={(categories) =>
+                      setMetadata({ ...metadata, categories })
                     }
-                    className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
-                    placeholder="Fiction, Science Fiction, Classic (comma-separated)"
                   />
                 </div>
               </>
