@@ -13,6 +13,7 @@ import { ConfirmationModal } from "./ConfirmationModal";
 import { Book } from "../types";
 import { useCollectionsStore } from "../collectionsStore";
 import { getIdentifier } from "../utils/metadataHelpers";
+import BookCover from "./BookCover";
 
 import {
   PencilSquareIcon,
@@ -25,7 +26,6 @@ import {
 } from "@heroicons/react/24/outline";
 import { StarIcon } from "@heroicons/react/24/solid";
 import { Squares2X2Icon, Bars3Icon } from "@heroicons/react/24/outline";
-import { REMOTE_MODE } from "../store";
 
 interface BookListProps {
   searchQuery?: string;
@@ -36,50 +36,6 @@ interface BookListProps {
     readingStatus: string;
   };
 }
-
-// Create a cache for local image URLs outside of the component
-const coverUrlCache = new Map<string, string>();
-
-// Memoized function to get the cover image source with caching
-// Memoized function to get the cover image source with caching
-const getCoverImageSrc = async (book: Book): Promise<string | null> => {
-  // Check the cache first
-  if (coverUrlCache.has(book.id)) {
-    return coverUrlCache.get(book.id)!;
-  }
-
-  // Handle REMOTE_MODE - construct URL directly
-  if (REMOTE_MODE) {
-    if (book.metadata.coverFile) {
-      // Construct the URL for the cover file on the server
-      const coverUrl = `/files/${encodeURIComponent(
-        book.id
-      )}/${encodeURIComponent(book.metadata.coverFile)}`;
-      coverUrlCache.set(book.id, coverUrl);
-      return coverUrl;
-    }
-    // Fallback to online URL if no cover file
-    return book.metadata.coverUrl || null;
-  }
-
-  // Local mode - use FileSystem API
-  if (book.metadata.coverFile) {
-    try {
-      const coverHandle = await book.folderHandle.getFileHandle(
-        book.metadata.coverFile
-      );
-      const file = await coverHandle.getFile();
-      const url = URL.createObjectURL(file);
-      // Store the new URL in the cache
-      coverUrlCache.set(book.id, url);
-      return url;
-    } catch {
-      // fallback silently
-    }
-  }
-  // Fallback to online URL if no local file or cache is found
-  return book.metadata.coverUrl || null;
-};
 
 // Helper function for format icons
 const getIconForFormat = (format: string) => {
@@ -94,93 +50,6 @@ const getIconForFormat = (format: string) => {
       return <BookOpenIcon className="h-16 w-16 text-slate-300" />;
   }
 };
-
-// ============ MOVED COMPONENTS OUTSIDE ============
-
-// BookCover Component - Memoized
-interface BookCoverProps {
-  book: Book;
-  hideStarOverlay?: boolean; // Add this line
-}
-
-const BookCover = memo<BookCoverProps>(
-  ({ book, hideStarOverlay = false }) => {
-    const [coverSrc, setCoverSrc] = useState<string | null>(null);
-    const [isVisible, setIsVisible] = useState(false);
-    const imgRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-      const observer = new IntersectionObserver(
-        ([entry]) => {
-          if (entry.isIntersecting) {
-            setIsVisible(true);
-            observer.disconnect();
-          }
-        },
-        { rootMargin: "50px" }
-      );
-
-      if (imgRef.current) {
-        observer.observe(imgRef.current);
-      }
-
-      return () => observer.disconnect();
-    }, []);
-
-    useEffect(() => {
-      if (isVisible) {
-        getCoverImageSrc(book).then(setCoverSrc);
-      }
-    }, [book, isVisible]);
-
-    return (
-      <div
-        ref={imgRef}
-        className="relative aspect-[2/3] overflow-hidden rounded-xl bg-slate-50/50 shadow-inner"
-      >
-        {isVisible && coverSrc ? (
-          <img
-            src={coverSrc}
-            alt={book.metadata.title}
-            className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03] md:group-hover:scale-[1.03]"
-            loading="lazy"
-          />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center p-8">
-            {isVisible ? (
-              getIconForFormat(book.format)
-            ) : (
-              <div className="h-16 w-16 rounded-lg bg-slate-200 animate-pulse" />
-            )}
-          </div>
-        )}
-        <div className="absolute inset-0 bg-black/0 transition-colors duration-300 md:group-hover:bg-black/5" />
-
-        {/* Favorite Star Overlay */}
-        {book.metadata.isFavorite && !hideStarOverlay && (
-          <div className="absolute top-2 left-2">
-            <div className="bg-yellow-400 rounded-full p-1.5 shadow-lg">
-              <StarIcon className="h-4 w-4 text-white" />
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  },
-  (prevProps, nextProps) => {
-    // Custom comparison - only re-render if relevant props change
-    return (
-      prevProps.book.id === nextProps.book.id &&
-      prevProps.book.metadata.isFavorite ===
-        nextProps.book.metadata.isFavorite &&
-      prevProps.book.metadata.coverUrl === nextProps.book.metadata.coverUrl &&
-      prevProps.book.metadata.coverFile === nextProps.book.metadata.coverFile &&
-      prevProps.hideStarOverlay === nextProps.hideStarOverlay // Add this line
-    );
-  }
-);
-
-BookCover.displayName = "BookCover";
 
 // BookListHeader Component
 const BookListHeader = memo(() => {
@@ -613,11 +482,6 @@ export function BookList({
     if (libraryFolder) {
       loadBooksFromFolder();
     }
-    // Cleanup function to revoke all cached URLs when the component unmounts
-    return () => {
-      coverUrlCache.forEach((url) => URL.revokeObjectURL(url));
-      coverUrlCache.clear();
-    };
   }, [libraryFolder, loadBooksFromFolder]);
 
   const filteredBooks = useMemo(() => {

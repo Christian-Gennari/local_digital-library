@@ -29,7 +29,7 @@ import {
   MicrophoneIcon,
   SpeakerWaveIcon,
 } from "@heroicons/react/24/outline";
-import { REMOTE_MODE } from "../store";
+import { getCoverImageSrc } from "../utils/coverUtils";
 
 export function BookDetailsSidebar() {
   const { selectedBook, openBook, removeBook } = useStore();
@@ -57,42 +57,16 @@ export function BookDetailsSidebar() {
 
   useEffect(() => {
     if (selectedBook) {
-      getCoverImageSrc();
+      loadCoverImage();
     } else {
       setCoverSrc(null);
     }
   }, [selectedBook]);
-
-  const getCoverImageSrc = async () => {
+  const loadCoverImage = async () => {
     if (!selectedBook) return;
 
-    // Handle REMOTE_MODE
-    if (REMOTE_MODE) {
-      if (selectedBook.metadata.coverFile) {
-        const coverUrl = `/files/${encodeURIComponent(
-          selectedBook.id
-        )}/${encodeURIComponent(selectedBook.metadata.coverFile)}`;
-        setCoverSrc(coverUrl);
-        return;
-      }
-      setCoverSrc(selectedBook.metadata.coverUrl || null);
-      return;
-    }
-
-    // Local mode - use FileSystem API
-    if (selectedBook.metadata.coverFile) {
-      try {
-        const coverHandle = await selectedBook.folderHandle.getFileHandle(
-          selectedBook.metadata.coverFile
-        );
-        const file = await coverHandle.getFile();
-        setCoverSrc(URL.createObjectURL(file));
-        return;
-      } catch {
-        // fallback silently
-      }
-    }
-    setCoverSrc(selectedBook.metadata.coverUrl || null);
+    const coverUrl = await getCoverImageSrc(selectedBook);
+    setCoverSrc(coverUrl);
   };
 
   const getIconForFormat = (format: string) => {
