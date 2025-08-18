@@ -3,6 +3,10 @@ import { useState, useEffect, useRef } from "react";
 import { Book, BookNote } from "../types";
 import { useNotesStore } from "../notesStore";
 import { useReading } from "./ReadingContext";
+// ADD THESE THREE IMPORTS:
+import { SmartNoteTextarea } from "./SmartNoteTextarea";
+import { LinkedConceptModal } from "./LinkedConceptModal";
+import { renderNoteContent } from "../utils/noteLinking";
 
 interface Props {
   book: Book;
@@ -44,6 +48,9 @@ export function NotesSidebar({
   const [noteMode, setNoteMode] = useState<"quick" | "quote">("quick");
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  // ADD THESE TWO NEW STATE VARIABLES:
+  const [showConceptModal, setShowConceptModal] = useState<string | null>(null);
+  const [editingContent, setEditingContent] = useState("");
 
   const [preservedSelectedText, setPreservedSelectedText] = useState<
     string | null
@@ -114,6 +121,7 @@ export function NotesSidebar({
         highlightData = await createHighlightFromSelection();
       }
 
+      // Now we don't need to exclude linkedConcepts and backlinks
       const newNote: Omit<BookNote, "id"> = {
         content: noteContent.trim(),
         quote:
@@ -124,6 +132,7 @@ export function NotesSidebar({
         createdAt: new Date().toISOString(),
         tags: [],
         highlight: highlightData || undefined,
+        // linkedConcepts and backlinks are optional, so we don't need to specify them
       };
 
       const noteId = await addNote(book.id, newNote);
@@ -148,6 +157,7 @@ export function NotesSidebar({
   ) => {
     await updateNote(book.id, noteId, updates);
     setEditingNoteId(null);
+    setEditingContent(""); // ADD: Clear editing content
     await loadNotes();
   };
 
@@ -193,7 +203,7 @@ export function NotesSidebar({
 
   return (
     <div className="w-full h-full bg-white flex flex-col">
-      {/* Header */}
+      {/* Header - KEEP EXACTLY AS IS */}
       <div className="border-b border-slate-200 p-4 sticky top-0 bg-white z-10">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-lg font-semibold text-slate-900">Notes</h3>
@@ -270,7 +280,7 @@ export function NotesSidebar({
           </div>
         </div>
 
-        {/* Search */}
+        {/* Search - KEEP AS IS */}
         <input
           type="text"
           placeholder="Search notes…"
@@ -279,7 +289,7 @@ export function NotesSidebar({
           className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-slate-500 bg-white placeholder-slate-400"
         />
 
-        {/* Context (page/chapter/timestamp) */}
+        {/* Context - KEEP AS IS */}
         {displayReference && (
           <div className="mt-2 inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-600">
             <svg
@@ -305,7 +315,7 @@ export function NotesSidebar({
         )}
       </div>
 
-      {/* Note composer */}
+      {/* Note composer - KEEP MOST AS IS, JUST CHANGE TEXTAREA */}
       <div className="border-b border-slate-200 p-4">
         {isQuoteAvailable && (
           <div className="mb-3 flex rounded-lg bg-slate-100 p-1">
@@ -365,23 +375,24 @@ export function NotesSidebar({
           </div>
         )}
 
-        <textarea
-          ref={textareaRef}
+        {/* REPLACE TEXTAREA WITH SMART TEXTAREA */}
+        <SmartNoteTextarea
           value={noteContent}
-          onChange={(e) => setNoteContent(e.target.value)}
-          onFocus={() => {}}
-          rows={3}
+          onChange={setNoteContent}
           placeholder={
             noteMode === "quote"
               ? "Add a note about the selected text…"
               : "Write a quick note…"
           }
-          className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-slate-500 resize-none"
+          rows={3}
+          disabled={!currentReference}
         />
 
         <div className="mt-2 flex items-center justify-between">
           <div className="text-xs text-slate-500">
-            {currentReference ? "" : "Navigate to a location to attach note."}
+            {currentReference
+              ? "Type [[ to link concepts"
+              : "Navigate to a location to attach note."}
           </div>
           <button
             onClick={handleAddNote}
@@ -393,7 +404,7 @@ export function NotesSidebar({
         </div>
       </div>
 
-      {/* Notes list */}
+      {/* Notes list - KEEP MOSTLY AS IS */}
       <div className="flex-1 overflow-y-auto p-3 space-y-3">
         {filtered.length === 0 ? (
           <div className="p-6 text-center">
@@ -437,41 +448,26 @@ export function NotesSidebar({
 
               {editingNoteId === note.id ? (
                 <div className="space-y-2">
-                  <textarea
-                    defaultValue={note.content}
-                    className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-slate-500 resize-none bg-white"
+                  {/* REPLACE TEXTAREA WITH SMART TEXTAREA FOR EDITING */}
+                  <SmartNoteTextarea
+                    value={editingContent}
+                    onChange={setEditingContent}
                     rows={3}
-                    onBlur={(e) =>
-                      handleUpdateNote(note.id, { content: e.target.value })
-                    }
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-                        handleUpdateNote(note.id, {
-                          content: (e.currentTarget as HTMLTextAreaElement)
-                            .value,
-                        });
-                      }
-                      if (e.key === "Escape") setEditingNoteId(null);
-                    }}
-                    autoFocus
                   />
                   <div className="flex gap-3 text-xs">
                     <button
                       onClick={() =>
-                        handleUpdateNote(note.id, {
-                          content: (
-                            document.querySelector(
-                              "textarea"
-                            ) as HTMLTextAreaElement
-                          )?.value,
-                        })
+                        handleUpdateNote(note.id, { content: editingContent })
                       }
                       className="text-green-700 hover:text-green-900"
                     >
                       Save
                     </button>
                     <button
-                      onClick={() => setEditingNoteId(null)}
+                      onClick={() => {
+                        setEditingNoteId(null);
+                        setEditingContent("");
+                      }}
                       className="text-slate-600 hover:text-slate-900"
                     >
                       Cancel
@@ -480,9 +476,12 @@ export function NotesSidebar({
                 </div>
               ) : (
                 <div>
-                  <p className="text-sm text-slate-900 leading-relaxed mb-3">
-                    {note.content}
-                  </p>
+                  {/* REPLACE PLAIN TEXT WITH RENDERED CONTENT */}
+                  <div className="text-sm text-slate-900 leading-relaxed mb-3">
+                    {renderNoteContent(note.content, (concept) =>
+                      setShowConceptModal(concept)
+                    )}
+                  </div>
                   <div className="flex items-center justify-between text-xs text-slate-500">
                     <div className="flex items-center gap-2">
                       <button
@@ -526,7 +525,10 @@ export function NotesSidebar({
                     </div>
                     <div className="flex items-center gap-2">
                       <button
-                        onClick={() => setEditingNoteId(note.id)}
+                        onClick={() => {
+                          setEditingNoteId(note.id);
+                          setEditingContent(note.content); // ADD: Set content for editing
+                        }}
                         className="p-1 rounded hover:bg-slate-100"
                       >
                         Edit
@@ -545,6 +547,14 @@ export function NotesSidebar({
           ))
         )}
       </div>
+
+      {/* ADD CONCEPT MODAL AT THE END */}
+      {showConceptModal && (
+        <LinkedConceptModal
+          concept={showConceptModal}
+          onClose={() => setShowConceptModal(null)}
+        />
+      )}
     </div>
   );
 }

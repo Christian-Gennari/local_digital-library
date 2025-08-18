@@ -208,6 +208,9 @@ export interface BookNote {
 
   // NEW: Optional highlight data
   highlight?: HighlightData;
+
+  linkedConcepts?: string[]; // concepts this note links to: ["freedom", "democracy"]
+  backlinks?: string[]; // note IDs that link to this note
 }
 
 export interface BookNotes {

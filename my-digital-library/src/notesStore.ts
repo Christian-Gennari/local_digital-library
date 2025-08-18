@@ -3,6 +3,7 @@ import { create } from "zustand";
 import { BookNote, BookNotes, HighlightData } from "./types";
 import { useStore } from "./store";
 import { RemoteFS } from "./fsRemote";
+import { parseNoteLinks } from "./utils/noteLinking";
 
 interface NotesStore {
   notesCache: Map<string, BookNote[]>;
@@ -44,8 +45,7 @@ interface NotesStore {
   }) => Promise<void>;
 }
 
-const generateNoteId = () =>
-  Date.now().toString() + Math.random().toString(36).slice(2, 11);
+const generateNoteId = () => crypto.randomUUID();
 
 // ---------- Remote helpers (Express API) ----------
 const loadNotesRemote = async (bookId: string): Promise<BookNote[]> => {
@@ -95,12 +95,22 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
     if (!book) throw new Error("Book not found");
 
     const noteId = generateNoteId();
-    const newNote: BookNote = { ...noteData, id: noteId };
+    const linkedConcepts = parseNoteLinks(noteData.content);
+
+    const newNote: BookNote = {
+      ...noteData,
+      id: noteId,
+      linkedConcepts,
+      backlinks: [],
+    };
 
     const currentNotes = await get().getNotes(bookId);
     const updatedNotes = [...currentNotes, newNote];
 
     await saveNotesRemote(bookId, updatedNotes);
+
+    // Clear concept cache when adding new note
+    sessionStorage.removeItem("concept-cache");
 
     const newCache = new Map(get().notesCache);
     newCache.set(bookId, updatedNotes);
@@ -109,17 +119,27 @@ export const useNotesStore = create<NotesStore>((set, get) => ({
     return noteId;
   },
 
+  // Update updateNote method
   updateNote: async (bookId, noteId, updates) => {
     const { books } = useStore.getState();
     const book = books.find((b) => b.id === bookId);
     if (!book) throw new Error("Book not found");
 
     const currentNotes = await get().getNotes(bookId);
+
+    let finalUpdates = { ...updates };
+    if (updates.content !== undefined) {
+      finalUpdates.linkedConcepts = parseNoteLinks(updates.content);
+    }
+
     const updatedNotes = currentNotes.map((n) =>
-      n.id === noteId ? { ...n, ...updates } : n
+      n.id === noteId ? { ...n, ...finalUpdates } : n
     );
 
     await saveNotesRemote(bookId, updatedNotes);
+
+    // Clear concept cache when updating note
+    sessionStorage.removeItem("concept-cache");
 
     const newCache = new Map(get().notesCache);
     newCache.set(bookId, updatedNotes);

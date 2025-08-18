@@ -195,8 +195,152 @@ app.get("/api/books/:id/notes", async (req, res) => {
 app.put("/api/books/:id/notes", async (req, res) => {
   const dir = path.join(LIBRARY_ROOT, req.params.id);
   await ensureDir(dir);
+
+  // Get old notes to track concept changes
+  let oldNotes = [];
+  try {
+    const oldData = await fs.readFile(path.join(dir, "notes.json"), "utf8");
+    const parsed = JSON.parse(oldData);
+    oldNotes = parsed.notes || [];
+  } catch {}
+
+  // Save notes as before
   await writeJSON(path.join(dir, "notes.json"), req.body || {});
+
+  // Update concept index for each note
+  if (req.body.notes) {
+    // Create a map of old concepts
+    const oldConceptsMap = {};
+    oldNotes.forEach((note) => {
+      oldConceptsMap[note.id] = note.linkedConcepts || [];
+    });
+
+    // Update index for each note
+    for (const note of req.body.notes) {
+      await updateConceptIndexForNote(
+        req.params.id,
+        note,
+        oldConceptsMap[note.id] || []
+      );
+    }
+
+    // Handle deleted notes
+    const currentIds = req.body.notes.map((n) => n.id);
+    const deletedNotes = oldNotes.filter((n) => !currentIds.includes(n.id));
+    for (const deleted of deletedNotes) {
+      await updateConceptIndexForNote(
+        req.params.id,
+        { id: deleted.id, content: null }, // Signal deletion
+        deleted.linkedConcepts || []
+      );
+    }
+  }
+
   res.json({ ok: true });
+});
+
+app.post("/api/notes/rebuild-index", async (req, res) => {
+  try {
+    const index = {
+      version: 1,
+      lastUpdated: new Date().toISOString(),
+      concepts: {},
+      notes: {},
+    };
+
+    const books = await fs.readdir(LIBRARY_ROOT);
+    let totalNotes = 0;
+
+    for (const bookFolder of books) {
+      if (bookFolder.startsWith("_")) continue; // Skip system files
+
+      const bookPath = path.join(LIBRARY_ROOT, bookFolder);
+      const stat = await fs.stat(bookPath);
+
+      if (stat.isDirectory()) {
+        const notesPath = path.join(bookPath, "notes.json");
+        try {
+          const notesData = await fs.readFile(notesPath, "utf8");
+          const notes = JSON.parse(notesData);
+
+          if (notes.notes) {
+            for (const note of notes.notes) {
+              totalNotes++;
+
+              // Extract concepts from note content
+              const linkRegex = /\[\[([^\]]+)\]\]/g;
+              const concepts = [];
+              let match;
+
+              while ((match = linkRegex.exec(note.content)) !== null) {
+                const concept = match[1].trim().toLowerCase();
+                if (concept.length > 0 && !concepts.includes(concept)) {
+                  concepts.push(concept);
+                }
+              }
+
+              // Update note to have linkedConcepts field
+              note.linkedConcepts = concepts;
+
+              // Update index
+              concepts.forEach((concept) => {
+                if (!index.concepts[concept]) {
+                  index.concepts[concept] = {
+                    count: 0,
+                    noteIds: [],
+                    bookIds: new Set(),
+                    lastUsed: note.createdAt,
+                  };
+                }
+
+                index.concepts[concept].noteIds.push(note.id);
+                index.concepts[concept].bookIds.add(bookFolder);
+                index.concepts[concept].count++;
+
+                // Update lastUsed to most recent
+                if (
+                  new Date(note.createdAt) >
+                  new Date(index.concepts[concept].lastUsed)
+                ) {
+                  index.concepts[concept].lastUsed = note.createdAt;
+                }
+              });
+
+              index.notes[note.id] = {
+                bookId: bookFolder,
+                concepts,
+              };
+            }
+
+            // Save updated notes with linkedConcepts field
+            await writeJSON(notesPath, notes);
+          }
+        } catch (error) {
+          // Skip if notes.json doesn't exist
+        }
+      }
+    }
+
+    // Convert Sets to Arrays for JSON serialization
+    Object.keys(index.concepts).forEach((concept) => {
+      index.concepts[concept].bookIds = Array.from(
+        index.concepts[concept].bookIds
+      );
+    });
+
+    await saveConceptIndex(index);
+
+    res.json({
+      ok: true,
+      stats: {
+        totalConcepts: Object.keys(index.concepts).length,
+        totalNotes: totalNotes,
+      },
+    });
+  } catch (error) {
+    console.error("Failed to rebuild index:", error);
+    res.status(500).json({ error: "Failed to rebuild index" });
+  }
 });
 
 // ---------- CREATE / UPDATE FILES (UPLOADS) ----------
@@ -893,4 +1037,183 @@ app.put("/api/books/:id/tts/bookmark-throttled", async (req, res) => {
 
   // Return immediately
   res.json({ ok: true, queued: true });
+});
+
+// ============= CONCEPT INDEX SYSTEM =============
+const CONCEPT_INDEX_PATH = path.join(LIBRARY_ROOT, "_concept_index.json");
+
+// Load or create concept index
+async function loadConceptIndex() {
+  try {
+    const data = await fs.readFile(CONCEPT_INDEX_PATH, "utf8");
+    return JSON.parse(data);
+  } catch {
+    return {
+      version: 1,
+      lastUpdated: new Date().toISOString(),
+      concepts: {},
+      notes: {},
+    };
+  }
+}
+
+// Save concept index
+async function saveConceptIndex(index) {
+  await fs.writeFile(CONCEPT_INDEX_PATH, JSON.stringify(index, null, 2));
+}
+
+// Update index when a note is added/updated/deleted
+async function updateConceptIndexForNote(bookId, note, oldConcepts = []) {
+  const index = await loadConceptIndex();
+
+  // Remove old concept references
+  oldConcepts.forEach((concept) => {
+    if (index.concepts[concept]) {
+      index.concepts[concept].noteIds = index.concepts[concept].noteIds.filter(
+        (id) => id !== note.id
+      );
+      if (index.concepts[concept].noteIds.length === 0) {
+        delete index.concepts[concept];
+      }
+    }
+  });
+
+  // If note is being deleted, also remove from notes index
+  if (!note.content) {
+    delete index.notes[note.id];
+    index.lastUpdated = new Date().toISOString();
+    await saveConceptIndex(index);
+    return;
+  }
+
+  // Add new concept references
+  (note.linkedConcepts || []).forEach((concept) => {
+    if (!index.concepts[concept]) {
+      index.concepts[concept] = {
+        count: 0,
+        noteIds: [],
+        bookIds: [], // Start as Array, not Set
+        lastUsed: new Date().toISOString(),
+      };
+    }
+
+    // Add note ID if not already present
+    if (!index.concepts[concept].noteIds.includes(note.id)) {
+      index.concepts[concept].noteIds.push(note.id);
+    }
+
+    // FIXED: Handle bookIds as Array
+    if (!Array.isArray(index.concepts[concept].bookIds)) {
+      // Convert Set to Array if needed
+      index.concepts[concept].bookIds = Array.from(
+        index.concepts[concept].bookIds
+      );
+    }
+
+    // Add bookId if not already present
+    if (!index.concepts[concept].bookIds.includes(bookId)) {
+      index.concepts[concept].bookIds.push(bookId);
+    }
+
+    index.concepts[concept].count = index.concepts[concept].noteIds.length;
+    index.concepts[concept].lastUsed = new Date().toISOString();
+  });
+
+  // Update note entry
+  index.notes[note.id] = {
+    bookId,
+    concepts: note.linkedConcepts || [],
+  };
+
+  index.lastUpdated = new Date().toISOString();
+  await saveConceptIndex(index);
+}
+
+// ============= API ENDPOINTS =============
+
+// Get all unique concepts (FAST - uses index)
+app.get("/api/notes/concepts", async (req, res) => {
+  try {
+    const index = await loadConceptIndex();
+
+    // Return concepts sorted by usage frequency and recency
+    const concepts = Object.keys(index.concepts)
+      .map((concept) => ({
+        name: concept,
+        count: index.concepts[concept].count,
+        lastUsed: index.concepts[concept].lastUsed,
+      }))
+      .sort((a, b) => {
+        // First by count (popularity), then by recency
+        if (b.count !== a.count) return b.count - a.count;
+        return new Date(b.lastUsed).getTime() - new Date(a.lastUsed).getTime();
+      })
+      .map((c) => c.name);
+
+    res.json(concepts);
+  } catch (error) {
+    console.error("Failed to get concepts:", error);
+    res.status(500).json({ error: "Failed to get concepts" });
+  }
+});
+
+// Search notes by concept (FAST - uses index)
+app.get("/api/notes/search", async (req, res) => {
+  try {
+    const concept = (req.query.concept || "").toLowerCase();
+    const index = await loadConceptIndex();
+
+    if (!index.concepts[concept]) {
+      return res.json([]);
+    }
+
+    // Get all note IDs for this concept
+    const noteIds = index.concepts[concept].noteIds;
+    const bookIds = Array.isArray(index.concepts[concept].bookIds)
+      ? index.concepts[concept].bookIds
+      : Array.from(index.concepts[concept].bookIds);
+
+    // Load only the relevant notes
+    const results = [];
+
+    for (const bookId of bookIds) {
+      const notesPath = path.join(LIBRARY_ROOT, bookId, "notes.json");
+      const metadataPath = path.join(LIBRARY_ROOT, bookId, "metadata.json");
+
+      try {
+        const [notesData, metadataData] = await Promise.all([
+          fs.readFile(notesPath, "utf8"),
+          fs.readFile(metadataPath, "utf8").catch(() => "{}"),
+        ]);
+
+        const notes = JSON.parse(notesData);
+        const metadata = JSON.parse(metadataData);
+        const bookTitle = metadata.title || bookId;
+
+        if (notes.notes) {
+          const relevantNotes = notes.notes
+            .filter((note) => noteIds.includes(note.id))
+            .map((note) => ({
+              ...note,
+              bookId,
+              bookTitle,
+            }));
+
+          results.push(...relevantNotes);
+        }
+      } catch (error) {
+        // Skip if files don't exist
+      }
+    }
+
+    res.json(
+      results.sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      )
+    );
+  } catch (error) {
+    console.error("Concept search failed:", error);
+    res.status(500).json({ error: "Concept search failed" });
+  }
 });
