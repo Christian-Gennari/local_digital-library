@@ -1,0 +1,90 @@
+// src/components/readers/shared/ReaderSearchBar.tsx
+import { useState, useEffect, useRef } from "react";
+import { MagnifyingGlassIcon, XMarkIcon } from "@heroicons/react/24/outline";
+
+interface ReaderSearchBarProps {
+  onSearch: (query: string) => void;
+  onNext: () => void;
+  onPrevious: () => void;
+  onClose: () => void;
+  currentMatch: number;
+  totalMatches: number;
+  isVisible: boolean;
+  isReady?: boolean; // Add this
+}
+
+export function ReaderSearchBar({
+  onSearch,
+  onNext,
+  onPrevious,
+  onClose,
+  currentMatch,
+  totalMatches,
+  isVisible,
+  isReady = true, // Default to true
+}: ReaderSearchBarProps) {
+  const [query, setQuery] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isVisible && isReady) inputRef.current?.focus();
+  }, [isVisible, isReady]);
+
+  const handleSearch = (value: string) => {
+    setQuery(value);
+    if (isReady) {
+      onSearch(value);
+    }
+  };
+
+  return isVisible ? (
+    <div
+      className="absolute top-4 right-4 z-50 flex items-center gap-2 
+                    bg-white/95 backdrop-blur-sm rounded-lg shadow-lg p-2"
+    >
+      <MagnifyingGlassIcon className="w-5 h-5 text-gray-500" />
+      <input
+        ref={inputRef}
+        type="text"
+        value={query}
+        onChange={(e) => handleSearch(e.target.value)}
+        placeholder={isReady ? "Search in book..." : "Loading search..."}
+        disabled={!isReady}
+        className={`w-48 px-2 py-1 outline-none bg-transparent ${
+          !isReady ? "opacity-50 cursor-not-allowed" : ""
+        }`}
+      />
+      {!isReady && (
+        <span className="text-xs text-gray-500 animate-pulse">Loading...</span>
+      )}
+      {isReady && totalMatches > 0 && (
+        <>
+          <span className="text-sm text-gray-500">
+            {currentMatch}/{totalMatches}
+          </span>
+          <button
+            onClick={onPrevious}
+            className="p-1 hover:bg-gray-100 rounded"
+            title="Previous match (Shift+Enter)"
+          >
+            ↑
+          </button>
+          <button
+            onClick={onNext}
+            className="p-1 hover:bg-gray-100 rounded"
+            title="Next match (Enter)"
+          >
+            ↓
+          </button>
+        </>
+      )}
+      <button
+        onClick={onClose}
+        className="p-1 hover:bg-gray-100 rounded"
+        title="Close (Esc)"
+      >
+        <XMarkIcon className="w-5 h-5" />
+      </button>
+    </div>
+  ) : null;
+}

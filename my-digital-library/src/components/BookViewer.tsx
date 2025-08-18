@@ -38,6 +38,9 @@ function BookViewerContent() {
   const audioPlayerRef = useRef<AudioPlayerRef>(null);
   const [rendition, setRendition] = useState<any>(null);
 
+  // Search functionality
+  const [showSearch, setShowSearch] = useState(false);
+
   if (!currentBook) return null;
 
   const format = currentBook.format as "pdf" | "epub" | "audio";
@@ -122,6 +125,8 @@ function BookViewerContent() {
             setShowTTS={setShowTTS}
             isTocOpen={isTocOpen} // Add this
             setIsTocOpen={setIsTocOpen} // Add this
+            showSearch={showSearch} // Add this
+            setShowSearch={setShowSearch} // Add this
           />
         );
       case "epub":
@@ -136,6 +141,8 @@ function BookViewerContent() {
             setShowTTS={setShowTTS}
             isTocOpen={isTocOpen} // Add this
             setIsTocOpen={setIsTocOpen} // Add this
+            showSearch={showSearch} // Add this
+            setShowSearch={setShowSearch} // Add this
           />
         );
       case "audio":
@@ -206,7 +213,6 @@ function BookViewerContent() {
                     {displayReference}
                   </div>
                 )}
-
                 {/* Fullscreen Button */}
                 <button
                   onClick={toggleFullscreen}
@@ -245,7 +251,6 @@ function BookViewerContent() {
                     </svg>
                   )}
                 </button>
-
                 {/* TTS Button - NEW */}
                 {(format === "pdf" || format === "epub") && (
                   <button
@@ -271,6 +276,33 @@ function BookViewerContent() {
                       />
                     </svg>
                     TTS
+                  </button>
+                )}
+                {/* Search Button - NEW */}
+                {(format === "pdf" || format === "epub") && (
+                  <button
+                    onClick={() => setShowSearch(!showSearch)}
+                    className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors cursor-pointer ${
+                      showSearch
+                        ? "bg-slate-900 text-white"
+                        : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                    }`}
+                    title="Search in Book"
+                  >
+                    <svg
+                      className="h-4 w-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      strokeWidth={1.5}
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"
+                      />
+                    </svg>
+                    Search
                   </button>
                 )}
 
@@ -299,7 +331,6 @@ function BookViewerContent() {
                   </svg>
                   Notes
                 </button>
-
                 {/* Format Badge */}
                 <span
                   className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${
@@ -446,6 +477,38 @@ function BookViewerContent() {
                   <span>
                     {showTTS ? "Hide Text-to-Speech" : "Open Text-to-Speech"}
                   </span>
+                </button>
+              )}
+
+              {/* Search Button (mobile) */}
+              {(format === "pdf" || format === "epub") && (
+                <button
+                  onClick={() => {
+                    // Toggle search UI and close menu
+                    setShowSearch(!showSearch);
+                    // Optional: close TOC so panels don’t overlap
+                    if (!showSearch) setIsTocOpen(false);
+                    // Optional: close notes if you want a single panel at a time
+                    // if (!showSearch && isNotesOpen) toggleNotes();
+                    setIsMenuOpen(false);
+                  }}
+                  className="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2"
+                >
+                  <svg
+                    className="h-5 w-5 text-slate-600"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth={1.5}
+                    stroke="currentColor"
+                    aria-hidden="true"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"
+                    />
+                  </svg>
+                  <span>{showSearch ? "Hide Search" : "Open Search"}</span>
                 </button>
               )}
 

@@ -388,6 +388,37 @@
   }
 }
 
+/* Reader search highlights */
+.search-highlight-current {
+  background-color: rgba(255, 235, 59, 0.6) !important;
+  border-radius: 2px;
+  box-shadow: 0 0 0 2px rgba(255, 235, 59, 0.3);
+  animation: pulse-highlight 0.5s ease;
+}
+
+@keyframes pulse-highlight {
+  0% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.02);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+}
+
+/* EPUB search highlight via annotations */
+.epubjs-hl.search-highlight-current {
+  background-color: rgba(255, 235, 59, 0.6) !important;
+  fill: rgba(255, 235, 59, 0.6) !important;
+  fill-opacity: 0.6 !important;
+  mix-blend-mode: multiply !important;
+}
+
 /* Accessibility */
 @media (prefers-reduced-motion: reduce) {
   .tts-player,

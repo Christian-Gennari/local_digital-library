@@ -51,6 +51,7 @@ export interface SentenceIndex {
   getSentence(sentenceId: string): Promise<TTSSentence | null>;
   getNextSentence(sentenceId: string): Promise<TTSSentence | null>;
   getPrevSentence(sentenceId: string): Promise<TTSSentence | null>;
+  getAllSentences(bookId?: string): Promise<TTSSentence[]>; // Add this line
 }
 
 export enum PlaybackState {
@@ -146,6 +147,10 @@ export class TTSController extends EventEmitter {
 
     this.playbackState = PlaybackState.IDLE;
     this.emit("initialized");
+  }
+
+  getSentenceIndex(): SentenceIndex | null {
+    return this.sentenceIndex;
   }
 
   async setBook(bookId: string) {

@@ -14,6 +14,13 @@ import ePub from "epubjs";
 import { HighlightService } from "../../../types";
 import TableOfContents from "./ToCForEpubReader";
 import { EpubHighlighting } from "./EpubHighlighting";
+import { ReaderSearchBar } from "../shared/ReaderSearchBar";
+import { EPUBSearchService } from "../../../services/EPUBSearchService";
+import {
+  SentenceIndexer,
+  LocalTTSStorage,
+} from "../../../services/SentenceIndexer";
+
 import {
   generateTocItems,
   matchSectionToToc,
@@ -43,6 +50,8 @@ interface EpubReaderProps {
   setShowTTS?: (show: boolean) => void;
   isTocOpen?: boolean; // Make sure this line exists
   setIsTocOpen?: (open: boolean) => void;
+  showSearch?: boolean; // Add this
+  setShowSearch?: (show: boolean) => void; // Add this
 }
 
 const TOOLBAR_MOBILE_HEIGHT = 64; // keep toolbar compact and predictable
@@ -58,6 +67,8 @@ const EpubReader = forwardRef<EpubReaderRef, EpubReaderProps>(
       setShowTTS,
       isTocOpen: tocOpenProp, // Add this
       setIsTocOpen: setTocOpenProp, // Add this
+      showSearch = false, // Add this
+      setShowSearch, // Add this
     },
     ref
   ) => {
@@ -83,6 +94,16 @@ const EpubReader = forwardRef<EpubReaderRef, EpubReaderProps>(
     const setIsTocOpen = setTocOpenProp || setLocalTocOpen;
     const [openChapters, setOpenChapters] = useState<Set<string>>(new Set());
     const [currentChapterId, setCurrentChapterId] = useState<string>("");
+
+    // Search functionality
+    const [searchService, setSearchService] =
+      useState<EPUBSearchService | null>(null);
+    const [searchMatches, setSearchMatches] = useState(0);
+    const [currentMatch, setCurrentMatch] = useState(0);
+    const [sentenceIndexer, setSentenceIndexer] =
+      useState<SentenceIndexer | null>(null);
+    const [searchReady, setSearchReady] = useState(false);
+
     // Touch swipe (mobile)
     const touchStartX = useRef<number | null>(null);
     const touchEndX = useRef<number | null>(null);
@@ -661,6 +682,108 @@ const EpubReader = forwardRef<EpubReaderRef, EpubReaderProps>(
       };
     }, [epubUrl, applyTheme]);
 
+    useEffect(() => {
+      if (!book || !rendition || !currentBook) return;
+
+      let indexer: SentenceIndexer | null = null;
+
+      const initializeIndexer = async () => {
+        try {
+          setSearchReady(false); // Not ready yet
+
+          const storage = new LocalTTSStorage();
+          indexer = new SentenceIndexer(storage);
+          indexer.setCurrentBook(currentBook.id);
+
+          // Wait for rendition to stabilize
+          await new Promise((resolve) => setTimeout(resolve, 500));
+
+          // Build initial index
+          try {
+            const currentLocation = rendition.currentLocation?.();
+            if (currentLocation?.start?.href) {
+              await indexer.buildIndex(currentBook.id, {
+                type: "epub",
+                href: currentLocation.start.href,
+              });
+            }
+          } catch (e) {
+            console.log("Building index on first search instead");
+          }
+
+          setSentenceIndexer(indexer);
+          setSearchReady(true); // Now ready!
+          console.log("Search indexer ready");
+        } catch (error) {
+          console.error("Failed to initialize sentence indexer:", error);
+          setSearchReady(false);
+        }
+      };
+
+      const timer = setTimeout(initializeIndexer, 1000);
+
+      return () => {
+        clearTimeout(timer);
+        if (indexer) {
+          indexer.destroy();
+        }
+      };
+    }, [book, rendition, currentBook?.id]);
+
+    useEffect(() => {
+      if (rendition && book) {
+        const service = new EPUBSearchService(rendition, book);
+        setSearchService(service);
+        setSearchReady(true);
+        console.log("EPUB search service initialized");
+      }
+    }, [rendition, book]);
+
+    // Add search handler functions
+    const handleSearch = async (query: string) => {
+      if (!searchService) {
+        console.warn("Search service not ready yet");
+        return;
+      }
+
+      if (!searchReady) {
+        console.warn("Search index still building...");
+        return;
+      }
+
+      const matches = await searchService.search(query);
+      setSearchMatches(matches.length);
+
+      if (matches.length > 0) {
+        await searchService.navigateToMatch(0);
+        setCurrentMatch(1);
+      } else {
+        setCurrentMatch(0);
+      }
+    };
+
+    const handleNext = () => {
+      if (!searchService || searchMatches === 0) return;
+      searchService.next();
+      setCurrentMatch((prev) => (prev % searchMatches) + 1);
+    };
+
+    const handlePrevious = () => {
+      if (!searchService || searchMatches === 0) return;
+      searchService.previous();
+      setCurrentMatch((prev) => {
+        const next = prev - 1;
+        return next <= 0 ? searchMatches : next;
+      });
+    };
+
+    const handleCloseSearch = () => {
+      setShowSearch?.(false);
+      searchService?.clear();
+      setSearchMatches(0);
+      setCurrentMatch(0);
+    };
+
     // Touch swipe handlers (mobile)
     const onTouchStart = (e: React.TouchEvent) => {
       touchEndX.current = null;
@@ -691,6 +814,17 @@ const EpubReader = forwardRef<EpubReaderRef, EpubReaderProps>(
 
     return (
       <div ref={containerRef} className="flex h-full bg-slate-50 relative">
+        {/* Search bar */}
+        <ReaderSearchBar
+          isVisible={showSearch}
+          isReady={searchReady} // Add this
+          onSearch={handleSearch}
+          onNext={handleNext}
+          onPrevious={handlePrevious}
+          onClose={handleCloseSearch}
+          currentMatch={currentMatch}
+          totalMatches={searchMatches}
+        />
         {/* Highlighting */}
         <EpubHighlighting
           rendition={rendition}

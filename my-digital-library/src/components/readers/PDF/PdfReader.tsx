@@ -35,6 +35,8 @@ interface PdfReaderProps {
   setShowTTS?: (show: boolean) => void; // Add this line
   isTocOpen?: boolean; // Add this
   setIsTocOpen?: (open: boolean) => void; // Add this
+  showSearch?: boolean; // Add this
+  setShowSearch?: (show: boolean) => void; // Add this
 }
 
 const TOOLBAR_MOBILE_HEIGHT = 64; // px, for safe padding
