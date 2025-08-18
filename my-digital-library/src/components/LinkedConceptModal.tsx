@@ -20,6 +20,7 @@ export function LinkedConceptModal({
 }: LinkedConceptModalProps) {
   const [linkedNotes, setLinkedNotes] = useState<NoteWithBook[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isNavigating, setIsNavigating] = useState(false);
 
   const { openBook, books } = useStore();
 
@@ -47,8 +48,24 @@ export function LinkedConceptModal({
   const handleViewInContext = async (note: NoteWithBook) => {
     const book = books.find((b) => b.id === note.bookId);
     if (book) {
+      setIsNavigating(true);
+
+      // Open the book first
       await openBook(book);
-      onClose();
+
+      // Give the BookViewer and ReadingProvider time to initialize
+      // This ensures the highlight service is registered before we close the modal
+      setTimeout(() => {
+        // Navigate to the specific note location if needed
+        // This could be enhanced to actually navigate to the note's reference
+        if (note.reference) {
+          // The navigation will be handled by the BookViewer's handleNavigateToNote
+          // if we need to implement that feature
+        }
+
+        // Close the modal after everything is initialized
+        onClose();
+      }, 100); // Small delay to ensure proper initialization
     }
   };
 
@@ -68,6 +85,7 @@ export function LinkedConceptModal({
               onClick={onClose}
               className="text-gray-400 hover:text-gray-600 p-1"
               aria-label="Close modal"
+              disabled={isNavigating}
             >
               <svg
                 className="w-5 h-5"
@@ -92,6 +110,10 @@ export function LinkedConceptModal({
           ) : linkedNotes.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               No notes found for this concept.
+            </div>
+          ) : isNavigating ? (
+            <div className="text-center py-8 text-gray-500">
+              Opening book...
             </div>
           ) : (
             <div className="space-y-4">
@@ -126,6 +148,7 @@ export function LinkedConceptModal({
                     <button
                       onClick={() => handleViewInContext(note)}
                       className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                      disabled={isNavigating}
                     >
                       View in context
                       <svg

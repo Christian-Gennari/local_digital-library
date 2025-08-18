@@ -195,49 +195,153 @@
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
-/* EPUB Sentence Highlighting */
+/* PDF Note Highlighting - Professional Styles */
+.pdf-highlight-layer {
+  pointer-events: none !important;
+}
+
+.pdf-highlight-rect {
+  /* Modern amber/yellow gradient with better readability */
+  background: linear-gradient(
+    135deg,
+    rgba(251, 191, 36, 0.25),
+    rgba(245, 158, 11, 0.25)
+  ) !important;
+
+  /* Subtle border for definition */
+  border: 1px solid rgba(245, 158, 11, 0.15) !important;
+  border-radius: 3px !important;
+
+  /* Soft shadow for depth */
+  box-shadow: 0 1px 3px rgba(245, 158, 11, 0.1),
+    0 1px 2px rgba(245, 158, 11, 0.06) !important;
+
+  /* Smooth transitions */
+  transition: all 0.2s ease !important;
+
+  /* Blend mode for better text readability */
+  mix-blend-mode: multiply !important;
+}
+
+/* EPUB Note Highlighting - Matching PDF style */
+.epub-highlight {
+  /* Same gradient as PDF for consistency */
+  background: linear-gradient(
+    135deg,
+    rgba(251, 191, 36, 0.25),
+    rgba(245, 158, 11, 0.25)
+  ) !important;
+
+  border-radius: 3px !important;
+  padding: 1px 0 !important;
+
+  /* Subtle shadow */
+  box-shadow: 0 1px 3px rgba(245, 158, 11, 0.1),
+    0 1px 2px rgba(245, 158, 11, 0.06) !important;
+
+  transition: all 0.2s ease !important;
+}
+
+/* TTS (Text-to-Speech) Highlighting - Distinct blue theme */
 .tts-highlight {
-  background: rgba(255, 255, 0, 0.3) !important;
-  border-radius: 2px !important;
+  /* Lighter blue highlight for active reading */
+  background: linear-gradient(
+    135deg,
+    rgba(147, 197, 253, 0.4),
+    rgba(96, 165, 250, 0.4)
+  ) !important;
+
+  border-radius: 3px !important;
+  padding: 2px 0 !important;
+
+  /* Subtle glow effect */
+  box-shadow: 0 0 12px rgba(96, 165, 250, 0.3),
+    0 2px 4px rgba(96, 165, 250, 0.2) !important;
+
+  /* Smooth animation */
+  animation: tts-highlightPulse 1s ease !important;
   transition: all 0.3s ease !important;
-  animation: tts-highlightPulse 0.5s ease !important;
-  box-shadow: 0 0 8px rgba(255, 255, 0, 0.5) !important;
 }
 
 @keyframes tts-highlightPulse {
   0% {
-    background: rgba(255, 255, 0, 0.1);
-    transform: scale(1);
+    background: linear-gradient(
+      135deg,
+      rgba(147, 197, 253, 0.2),
+      rgba(96, 165, 250, 0.2)
+    );
+    box-shadow: 0 0 8px rgba(96, 165, 250, 0.2),
+      0 1px 3px rgba(96, 165, 250, 0.15);
   }
   50% {
-    background: rgba(255, 255, 0, 0.4);
-    transform: scale(1.02);
+    background: linear-gradient(
+      135deg,
+      rgba(147, 197, 253, 0.5),
+      rgba(96, 165, 250, 0.5)
+    );
+    box-shadow: 0 0 16px rgba(96, 165, 250, 0.4),
+      0 2px 6px rgba(96, 165, 250, 0.25);
   }
   100% {
-    background: rgba(255, 255, 0, 0.3);
-    transform: scale(1);
+    background: linear-gradient(
+      135deg,
+      rgba(147, 197, 253, 0.4),
+      rgba(96, 165, 250, 0.4)
+    );
+    box-shadow: 0 0 12px rgba(96, 165, 250, 0.3),
+      0 2px 4px rgba(96, 165, 250, 0.2);
   }
 }
 
-/* PDF Sentence Highlighting */
+/* PDF TTS Highlighting */
 .tts-pdf-highlight {
-  background: rgba(255, 255, 0, 0.3) !important;
+  background: linear-gradient(
+    135deg,
+    rgba(147, 197, 253, 0.4),
+    rgba(96, 165, 250, 0.4)
+  ) !important;
+
+  border: 1px solid rgba(96, 165, 250, 0.3) !important;
   border-radius: 3px !important;
-  transition: all 0.3s ease !important;
+
+  box-shadow: 0 0 12px rgba(96, 165, 250, 0.3),
+    0 2px 4px rgba(96, 165, 250, 0.2) !important;
+
   animation: tts-highlightFade 0.5s ease !important;
-  border: 1px solid rgba(255, 193, 7, 0.6) !important;
-  box-shadow: 0 0 10px rgba(255, 255, 0, 0.4) !important;
+  transition: all 0.3s ease !important;
 }
 
 @keyframes tts-highlightFade {
   from {
     opacity: 0;
-    transform: scale(0.95);
+    transform: scale(0.98);
   }
   to {
     opacity: 1;
     transform: scale(1);
   }
+}
+
+/* Ensure proper z-index layering in react-pdf */
+.react-pdf__Page {
+  position: relative !important;
+}
+
+.react-pdf__Page canvas {
+  position: relative;
+  z-index: 1;
+}
+
+.pdf-highlight-layer {
+  z-index: 2 !important;
+}
+
+.react-pdf__Page .textLayer {
+  z-index: 3 !important;
+}
+
+.react-pdf__Page .annotationLayer {
+  z-index: 4 !important;
 }
 
 /* Start-Here Visual Feedback */
@@ -311,7 +415,9 @@
   .tts-error,
   .tts-settings,
   .tts-highlight,
-  .tts-pdf-highlight {
+  .tts-pdf-highlight,
+  .pdf-highlight-rect,
+  .epub-highlight {
     animation: none !important;
     transition: none !important;
   }
@@ -323,12 +429,21 @@
   }
 }
 
-/* Print Styles (hide TTS player when printing) */
+/* Print Styles */
 @media print {
   .tts-player,
   .tts-highlight,
   .tts-pdf-highlight,
   .tts-start-here-indicator {
     display: none !important;
+  }
+
+  /* Keep note highlights visible when printing */
+  .pdf-highlight-rect,
+  .epub-highlight {
+    background: rgba(255, 235, 59, 0.2) !important;
+    border: 1px solid rgba(0, 0, 0, 0.2) !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 }

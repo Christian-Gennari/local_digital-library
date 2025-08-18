@@ -1,4 +1,4 @@
-// src/components/ReadingContext.tsx
+// src/components/ReadingContext.tsx - Key parts with fixes
 import {
   createContext,
   useContext,
@@ -98,6 +98,7 @@ export function ReadingProvider({ children, book }: Props) {
   const [pendingHighlight, setPendingHighlight] =
     useState<HighlightData | null>(null);
   const [highlights, setHighlights] = useState<HighlightData[]>([]);
+  const [highlightsLoaded, setHighlightsLoaded] = useState(false);
 
   // Track highlights in ref to avoid callback deps
   const highlightsRef = useRef<HighlightData[]>(highlights);
@@ -106,23 +107,6 @@ export function ReadingProvider({ children, book }: Props) {
   }, [highlights]);
 
   const highlightServiceRef = useRef<HighlightService | null>(null);
-
-  // Register service (stable)
-  const registerHighlightService = useCallback(
-    (service: HighlightService) => {
-      console.log("Registering highlight service for", book.format);
-      highlightServiceRef.current = service;
-
-      // Render existing highlights when service registers
-      if (highlightsRef.current.length > 0) {
-        service.renderHighlights(highlightsRef.current);
-      }
-
-      // Apply current visibility
-      service.setHighlightsVisible?.(highlightsVisible);
-    },
-    [book.format, highlightsVisible]
-  );
 
   // Load highlights on book change
   const refreshHighlights = useCallback(async () => {
@@ -136,22 +120,55 @@ export function ReadingProvider({ children, book }: Props) {
         return bookHighlights;
       });
 
-      // Update service
+      setHighlightsLoaded(true);
+
+      // Update service if already registered
       if (highlightServiceRef.current) {
+        console.log(
+          `Rendering ${bookHighlights.length} highlights on existing service`
+        );
         highlightServiceRef.current.renderHighlights(bookHighlights);
       }
     } catch (error) {
       console.error("Failed to load highlights:", error);
       setHighlights((prev) => (prev.length ? [] : prev));
+      setHighlightsLoaded(true);
       if (highlightServiceRef.current) {
         highlightServiceRef.current.renderHighlights([]);
       }
     }
   }, [book.id, getHighlights]);
 
+  // Register service with enhanced logic
+  const registerHighlightService = useCallback(
+    (service: HighlightService) => {
+      console.log("Registering highlight service for", book.format);
+      highlightServiceRef.current = service;
+
+      // Apply current visibility
+      service.setHighlightsVisible?.(highlightsVisible);
+
+      // If highlights are already loaded, render them immediately
+      if (highlightsLoaded && highlightsRef.current.length > 0) {
+        console.log(
+          `Rendering ${highlightsRef.current.length} pre-loaded highlights`
+        );
+        service.renderHighlights(highlightsRef.current);
+      } else if (!highlightsLoaded) {
+        // If highlights aren't loaded yet, trigger a refresh
+        console.log("Highlights not loaded yet, triggering refresh");
+        refreshHighlights();
+      }
+    },
+    [book.format, highlightsVisible, highlightsLoaded, refreshHighlights]
+  );
+
+  // Load highlights when component mounts or book changes
   useEffect(() => {
+    // Reset loaded state when book changes
+    setHighlightsLoaded(false);
     refreshHighlights();
-  }, [refreshHighlights]);
+  }, [book.id]); // Only depend on book.id, not refreshHighlights
 
   // Update visibility when it changes
   useEffect(() => {
@@ -172,14 +189,6 @@ export function ReadingProvider({ children, book }: Props) {
         setCurrentReference({ type: "timestamp", value: "0:00", raw: 0 });
         break;
     }
-  }, [book.format]);
-
-  // Global selection handling (PDF handled by highlight service)
-  useEffect(() => {
-    if (book.format !== "pdf") return;
-
-    // Selection is handled by the PDF highlight service
-    return;
   }, [book.format]);
 
   // EPUB selection (stable)
