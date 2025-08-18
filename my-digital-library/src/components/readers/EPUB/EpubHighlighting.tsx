@@ -22,24 +22,7 @@ class SimpleEpubHighlightService implements HighlightService {
 
   constructor(rendition: any) {
     this.rendition = rendition;
-    this.setupStyles();
     this.attachSelectionListener();
-  }
-
-  private setupStyles() {
-    if (!this.rendition) return;
-    try {
-      this.rendition.themes.default({
-        ".epub-highlight": {
-          "background-color": "rgba(255, 235, 59, 0.4) !important",
-          "border-radius": "2px",
-          border: "1px solid rgba(255, 235, 59, 0.7)",
-          transition: "opacity 0.2s ease",
-        },
-      });
-    } catch (error) {
-      console.warn("Error setting up highlight styles:", error);
-    }
   }
 
   private attachSelectionListener() {
@@ -95,18 +78,81 @@ class SimpleEpubHighlightService implements HighlightService {
     }
   }
 
+  // Inside SimpleEpubHighlightService (EpubHighlighting.tsx)
+
   private addHighlight(highlight: HighlightData) {
     if (!highlight.epub?.cfiRange) return;
     try {
       this.rendition.annotations.add(
         "highlight",
         highlight.epub.cfiRange,
-        {},
-        null,
-        "epub-highlight",
-        {
-          "data-highlight-id": highlight.id,
-          title: highlight.textContent.substring(0, 50),
+        /* data */ { id: highlight.id, text: highlight.textContent },
+        /* cb */ (annotation: any) => {
+          // Resolve the actual <g class="epub-highlight"> node
+          const g: SVGGElement | null =
+            (annotation && (annotation.mark || annotation.element)) || null;
+          if (!g) return;
+
+          // Metadata / tooltip
+          g.setAttribute("data-highlight-id", highlight.id);
+          g.setAttribute("title", highlight.textContent.substring(0, 50));
+
+          const svg = g.ownerSVGElement;
+          if (!svg) return;
+
+          const doc = svg.ownerDocument;
+          const svgNS = "http://www.w3.org/2000/svg";
+
+          // Ensure <defs> exists
+          let defs = svg.querySelector("defs");
+          if (!defs) {
+            defs = doc.createElementNS(svgNS, "defs");
+            svg.insertBefore(defs, svg.firstChild);
+          }
+
+          // Create a unique linearGradient for this highlight
+          const gradId = `epubhl-grad-${highlight.id}`;
+          if (!svg.querySelector(`#${gradId}`)) {
+            const grad = doc.createElementNS(svgNS, "linearGradient");
+            grad.setAttribute("id", gradId);
+            grad.setAttribute("x1", "0%");
+            grad.setAttribute("y1", "0%");
+            grad.setAttribute("x2", "100%");
+            grad.setAttribute("y2", "100%");
+
+            const stop1 = doc.createElementNS(svgNS, "stop");
+            stop1.setAttribute("offset", "0%");
+            stop1.setAttribute("stop-color", "rgba(251, 191, 36, 0.25)"); // #fbbf24@0.25
+
+            const stop2 = doc.createElementNS(svgNS, "stop");
+            stop2.setAttribute("offset", "100%");
+            stop2.setAttribute("stop-color", "rgba(245, 158, 11, 0.25)"); // #f59e0b@0.25
+
+            grad.appendChild(stop1);
+            grad.appendChild(stop2);
+            defs.appendChild(grad);
+          }
+
+          // Match PDF: subtle double drop-shadow + rounded corners + border + blend
+          g.style.mixBlendMode = "multiply";
+          g.style.filter =
+            "drop-shadow(0 1px 3px rgba(245, 158, 11, 0.1)) drop-shadow(0 1px 2px rgba(245, 158, 11, 0.06))";
+
+          // Apply to each rect in the group
+          const rects = g.querySelectorAll("rect");
+          rects.forEach((r) => {
+            r.setAttribute("fill", `url(#${gradId})`);
+            r.setAttribute("stroke", "rgba(245, 158, 11, 0.15)"); // border like PDF
+            r.setAttribute("stroke-width", "1");
+            r.setAttribute("rx", "3"); // border-radius
+            r.setAttribute("ry", "3");
+          });
+        },
+        /* className */ "epub-highlight",
+        /* styles (fallback if gradient somehow fails) */ {
+          fill: "rgba(245, 158, 11, 0.25)",
+          "fill-opacity": "1",
+          "mix-blend-mode": "multiply",
         }
       );
     } catch (e) {

@@ -83,27 +83,34 @@ export class EPUBAdapter implements TTSAdapter {
 
   highlightSentence(sentence: TTSSentence): void {
     try {
-      // Clear previous highlight
       this.clearHighlight();
 
       if (sentence.cfi_start && sentence.cfi_end) {
-        // Create range from start to end CFI
         const range = `${sentence.cfi_start},${sentence.cfi_end}`;
+
         this.rendition.annotations.add(
           "highlight",
           range,
-          {},
-          null,
-          "tts-highlight",
-          {
-            "data-sentence-id": sentence.id,
-            title: sentence.text.substring(0, 50) + "...",
+          /* data */ {},
+          /* cb */ (el: SVGGElement) => {
+            // attach metadata if you want
+            el.setAttribute("data-sentence-id", sentence.id);
+            el.setAttribute("title", sentence.text.substring(0, 50) + "…");
+          },
+          /* className */ "tts-highlight",
+          /* styles */ {
+            fill: "rgba(245, 158, 11, 0.25)", // orange
+            "fill-opacity": "0.35",
+            "mix-blend-mode": "multiply",
+            stroke: "rgba(245, 158, 11, 0.45)",
+            "stroke-width": "1px",
           }
         );
+
         this.currentHighlight = range;
       }
-    } catch (error) {
-      console.warn("Failed to highlight sentence:", error);
+    } catch (e) {
+      console.warn("Failed to highlight sentence:", e);
     }
   }
 

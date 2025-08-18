@@ -12,8 +12,6 @@ import { useReading } from "../../ReadingContext";
 import { useNotesStore } from "../../../notesStore";
 import ePub from "epubjs";
 import { HighlightService } from "../../../types";
-import "react-pdf/dist/Page/AnnotationLayer.css";
-import "react-pdf/dist/Page/TextLayer.css";
 import TableOfContents from "./ToCForEpubReader";
 import { EpubHighlighting } from "./EpubHighlighting";
 import {
@@ -311,32 +309,19 @@ const EpubReader = forwardRef<EpubReaderRef, EpubReaderProps>(
       try {
         // Ensure centered, readable line length and consistent padding
         r.themes.register("reader-layout", {
-          "html, body": {
-            margin: "0",
-            padding: "0",
-            background: "#ffffff",
-          },
+          "html, body": { margin: "0", padding: "0", background: "#ffffff" },
           body: {
             margin: "0 auto",
             padding: "0 1rem",
-            maxWidth: "min(720px, 92vw)", // Keep this as-is for mobile
+            maxWidth: "min(720px, 92vw)",
             lineHeight: "1.65",
             color: "#0f172a",
           },
-          // Add desktop-specific padding
           "@media (min-width: 768px)": {
-            body: {
-              padding: "2rem 2rem", // More generous padding on desktop
-              maxWidth: "800px", // Fixed width on desktop for consistency
-            },
+            body: { padding: "2rem 2rem", maxWidth: "800px" },
           },
-          p: {
-            margin: "0 0 1rem 0",
-          },
-          img: {
-            maxWidth: "100%",
-            height: "auto",
-          },
+          p: { margin: "0 0 1rem 0" },
+          img: { maxWidth: "100%", height: "auto" },
         });
         r.themes.select("reader-layout");
         r.themes.fontSize(`${size}%`);
@@ -496,9 +481,16 @@ const EpubReader = forwardRef<EpubReaderRef, EpubReaderProps>(
         }
       };
 
-      const onRendered = (_section: any, view: any) =>
+      const onRendered = (_section: any, view: any) => {
         addIframeKeyListener(view);
-      const onRemoved = (_view: any) => removeIframeKeyListener(_view);
+        try {
+          rendition.themes.select("reader-layout");
+        } catch {}
+      };
+
+      const onRemoved = (_section: any, view: any) => {
+        removeIframeKeyListener(view);
+      };
 
       newBook.ready
         .then(async () => {

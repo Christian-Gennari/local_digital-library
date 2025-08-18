@@ -223,25 +223,6 @@
   mix-blend-mode: multiply !important;
 }
 
-/* EPUB Note Highlighting - Matching PDF style */
-.epub-highlight {
-  /* Same gradient as PDF for consistency */
-  background: linear-gradient(
-    135deg,
-    rgba(251, 191, 36, 0.25),
-    rgba(245, 158, 11, 0.25)
-  ) !important;
-
-  border-radius: 3px !important;
-  padding: 1px 0 !important;
-
-  /* Subtle shadow */
-  box-shadow: 0 1px 3px rgba(245, 158, 11, 0.1),
-    0 1px 2px rgba(245, 158, 11, 0.06) !important;
-
-  transition: all 0.2s ease !important;
-}
-
 /* TTS (Text-to-Speech) Highlighting - Distinct blue theme */
 .tts-highlight {
   /* Lighter blue highlight for active reading */
@@ -417,11 +398,6 @@
   .tts-highlight,
   .tts-pdf-highlight,
   .pdf-highlight-rect,
-  .epub-highlight {
-    animation: none !important;
-    transition: none !important;
-  }
-
   .tts-loading {
     animation: none !important;
     border: 2px solid currentColor !important;
@@ -439,8 +415,7 @@
   }
 
   /* Keep note highlights visible when printing */
-  .pdf-highlight-rect,
-  .epub-highlight {
+  .pdf-highlight-rect {
     background: rgba(255, 235, 59, 0.2) !important;
     border: 1px solid rgba(0, 0, 0, 0.2) !important;
     -webkit-print-color-adjust: exact;
