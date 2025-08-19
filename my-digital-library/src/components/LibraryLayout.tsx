@@ -18,8 +18,8 @@ import {
   PlusIcon,
   Cog6ToothIcon,
   RectangleStackIcon,
+  InformationCircleIcon,
 } from "@heroicons/react/24/outline";
-import { ThemeSelector } from "./ThemeSelector";
 
 /** Simple media query hook */
 function useMediaQuery(query: string) {
@@ -104,7 +104,6 @@ export function LibraryLayout() {
           onSelectCollection={setSelectedCollection}
         />
       </div>
-
       {/* MAIN */}
       <div className="flex-1 flex flex-col min-w-0 theme-bg-primary">
         {/* Sticky header - Improved Layout */}
@@ -164,8 +163,13 @@ export function LibraryLayout() {
           </div>
         </header>
 
-        {/* Content */}
-        <main className="flex-1 overflow-auto">
+        {/* Content - Add padding bottom on mobile for navbar */}
+        <main
+          className="flex-1 overflow-auto"
+          style={{
+            paddingBottom: isMobile ? "64px" : 0, // Height of navbar + safe area
+          }}
+        >
           <BookList
             searchQuery={searchQuery}
             selectedCollection={selectedCollection}
@@ -173,40 +177,117 @@ export function LibraryLayout() {
           />
         </main>
       </div>
-
       {/* RIGHT SIDEBAR (desktop rail) */}
       <aside className="hidden md:block border-l theme-border theme-bg-primary md:w-80">
         <BookDetailsSidebar />
       </aside>
 
-      {/* MOBILE FLOATING ACTION BUTTONS */}
-      <div className="md:hidden">
-        {/* Collections FAB - Bottom Left */}
-        <button
-          onClick={() => setLeftOpen(true)}
-          className="fixed left-4 bottom-4 z-40 h-14 w-14 flex items-center justify-center rounded-full theme-bg-primary shadow-lg border theme-border theme-text-secondary hover:theme-bg-secondary hover:shadow-xl transition-all"
-          aria-label="Open collections"
+      {/* MOBILE BOTTOM TAB NAVIGATION */}
+      {isMobile && (
+        <nav
+          className="fixed bottom-0 left-0 right-0 z-40 border-t theme-border theme-bg-primary/95 backdrop-blur-sm"
           style={{
-            marginBottom: "env(safe-area-inset-bottom)",
+            paddingBottom: "env(safe-area-inset-bottom)",
           }}
         >
-          <RectangleStackIcon className="h-6 w-6" />
-        </button>
+          <div className="flex items-center h-16">
+            {/* Collections Tab */}
+            <button
+              onClick={() => {
+                setLeftOpen(true);
+                setRightOpen(false);
+              }}
+              className={`relative flex flex-col items-center justify-center flex-1 h-full gap-1 transition-all ${
+                leftOpen
+                  ? "theme-text-primary theme-bg-secondary"
+                  : "theme-text-secondary hover:theme-bg-tertiary"
+              }`}
+              aria-label="Collections"
+            >
+              {leftOpen && (
+                <div className="absolute top-0 left-0 right-0 h-0.5 bg-current" />
+              )}
+              <RectangleStackIcon
+                className={`h-6 w-6 ${
+                  leftOpen ? "scale-110" : ""
+                } transition-transform`}
+              />
+              <span
+                className={`text-xs ${
+                  leftOpen ? "font-semibold" : "font-medium"
+                }`}
+              >
+                Collections
+              </span>
+            </button>
 
-        {/* Book Details FAB - Bottom Right (only show when a book is selected) */}
-        {selectedBook && (
-          <button
-            onClick={() => setRightOpen(true)}
-            className="fixed right-4 bottom-4 z-40 h-14 w-14 flex items-center justify-center rounded-full theme-bg-primary shadow-lg border theme-border theme-text-secondary hover:theme-bg-secondary hover:shadow-xl transition-all"
-            aria-label="Open book details"
-            style={{
-              marginBottom: "env(safe-area-inset-bottom)",
-            }}
-          >
-            <BookOpenIcon className="h-6 w-6" />
-          </button>
-        )}
-      </div>
+            {/* Library Tab (Center) */}
+            <button
+              onClick={() => {
+                setLeftOpen(false);
+                setRightOpen(false);
+              }}
+              className={`relative flex flex-col items-center justify-center flex-1 h-full gap-1 transition-all ${
+                !leftOpen && !rightOpen
+                  ? "theme-text-primary theme-bg-secondary"
+                  : "theme-text-secondary hover:theme-bg-tertiary"
+              }`}
+              aria-label="Library"
+            >
+              {!leftOpen && !rightOpen && (
+                <div className="absolute top-0 left-0 right-0 h-0.5 bg-current" />
+              )}
+              <BookOpenIcon
+                className={`h-6 w-6 ${
+                  !leftOpen && !rightOpen ? "scale-110" : ""
+                } transition-transform`}
+              />
+              <span
+                className={`text-xs ${
+                  !leftOpen && !rightOpen ? "font-semibold" : "font-medium"
+                }`}
+              >
+                Library
+              </span>
+            </button>
+
+            {/* Details Tab */}
+            <button
+              onClick={() => {
+                if (selectedBook) {
+                  setRightOpen(true);
+                  setLeftOpen(false);
+                }
+              }}
+              disabled={!selectedBook}
+              className={`relative flex flex-col items-center justify-center flex-1 h-full gap-1 transition-all ${
+                !selectedBook
+                  ? "opacity-40 cursor-not-allowed theme-text-secondary"
+                  : rightOpen
+                  ? "theme-text-primary theme-bg-secondary"
+                  : "theme-text-secondary hover:theme-bg-tertiary"
+              }`}
+              aria-label="Book Details"
+            >
+              {rightOpen && selectedBook && (
+                <div className="absolute top-0 left-0 right-0 h-0.5 bg-current" />
+              )}
+              <InformationCircleIcon
+                className={`h-6 w-6 ${
+                  rightOpen && selectedBook ? "scale-110" : ""
+                } transition-transform`}
+              />
+              <span
+                className={`text-xs ${
+                  rightOpen && selectedBook ? "font-semibold" : "font-medium"
+                }`}
+              >
+                Details
+              </span>
+            </button>
+          </div>
+        </nav>
+      )}
 
       {/* LEFT DRAWER (mobile) */}
       <div
@@ -260,7 +341,6 @@ export function LibraryLayout() {
           </div>
         </div>
       </div>
-
       {/* RIGHT DRAWER (mobile) */}
       <div
         className={`md:hidden fixed inset-0 z-50 ${

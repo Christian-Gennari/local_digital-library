@@ -290,22 +290,21 @@ const BookGridItem = memo<BookGridItemProps>(
           <div className="relative">
             <BookCover book={book} />
 
-            {/* Edit button - always visible on mobile, hover on desktop */}
-            <div className="absolute bottom-2 right-2 flex items-center space-x-2">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onEditClick(book);
-                }}
-                className={`flex h-10 w-10 md:h-8 md:w-8 cursor-pointer items-center justify-center rounded-full theme-bg-primary/90 md:theme-bg-primary/70 theme-text-secondary md:theme-text-secondary shadow-sm backdrop-blur-sm transition-all duration-200 hover\:theme-bg-tertiary hover\:theme-text-primary
- active:scale-95 ${
-   isMobile ? "" : "opacity-0 group-hover:opacity-100 group-hover:scale-110"
- }`}
-                title="Edit metadata"
-              >
-                <PencilSquareIcon className="h-5 w-5 md:h-4 md:w-4" />
-              </button>
-            </div>
+            {/* Edit button - only visible on desktop */}
+            {!isMobile && (
+              <div className="absolute bottom-2 right-2 flex items-center space-x-2">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEditClick(book);
+                  }}
+                  className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full theme-bg-primary theme-text-secondary shadow-sm transition-all duration-200 hover:theme-bg-tertiary hover:theme-text-primary opacity-0 group-hover:opacity-100 group-hover:scale-110"
+                  title="Edit metadata"
+                >
+                  <PencilSquareIcon className="h-4 w-4" />
+                </button>
+              </div>
+            )}
 
             {/* Format badge */}
             <div className="absolute top-2 right-2">
@@ -656,7 +655,14 @@ export function BookList({
           </div>
         ) : viewMode === "list" ? (
           // List View - Responsive with mobile cards
-          <div className="theme-bg-primary rounded-lg shadow-sm border theme-border">
+          <div
+            className="theme-bg-primary rounded-lg shadow-sm border theme-border"
+            style={{
+              transition:
+                "background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease",
+            }}
+          >
+            {" "}
             <BookListHeader />
             <div>
               {filteredBooks.map((book, index) => (
