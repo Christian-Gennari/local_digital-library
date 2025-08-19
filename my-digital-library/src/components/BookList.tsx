@@ -254,12 +254,36 @@ const BookGridItem = memo<BookGridItemProps>(
   ({ book, isSelected, onBookClick, onEditClick, isMobile }) => {
     return (
       <article
-        className={`group relative cursor-pointer overflow-hidden rounded-xl p-3 md:p-4 transition-all duration-300 ease-in-out transform-gpu md:hover:-translate-y-0.5 md:hover:shadow-lg active:scale-[0.98] md:active:scale-100
-        ${
-          isSelected
-            ? "theme-bg-tertiary shadow-md ring-2 ring-slate-200 ring-offset-2"
-            : "theme-bg-primary shadow-sm"
-        }`}
+        className={`
+    group relative cursor-pointer overflow-hidden rounded-xl p-3 md:p-4
+    shadow-sm active:scale-[0.98] md:active:scale-100
+    ${
+      isSelected
+        ? "theme-bg-tertiary !shadow-md ring-2 ring-slate-200 ring-offset-2"
+        : "theme-bg-primary"
+    }
+  `}
+        style={{
+          transform: "translateY(0)",
+          transition:
+            "transform 300ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 300ms cubic-bezier(0.4, 0, 0.2, 1)",
+          willChange: "transform",
+        }}
+        onMouseEnter={(e) => {
+          // Only apply hover transform on desktop
+          if (window.matchMedia("(min-width: 768px)").matches) {
+            e.currentTarget.style.transform = "translateY(-2px)";
+            e.currentTarget.style.boxShadow =
+              "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)";
+          }
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.transform = "translateY(0)";
+          // Reset shadow based on selected state
+          e.currentTarget.style.boxShadow = isSelected
+            ? "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)" // shadow-md equivalent
+            : "0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)"; // shadow-sm equivalent
+        }}
         onClick={() => onBookClick(book)}
       >
         <div className="space-y-3 md:space-y-4">
@@ -285,7 +309,7 @@ const BookGridItem = memo<BookGridItemProps>(
 
             {/* Format badge */}
             <div className="absolute top-2 right-2">
-              <span className="inline-flex items-center rounded-full theme-bg-primary/90 md:theme-bg-primary/70 px-1.5 md:px-2 py-0.5 md:py-1 font-sans text-[9px] md:text-[10px] font-medium uppercase tracking-wide theme-text-secondary md:theme-text-secondary shadow-sm backdrop-blur-sm">
+              <span className="inline-flex items-center rounded-full theme-bg-primary px-1.5 md:px-2 py-0.5 md:py-1 font-sans text-[9px] md:text-[10px] font-medium uppercase tracking-wide theme-text-secondary md:theme-text-secondary shadow-sm">
                 {book.format}
               </span>
             </div>
