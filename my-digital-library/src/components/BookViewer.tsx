@@ -258,7 +258,7 @@ function BookViewerContent() {
                     className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors cursor-pointer ${
                       showTTS
                         ? "theme-btn-primary"
-                        : "theme-bg-tertiary theme-text-primary hover\:theme-bg-tertiary"
+                        : "theme-bg-tertiary theme-text-primary hover:theme-bg-tertiary"
                     }`}
                     title="Text-to-Speech"
                   >
@@ -285,7 +285,7 @@ function BookViewerContent() {
                     className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors cursor-pointer ${
                       showSearch
                         ? "theme-btn-primary"
-                        : "theme-bg-tertiary theme-text-primary hover\:theme-bg-tertiary"
+                        : "theme-bg-tertiary theme-text-primary hover:theme-bg-tertiary"
                     }`}
                     title="Search in Book"
                   >
@@ -312,7 +312,7 @@ function BookViewerContent() {
                   className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors cursor-pointer ${
                     isNotesOpen
                       ? "theme-btn-primary"
-                      : "theme-bg-tertiary theme-text-primary hover\:theme-bg-tertiary"
+                      : "theme-bg-tertiary theme-text-primary hover:theme-bg-tertiary"
                   }`}
                   title="Toggle Notes"
                 >
@@ -557,15 +557,6 @@ function BookViewerContent() {
                 className="w-full text-left px-3 py-2 rounded-lg hover\:theme-bg-secondary"
               >
                 {isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
-              </button>
-              <button
-                onClick={() => {
-                  setCurrentBook(null);
-                  setIsMenuOpen(false);
-                }}
-                className="w-full text-left px-3 py-2 rounded-lg hover\:theme-bg-secondary"
-              >
-                Back to library
               </button>
             </div>
           </div>
