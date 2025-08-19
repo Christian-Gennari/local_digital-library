@@ -247,7 +247,7 @@ export function CollectionsSidebar({
             e.stopPropagation();
             setOpenMenuId((prev) => (prev === id ? null : id));
           }}
-          className="h-8 w-8 inline-flex items-center justify-center rounded hover:bg-slate-200"
+          className="h-8 w-8 inline-flex items-center justify-center rounded hover\:theme-bg-tertiary"
           aria-haspopup="menu"
           aria-expanded={isOpen}
           aria-label="Open actions"
@@ -271,7 +271,7 @@ export function CollectionsSidebar({
                 setExpandedFolders(next);
                 setOpenMenuId(null);
               }}
-              className="w-full text-left px-3 py-2 text-sm rounded hover:theme-bg-tertiary flex items-center gap-2"
+              className="w-full text-left px-3 py-2 text-sm rounded hover\:theme-bg-tertiary flex items-center gap-2"
             >
               <PlusIcon className="h-4 w-4" />
               Add subcollection
@@ -285,7 +285,7 @@ export function CollectionsSidebar({
                 setEditingCollectionName(col?.name || "");
                 setOpenMenuId(null);
               }}
-              className="w-full text-left px-3 py-2 text-sm rounded hover:theme-bg-tertiary flex items-center gap-2"
+              className="w-full text-left px-3 py-2 text-sm rounded hover\:theme-bg-tertiary flex items-center gap-2"
             >
               <PencilIcon className="h-4 w-4" />
               Rename
@@ -332,13 +332,13 @@ export function CollectionsSidebar({
                   setEditingCollectionName("");
                 }
               }}
-              className="flex-1 h-9 px-2 text-sm border theme-border rounded focus:outline-none focus:border-slate-500"
+              className="flex-1 h-9 px-2 text-sm border theme-border rounded focus:outline-none focus:border-blue-500"
               autoFocus
               placeholder="Rename collection"
             />
             <button
               onClick={() => handleUpdateCollection(col.id)}
-              className="h-9 px-3 inline-flex items-center justify-center rounded bg-slate-900 text-white hover:bg-slate-800 disabled:opacity-50"
+              className="h-9 px-3 inline-flex items-center justify-center rounded theme-btn-primary hover:theme-btn-primary disabled:opacity-50"
               title="Save"
               aria-label="Save"
               disabled={!editingCollectionName.trim()}
@@ -350,7 +350,7 @@ export function CollectionsSidebar({
                 setEditingCollectionId(null);
                 setEditingCollectionName("");
               }}
-              className="h-9 px-3 inline-flex items-center justify-center rounded hover:bg-slate-200"
+              className="h-9 px-3 inline-flex items-center justify-center rounded hover\:theme-bg-tertiary"
               title="Cancel"
               aria-label="Cancel"
             >
@@ -362,7 +362,7 @@ export function CollectionsSidebar({
             className={`group relative flex items-center justify-between w-full px-3 py-2 text-sm transition-colors ${
               isSelected
                 ? "theme-bg-tertiary theme-text-primary"
-                : "theme-text-primary hover:theme-bg-secondary"
+                : "theme-text-primary hover\:theme-bg-secondary"
             }`}
             style={{ paddingLeft: `${12 + level * 16}px` }}
             onClick={() => {
@@ -426,12 +426,12 @@ export function CollectionsSidebar({
                 if (e.key === "Escape") handleCancelCreateSub();
               }}
               placeholder="Subcollection name"
-              className="flex-1 h-9 px-2 text-sm border theme-border rounded focus:outline-none focus:border-slate-500"
+              className="flex-1 h-9 px-2 text-sm border theme-border rounded focus:outline-none focus:border-blue-500"
               autoFocus
             />
             <button
               onClick={() => handleCreateCollection(col.id)}
-              className="h-9 px-3 inline-flex items-center justify-center rounded bg-slate-900 text-white hover:bg-slate-800 disabled:opacity-50"
+              className="h-9 px-3 inline-flex items-center justify-center rounded theme-btn-primary hover:theme-btn-primary disabled:opacity-50"
               title="Add subcollection"
               aria-label="Add subcollection"
               disabled={!editingCollectionName.trim()}
@@ -440,7 +440,7 @@ export function CollectionsSidebar({
             </button>
             <button
               onClick={handleCancelCreateSub}
-              className="h-9 px-3 inline-flex items-center justify-center rounded hover:bg-slate-200"
+              className="h-9 px-3 inline-flex items-center justify-center rounded hover\:theme-bg-tertiary"
               title="Cancel"
               aria-label="Cancel"
             >
@@ -472,7 +472,7 @@ export function CollectionsSidebar({
           className={`w-full flex items-center justify-between px-3 py-2 text-sm transition-colors ${
             selectedCollection === null
               ? "theme-bg-tertiary theme-text-primary"
-              : "theme-text-primary hover:theme-bg-secondary"
+              : "theme-text-primary hover\:theme-bg-secondary"
           }`}
         >
           <div className="flex items-center gap-2">
@@ -499,7 +499,7 @@ export function CollectionsSidebar({
                   className={`w-full flex items-center justify-between px-3 py-2 text-sm transition-colors ${
                     isSelected
                       ? "theme-bg-tertiary theme-text-primary"
-                      : "theme-text-primary hover:theme-bg-secondary"
+                      : "theme-text-primary hover\:theme-bg-secondary"
                   }`}
                 >
                   <div className="flex items-center gap-2">
@@ -527,12 +527,12 @@ export function CollectionsSidebar({
                 if (e.key === "Escape") handleCancelCreateRoot();
               }}
               placeholder="Collection name"
-              className="flex-1 h-8 px-2 text-sm border theme-border rounded focus:outline-none focus:border-slate-500"
+              className="flex-1 h-8 px-2 text-sm border theme-border rounded focus:outline-none focus:border-blue-500"
               autoFocus
             />
             <button
               onClick={() => handleCreateCollection()}
-              className="h-8 px-2 inline-flex items-center justify-center rounded bg-slate-900 text-white hover:bg-slate-800 disabled:opacity-50"
+              className="h-8 px-2 inline-flex items-center justify-center rounded theme-btn-primary hover:theme-btn-primary disabled:opacity-50"
               title="Add collection"
               aria-label="Add collection"
               disabled={!newCollectionName.trim()}
@@ -541,7 +541,7 @@ export function CollectionsSidebar({
             </button>
             <button
               onClick={handleCancelCreateRoot}
-              className="h-8 px-2 inline-flex items-center justify-center rounded hover:bg-slate-200"
+              className="h-8 px-2 inline-flex items-center justify-center rounded hover\:theme-bg-tertiary"
               title="Cancel"
               aria-label="Cancel"
             >
@@ -559,7 +559,7 @@ export function CollectionsSidebar({
             {/* New Collection Button - Clean simple plus */}
             <button
               onClick={() => setIsCreatingCollection(true)}
-              className="h-6 w-6 inline-flex items-center justify-center rounded hover:theme-bg-tertiary theme-text-secondary hover:theme-text-primary transition-colors"
+              className="h-6 w-6 inline-flex items-center justify-center rounded hover\:theme-bg-tertiary theme-text-secondary hover\:theme-text-primary transition-colors"
               title="Create new collection (Cmd/Ctrl+N)"
               aria-label="Create new collection"
             >

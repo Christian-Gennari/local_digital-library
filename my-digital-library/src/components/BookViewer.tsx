@@ -177,7 +177,7 @@ function BookViewerContent() {
               <div className="flex items-center gap-4">
                 <button
                   onClick={() => setCurrentBook(null)}
-                  className="inline-flex items-center gap-2 rounded-lg border theme-border px-4 py-2 text-sm font-medium theme-text-primary hover:theme-bg-secondary transition-colors cursor-pointer"
+                  className="inline-flex items-center gap-2 rounded-lg border theme-border px-4 py-2 text-sm font-medium theme-text-primary hover\:theme-bg-secondary transition-colors cursor-pointer"
                 >
                   <svg
                     className="h-4 w-4"
@@ -216,7 +216,7 @@ function BookViewerContent() {
                 {/* Fullscreen Button */}
                 <button
                   onClick={toggleFullscreen}
-                  className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium theme-bg-tertiary theme-text-primary hover:bg-slate-200 transition-colors cursor-pointer"
+                  className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium theme-bg-tertiary theme-text-primary hover\:theme-bg-tertiary transition-colors cursor-pointer"
                   title="Toggle Fullscreen"
                 >
                   {isFullscreen ? (
@@ -257,8 +257,8 @@ function BookViewerContent() {
                     onClick={() => setShowTTS(!showTTS)}
                     className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors cursor-pointer ${
                       showTTS
-                        ? "bg-slate-900 text-white"
-                        : "theme-bg-tertiary theme-text-primary hover:bg-slate-200"
+                        ? "theme-btn-primary"
+                        : "theme-bg-tertiary theme-text-primary hover\:theme-bg-tertiary"
                     }`}
                     title="Text-to-Speech"
                   >
@@ -284,8 +284,8 @@ function BookViewerContent() {
                     onClick={() => setShowSearch(!showSearch)}
                     className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors cursor-pointer ${
                       showSearch
-                        ? "bg-slate-900 text-white"
-                        : "theme-bg-tertiary theme-text-primary hover:bg-slate-200"
+                        ? "theme-btn-primary"
+                        : "theme-bg-tertiary theme-text-primary hover\:theme-bg-tertiary"
                     }`}
                     title="Search in Book"
                   >
@@ -311,8 +311,8 @@ function BookViewerContent() {
                   onClick={toggleNotes}
                   className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors cursor-pointer ${
                     isNotesOpen
-                      ? "bg-slate-900 text-white"
-                      : "theme-bg-tertiary theme-text-primary hover:bg-slate-200"
+                      ? "theme-btn-primary"
+                      : "theme-bg-tertiary theme-text-primary hover\:theme-bg-tertiary"
                   }`}
                   title="Toggle Notes"
                 >
@@ -459,7 +459,7 @@ function BookViewerContent() {
                     setShowTTS(!showTTS);
                     setIsMenuOpen(false);
                   }}
-                  className="w-full text-left px-3 py-2 rounded-lg hover:theme-bg-secondary flex items-center gap-2"
+                  className="w-full text-left px-3 py-2 rounded-lg hover\:theme-bg-secondary flex items-center gap-2"
                 >
                   <svg
                     className="h-5 w-5 theme-text-secondary"
@@ -492,7 +492,7 @@ function BookViewerContent() {
                     // if (!showSearch && isNotesOpen) toggleNotes();
                     setIsMenuOpen(false);
                   }}
-                  className="w-full text-left px-3 py-2 rounded-lg hover:theme-bg-secondary flex items-center gap-2"
+                  className="w-full text-left px-3 py-2 rounded-lg hover\:theme-bg-secondary flex items-center gap-2"
                 >
                   <svg
                     className="h-5 w-5 theme-text-secondary"
@@ -519,7 +519,7 @@ function BookViewerContent() {
                     setIsTocOpen(!isTocOpen);
                     setIsMenuOpen(false);
                   }}
-                  className="w-full text-left px-3 py-2 rounded-lg hover:theme-bg-secondary flex items-center gap-2"
+                  className="w-full text-left px-3 py-2 rounded-lg hover\:theme-bg-secondary flex items-center gap-2"
                 >
                   <svg
                     className="h-5 w-5 theme-text-secondary"
@@ -545,7 +545,7 @@ function BookViewerContent() {
                   toggleNotes();
                   setIsMenuOpen(false);
                 }}
-                className="w-full text-left px-3 py-2 rounded-lg hover:theme-bg-secondary"
+                className="w-full text-left px-3 py-2 rounded-lg hover\:theme-bg-secondary"
               >
                 {isNotesOpen ? "Hide notes" : "Open notes"}
               </button>
@@ -554,7 +554,7 @@ function BookViewerContent() {
                   toggleFullscreen();
                   setIsMenuOpen(false);
                 }}
-                className="w-full text-left px-3 py-2 rounded-lg hover:theme-bg-secondary"
+                className="w-full text-left px-3 py-2 rounded-lg hover\:theme-bg-secondary"
               >
                 {isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
               </button>
@@ -563,7 +563,7 @@ function BookViewerContent() {
                   setCurrentBook(null);
                   setIsMenuOpen(false);
                 }}
-                className="w-full text-left px-3 py-2 rounded-lg hover:theme-bg-secondary"
+                className="w-full text-left px-3 py-2 rounded-lg hover\:theme-bg-secondary"
               >
                 Back to library
               </button>

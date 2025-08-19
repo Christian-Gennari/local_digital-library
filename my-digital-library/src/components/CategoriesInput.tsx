@@ -65,13 +65,13 @@ export const TagInput: React.FC<TagInputProps> = ({
         {value.map((tag, index) => (
           <span
             key={index}
-            className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm theme-bg-tertiary theme-text-primary hover:bg-slate-200 transition-colors"
+            className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm theme-bg-tertiary theme-text-primary hover\:theme-bg-tertiary transition-colors"
           >
             {tag}
             <button
               type="button"
               onClick={() => removeTag(index)}
-              className="ml-1 theme-text-secondary hover:theme-text-primary focus:outline-none"
+              className="ml-1 theme-text-secondary hover\:theme-text-primary focus:outline-none"
               aria-label={`Remove ${tag}`}
             >
               <svg
@@ -98,14 +98,14 @@ export const TagInput: React.FC<TagInputProps> = ({
         onChange={(e) => setInputValue(e.target.value)}
         onKeyDown={handleKeyDown}
         onPaste={handlePaste}
-        className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
+        className="w-full rounded-lg border theme-border px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
         placeholder={
           value.length === 0
             ? "Fiction, Science Fiction, Classic..."
             : placeholder
         }
       />
-      <p className="mt-1 text-xs text-gray-500">
+      <p className="mt-1 text-xs theme-text-secondary">
         Press Enter or use commas to add categories
       </p>
     </div>

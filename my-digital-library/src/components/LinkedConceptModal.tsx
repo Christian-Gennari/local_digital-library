@@ -83,7 +83,7 @@ export function LinkedConceptModal({
             <h2 className="text-lg font-semibold">Notes about "{concept}"</h2>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:theme-text-secondary p-1"
+              className="theme-text-muted hover\:theme-text-secondary p-1"
               aria-label="Close modal"
               disabled={isNavigating}
             >
@@ -106,13 +106,15 @@ export function LinkedConceptModal({
 
         <div className="p-4 overflow-y-auto max-h-[calc(80vh-80px)]">
           {loading ? (
-            <div className="text-center py-8 text-gray-500">Loading...</div>
+            <div className="text-center py-8 theme-text-secondary">
+              Loading...
+            </div>
           ) : linkedNotes.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 theme-text-secondary">
               No notes found for this concept.
             </div>
           ) : isNavigating ? (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 theme-text-secondary">
               Opening book...
             </div>
           ) : (
@@ -120,13 +122,13 @@ export function LinkedConceptModal({
               {linkedNotes.map((note) => (
                 <div
                   key={note.id}
-                  className="border theme-border rounded-lg p-4 hover:border-gray-300 transition-colors"
+                  className="border theme-border rounded-lg p-4 hover:theme-border transition-colors"
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs text-gray-500 font-medium">
+                    <span className="text-xs theme-text-secondary font-medium">
                       {note.bookTitle}
                     </span>
-                    <span className="text-xs text-gray-400">
+                    <span className="text-xs theme-text-muted">
                       {note.reference.value}
                     </span>
                   </div>
@@ -137,12 +139,12 @@ export function LinkedConceptModal({
                     </blockquote>
                   )}
 
-                  <div className="text-sm text-gray-800 mb-3">
+                  <div className="text-sm theme-text-primary mb-3">
                     {renderNoteContent(note.content, () => {})}
                   </div>
 
                   <div className="flex items-center justify-between">
-                    <div className="text-xs text-gray-400">
+                    <div className="text-xs theme-text-muted">
                       {new Date(note.createdAt).toLocaleDateString()}
                     </div>
                     <button

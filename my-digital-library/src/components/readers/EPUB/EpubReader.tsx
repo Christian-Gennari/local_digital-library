@@ -883,7 +883,7 @@ const EpubReader = forwardRef<EpubReaderRef, EpubReaderProps>(
         {!isTocOpen && (
           <button
             onClick={() => setIsTocOpen(true)}
-            className="fixed z-40 md:left-4 md:top-1/2 md:-translate-y-1/2 right-3 md:right-auto md:bottom-auto bottom-[calc(60px+env(safe-area-inset-bottom))] h-11 w-11 md:h-12 md:w-12 hidden md:flex items-center justify-center rounded-full theme-bg-primary shadow-lg border theme-border theme-text-secondary hover:theme-bg-secondary hover:shadow-xl transition-all cursor-pointer"
+            className="fixed z-40 md:left-4 md:top-1/2 md:-translate-y-1/2 right-3 md:right-auto md:bottom-auto bottom-[calc(60px+env(safe-area-inset-bottom))] h-11 w-11 md:h-12 md:w-12 hidden md:flex items-center justify-center rounded-full theme-bg-primary shadow-lg border theme-border theme-text-secondary hover\:theme-bg-secondary hover:shadow-xl transition-all cursor-pointer"
             title="Table of Contents"
             aria-label="Table of Contents"
           >
@@ -982,7 +982,7 @@ const EpubReader = forwardRef<EpubReaderRef, EpubReaderProps>(
                     </p>
                     <button
                       onClick={() => window.location.reload()}
-                      className="rounded-lg bg-slate-900 px-5 py-2.5 text-sm font-sans font-medium text-white hover:bg-slate-800 transition-colors cursor-pointer"
+                      className="rounded-lg theme-btn-primary px-5 py-2.5 text-sm font-sans font-medium text-white hover:theme-btn-primary transition-colors cursor-pointer"
                     >
                       Retry
                     </button>
@@ -1018,7 +1018,7 @@ const EpubReader = forwardRef<EpubReaderRef, EpubReaderProps>(
                   <button
                     data-epub-action="prev"
                     onClick={goToPrevious}
-                    className="inline-flex items-center gap-1 px-3 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer bg-slate-900 text-white hover:bg-slate-800"
+                    className="inline-flex items-center gap-1 px-3 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer theme-btn-primary hover:theme-btn-primary"
                   >
                     <ChevronLeftIcon className="h-4 w-4" />
                     <span className="hidden xs:inline">Prev</span>
@@ -1026,7 +1026,7 @@ const EpubReader = forwardRef<EpubReaderRef, EpubReaderProps>(
                   <button
                     data-epub-action="next"
                     onClick={goToNext}
-                    className="inline-flex items-center gap-1 px-3 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer bg-slate-900 text-white hover:bg-slate-800"
+                    className="inline-flex items-center gap-1 px-3 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer theme-btn-primary hover:theme-btn-primary"
                   >
                     <span className="hidden xs:inline">Next</span>
                     <ChevronRightIcon className="h-4 w-4" />
@@ -1039,7 +1039,7 @@ const EpubReader = forwardRef<EpubReaderRef, EpubReaderProps>(
                     data-epub-action="zoom-out"
                     aria-label="Font smaller"
                     onClick={zoomOut}
-                    className="h-8 w-8 grid place-items-center rounded-md border theme-border theme-bg-primary theme-text-primary hover:theme-bg-secondary active:theme-bg-tertiary cursor-pointer"
+                    className="h-8 w-8 grid place-items-center rounded-md border theme-border theme-bg-primary theme-text-primary hover\:theme-bg-secondary active\:theme-bg-tertiary cursor-pointer"
                   >
                     <MinusIcon className="h-4 w-4" />
                   </button>
@@ -1050,7 +1050,7 @@ const EpubReader = forwardRef<EpubReaderRef, EpubReaderProps>(
                     data-epub-action="zoom-in"
                     aria-label="Font larger"
                     onClick={zoomIn}
-                    className="h-8 w-8 grid place-items-center rounded-md border theme-border theme-bg-primary theme-text-primary hover:theme-bg-secondary active:theme-bg-tertiary cursor-pointer"
+                    className="h-8 w-8 grid place-items-center rounded-md border theme-border theme-bg-primary theme-text-primary hover\:theme-bg-secondary active\:theme-bg-tertiary cursor-pointer"
                   >
                     <PlusIcon className="h-4 w-4" />
                   </button>
@@ -1058,7 +1058,7 @@ const EpubReader = forwardRef<EpubReaderRef, EpubReaderProps>(
 
                 {/* Progress (right) */}
                 <div className="flex items-center justify-end gap-2">
-                  <div className="w-24 md:w-28 h-2 bg-slate-200 rounded-full overflow-hidden">
+                  <div className="w-24 md:w-28 h-2 theme-bg-tertiary rounded-full overflow-hidden">
                     <div
                       className="h-full bg-emerald-500 transition-all duration-300"
                       style={{ width: `${progressPercent}%` }}

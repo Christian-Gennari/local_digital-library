@@ -51,7 +51,7 @@ const TOCItem = memo(
           {hasSubitems ? (
             <button
               onClick={() => onTocToggle(item.id)}
-              className="toc_toggle flex h-5 w-5 items-center justify-center theme-text-muted hover:theme-text-secondary cursor-pointer flex-shrink-0"
+              className="toc_toggle flex h-5 w-5 items-center justify-center theme-text-muted hover\:theme-text-secondary cursor-pointer flex-shrink-0"
             >
               <svg
                 className={`h-3 w-3 transition-transform ${
@@ -77,7 +77,7 @@ const TOCItem = memo(
             className={`toc_link flex-1 text-left px-2 py-1 rounded-lg text-sm transition-colors cursor-pointer ${
               isCurrent
                 ? "bg-amber-50 text-amber-900 border border-amber-200"
-                : "hover:theme-bg-secondary theme-text-primary border border-transparent"
+                : "hover\:theme-bg-secondary theme-text-primary border border-transparent"
             } w-full`}
             style={{ paddingLeft: `${8 + (item.level - 1) * 12}px` }}
           >
@@ -164,7 +164,7 @@ const TableOfContents = memo(
                 </h3>
                 <button
                   onClick={onTocClose}
-                  className="flex h-8 w-8 items-center justify-center rounded-lg border theme-border theme-text-secondary hover:theme-bg-tertiary transition-colors cursor-pointer"
+                  className="flex h-8 w-8 items-center justify-center rounded-lg border theme-border theme-text-secondary hover\:theme-bg-tertiary transition-colors cursor-pointer"
                   title="Hide Contents"
                   aria-label="Hide Contents"
                 >

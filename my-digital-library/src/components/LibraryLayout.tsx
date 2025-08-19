@@ -115,7 +115,7 @@ export function LibraryLayout() {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden relative">
+    <div className="flex h-screen overflow-hidden relative theme-bg-primary">
       {/* LEFT SIDEBAR (desktop rail) */}
       <div className="hidden md:block border-r theme-border theme-bg-primary md:w-95">
         <CollectionsSidebar
@@ -125,7 +125,7 @@ export function LibraryLayout() {
       </div>
 
       {/* MAIN */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 theme-bg-primary">
         {/* Sticky header - Improved Layout */}
         <header
           className="sticky top-0 z-50 w-full border-b theme-border
@@ -161,7 +161,7 @@ export function LibraryLayout() {
                   className={`p-2.5 rounded-lg transition-colors ${
                     showSettings
                       ? "theme-bg-tertiary theme-text-primary"
-                      : "theme-text-secondary hover:theme-text-primary hover:theme-bg-tertiary"
+                      : "theme-text-secondary hover\:theme-text-primary hover\:theme-bg-tertiary"
                   }`}
                   aria-label="Settings"
                 >
@@ -202,7 +202,7 @@ export function LibraryLayout() {
                   className={`p-2 rounded-lg transition-colors ${
                     showSettings
                       ? "theme-bg-tertiary theme-text-primary"
-                      : "theme-text-secondary hover:theme-text-primary hover:theme-bg-tertiary"
+                      : "theme-text-secondary hover\:theme-text-primary hover\:theme-bg-tertiary"
                   }`}
                   aria-label="Settings"
                 >
@@ -285,7 +285,7 @@ export function LibraryLayout() {
             </span>
             <button
               onClick={() => setLeftOpen(false)}
-              className="p-2 rounded-lg hover:theme-bg-tertiary transition-colors"
+              className="p-2 rounded-lg hover\\:theme-bg-tertiary transition-colors"
               aria-label="Close collections"
             >
               <XMarkIcon className="h-5 w-5 theme-text-secondary" />
@@ -336,7 +336,7 @@ export function LibraryLayout() {
             </span>
             <button
               onClick={() => setRightOpen(false)}
-              className="p-2 rounded hover:theme-bg-tertiary"
+              className="p-2 rounded hover\:theme-bg-tertiary"
               aria-label="Close"
             >
               <XMarkIcon className="h-5 w-5 theme-text-secondary" />

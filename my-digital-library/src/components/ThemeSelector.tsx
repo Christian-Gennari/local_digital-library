@@ -51,13 +51,15 @@ export function ThemeSelector() {
                 relative p-3 rounded-lg border-2 transition-all
                 ${
                   currentTheme === id
-                    ? "border-[var(--theme-accent)] shadow-md"
-                    : "border-[var(--theme-border)] hover:border-[var(--theme-border-hover)]"
+                    ? "shadow-md"
+                    : "theme-border hover\\:theme-border-hover" // ✅ Keep escaped
                 }
               `}
               style={{
                 backgroundColor: theme.colors.bgPrimary,
                 color: theme.colors.textPrimary,
+                borderColor:
+                  currentTheme === id ? "var(--theme-accent)" : undefined,
               }}
             >
               <div className="flex items-center justify-between">
@@ -72,7 +74,7 @@ export function ThemeSelector() {
         </div>
       </div>
 
-      {/* Auto Switch */}
+      {/* Auto Switch - FIXED */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <ClockIcon className="h-5 w-5 theme-text-secondary" />
@@ -84,12 +86,17 @@ export function ThemeSelector() {
           onClick={toggleAutoSwitch}
           className={`
             relative inline-flex h-6 w-11 items-center rounded-full transition-colors
-            ${autoSwitch ? "bg-[var(--theme-accent)]" : "bg-gray-300"}
+            ${
+              autoSwitch ? "" : "theme-bg-tertiary"
+            }  // ✅ FIXED: removed hardcoded gray
           `}
+          style={{
+            backgroundColor: autoSwitch ? "var(--theme-accent)" : undefined,
+          }}
         >
           <span
             className={`
-              inline-block h-4 w-4 transform rounded-full theme-bg-primary transition-transform
+              inline-block h-4 w-4 transform rounded-full bg-white transition-transform
               ${autoSwitch ? "translate-x-6" : "translate-x-1"}
             `}
           />
@@ -100,7 +107,7 @@ export function ThemeSelector() {
       <div>
         <button
           onClick={() => setShowAdvanced(!showAdvanced)}
-          className="text-sm theme-text-secondary hover:theme-text-primary transition-colors"
+          className="text-sm theme-text-secondary hover\:theme-text-primary transition-colors"
         >
           {showAdvanced ? "Hide" : "Show"} advanced settings
         </button>
@@ -119,11 +126,12 @@ export function ThemeSelector() {
                 step="5"
                 value={fontSize}
                 onChange={(e) => setFontSize(Number(e.target.value))}
-                className="w-full mt-1"
+                className="w-full mt-1 accent-blue-500"
+                style={{ accentColor: "var(--theme-accent)" }}
               />
             </div>
 
-            {/* Font Family */}
+            {/* Font Family - FIXED hover escapes */}
             <div>
               <label className="text-sm theme-text-secondary">
                 Font Family
@@ -131,23 +139,41 @@ export function ThemeSelector() {
               <div className="grid grid-cols-2 gap-2 mt-1">
                 <button
                   onClick={() => setFontFamily("serif")}
-                  className={`p-2 rounded border ${
-                    fontFamily === "serif"
-                      ? "border-[var(--theme-accent)] bg-[var(--theme-hover)]"
-                      : "border-[var(--theme-border)]"
-                  }`}
-                  style={{ fontFamily: "Lora, serif" }}
+                  className={`
+                    p-2 rounded border-2 transition-all
+                    ${
+                      fontFamily === "serif"
+                        ? "theme-bg-tertiary shadow-sm"
+                        : "theme-border hover\\:theme-border-hover hover\\:theme-bg-secondary" // ✅ FIXED
+                    }
+                  `}
+                  style={{
+                    fontFamily: "Lora, serif",
+                    borderColor:
+                      fontFamily === "serif"
+                        ? "var(--theme-accent)"
+                        : undefined,
+                  }}
                 >
                   Serif
                 </button>
                 <button
                   onClick={() => setFontFamily("sans-serif")}
-                  className={`p-2 rounded border ${
-                    fontFamily === "sans-serif"
-                      ? "border-[var(--theme-accent)] bg-[var(--theme-hover)]"
-                      : "border-[var(--theme-border)]"
-                  }`}
-                  style={{ fontFamily: "Inter, sans-serif" }}
+                  className={`
+                    p-2 rounded border-2 transition-all
+                    ${
+                      fontFamily === "sans-serif"
+                        ? "theme-bg-tertiary shadow-sm"
+                        : "theme-border hover\\:theme-border-hover hover\\:theme-bg-secondary" // ✅ FIXED
+                    }
+                  `}
+                  style={{
+                    fontFamily: "Inter, sans-serif",
+                    borderColor:
+                      fontFamily === "sans-serif"
+                        ? "var(--theme-accent)"
+                        : undefined,
+                  }}
                 >
                   Sans
                 </button>
@@ -167,10 +193,11 @@ export function ThemeSelector() {
                 value={lineHeight}
                 onChange={(e) => setLineHeight(Number(e.target.value))}
                 className="w-full mt-1"
+                style={{ accentColor: "var(--theme-accent)" }}
               />
             </div>
 
-            {/* Text Alignment */}
+            {/* Text Alignment - FIXED hover escapes */}
             <div>
               <label className="text-sm theme-text-secondary">
                 Text Alignment
@@ -178,21 +205,37 @@ export function ThemeSelector() {
               <div className="grid grid-cols-2 gap-2 mt-1">
                 <button
                   onClick={() => setTextAlign("left")}
-                  className={`p-2 rounded border ${
-                    textAlign === "left"
-                      ? "border-[var(--theme-accent)] bg-[var(--theme-hover)]"
-                      : "border-[var(--theme-border)]"
-                  }`}
+                  className={`
+                    p-2 rounded border-2 transition-all
+                    ${
+                      textAlign === "left"
+                        ? "theme-bg-tertiary shadow-sm"
+                        : "theme-border hover\\:theme-border-hover hover\\:theme-bg-secondary" // ✅ FIXED
+                    }
+                  `}
+                  style={{
+                    borderColor:
+                      textAlign === "left" ? "var(--theme-accent)" : undefined,
+                  }}
                 >
                   Left
                 </button>
                 <button
                   onClick={() => setTextAlign("justify")}
-                  className={`p-2 rounded border ${
-                    textAlign === "justify"
-                      ? "border-[var(--theme-accent)] bg-[var(--theme-hover)]"
-                      : "border-[var(--theme-border)]"
-                  }`}
+                  className={`
+                    p-2 rounded border-2 transition-all
+                    ${
+                      textAlign === "justify"
+                        ? "theme-bg-tertiary shadow-sm"
+                        : "theme-border hover\\:theme-border-hover hover\\:theme-bg-secondary" // ✅ FIXED
+                    }
+                  `}
+                  style={{
+                    borderColor:
+                      textAlign === "justify"
+                        ? "var(--theme-accent)"
+                        : undefined,
+                  }}
                 >
                   Justified
                 </button>

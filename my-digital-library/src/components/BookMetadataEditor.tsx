@@ -290,7 +290,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
       >
         {/* Grabber (mobile) */}
         <div className="md:hidden pt-2">
-          <div className="mx-auto h-1.5 w-12 rounded-full bg-slate-200" />
+          <div className="mx-auto h-1.5 w-12 rounded-full theme-bg-tertiary" />
         </div>
 
         {/* Header */}
@@ -298,7 +298,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
           <div className="flex items-center gap-2 min-w-0">
             <h2
               id="edit-title"
-              className="text-xl md:text-2xl font-bold text-gray-900 truncate"
+              className="text-xl md:text-2xl font-bold theme-text-primary truncate"
             >
               Edit Metadata
             </h2>
@@ -312,7 +312,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-lg hover:theme-bg-tertiary"
+            className="p-2 rounded-lg hover\:theme-bg-tertiary"
             aria-label="Close"
           >
             <XMarkIcon className="h-6 w-6 theme-text-secondary" />
@@ -335,13 +335,13 @@ export function BookMetadataEditor({ book, onClose }: Props) {
 
           {/* Item Type Selector */}
           <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium theme-text-secondary mb-2">
               Item Type
             </label>
             <select
               value={itemType}
               onChange={(e) => setItemType(e.target.value as ItemType)}
-              className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
+              className="w-full rounded-lg border theme-border px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
             >
               <option value="book">Book</option>
               <option value="audiobook">Audiobook</option>
@@ -358,13 +358,13 @@ export function BookMetadataEditor({ book, onClose }: Props) {
               {metadata.isFavorite ? (
                 <StarIcon className="h-6 w-6 text-yellow-500" />
               ) : (
-                <StarOutlineIcon className="h-6 w-6 text-gray-400" />
+                <StarOutlineIcon className="h-6 w-6 theme-text-muted" />
               )}
               <div className="text-left">
-                <p className="font-medium text-gray-900">
+                <p className="font-medium theme-text-primary">
                   {metadata.isFavorite ? "In Favorites" : "Add to Favorites"}
                 </p>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm theme-text-secondary">
                   {metadata.isFavorite
                     ? "This book is marked as a favorite"
                     : "Click to add this book to your favorites"}
@@ -388,7 +388,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
                 className={`py-3 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors cursor-pointer ${
                   activeTab === "basic"
                     ? "border-slate-600 theme-text-primary"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                    : "border-transparent theme-text-secondary hover:theme-text-secondary hover:theme-border"
                 }`}
               >
                 Basic Info
@@ -398,7 +398,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
                 className={`py-3 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors cursor-pointer ${
                   activeTab === "identifiers"
                     ? "border-slate-600 theme-text-primary"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                    : "border-transparent theme-text-secondary hover:theme-text-secondary hover:theme-border"
                 }`}
               >
                 Identifiers
@@ -408,7 +408,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
                 className={`py-3 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors cursor-pointer ${
                   activeTab === "publication"
                     ? "border-slate-600 theme-text-primary"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                    : "border-transparent theme-text-secondary hover:theme-text-secondary hover:theme-border"
                 }`}
               >
                 Publication
@@ -418,7 +418,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
                 className={`py-3 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors cursor-pointer ${
                   activeTab === "digital"
                     ? "border-slate-600 theme-text-primary"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                    : "border-transparent theme-text-secondary hover:theme-text-secondary hover:theme-border"
                 }`}
               >
                 {itemType === "audiobook" ? "Media Details" : "Digital/Series"}
@@ -428,7 +428,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
                 className={`py-3 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors cursor-pointer ${
                   activeTab === "user"
                     ? "border-slate-600 theme-text-primary"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                    : "border-transparent theme-text-secondary hover:theme-text-secondary hover:theme-border"
                 }`}
               >
                 Personal
@@ -438,7 +438,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
                 className={`py-3 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors cursor-pointer ${
                   activeTab === "collections"
                     ? "border-slate-600 theme-text-primary"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                    : "border-transparent theme-text-secondary hover:theme-text-secondary hover:theme-border"
                 }`}
               >
                 Collections
@@ -450,7 +450,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
             {activeTab === "basic" && (
               <>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium theme-text-secondary mb-2">
                     Title <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -459,13 +459,13 @@ export function BookMetadataEditor({ book, onClose }: Props) {
                     onChange={(e) =>
                       setMetadata({ ...metadata, title: e.target.value })
                     }
-                    className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
+                    className="w-full rounded-lg border theme-border px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
                     placeholder="Book title"
                   />
                 </div>
                 {itemType === "article" && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium theme-text-secondary mb-2">
                       Journal/Publication
                     </label>
                     <input
@@ -477,14 +477,14 @@ export function BookMetadataEditor({ book, onClose }: Props) {
                           journalTitle: e.target.value,
                         })
                       }
-                      className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
+                      className="w-full rounded-lg border theme-border px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
                       placeholder="Journal or publication name"
                     />
                   </div>
                 )}
                 {(itemType === "book" || itemType === "audiobook") && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium theme-text-secondary mb-2">
                       Subtitle
                     </label>
                     <input
@@ -493,7 +493,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
                       onChange={(e) =>
                         setMetadata({ ...metadata, subtitle: e.target.value })
                       }
-                      className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
+                      className="w-full rounded-lg border theme-border px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
                       placeholder="Book subtitle (if any)"
                     />
                   </div>
@@ -501,7 +501,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium theme-text-secondary mb-2">
                       Author(s)
                     </label>
                     <input
@@ -510,13 +510,13 @@ export function BookMetadataEditor({ book, onClose }: Props) {
                       onChange={(e) =>
                         setMetadata({ ...metadata, author: e.target.value })
                       }
-                      className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
+                      className="w-full rounded-lg border theme-border px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
                       placeholder="e.g., John Doe, Jane Smith"
                     />
                   </div>
                   {fieldVisibility.narrator && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium theme-text-secondary mb-2">
                         Narrator(s)
                       </label>
                       <input
@@ -525,14 +525,14 @@ export function BookMetadataEditor({ book, onClose }: Props) {
                         onChange={(e) =>
                           handleAudiobookFieldChange("narrator", e.target.value)
                         }
-                        className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
+                        className="w-full rounded-lg border theme-border px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
                         placeholder="e.g., Stephen Fry"
                       />
                     </div>
                   )}
                   {!fieldVisibility.narrator && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium theme-text-secondary mb-2">
                         Editor(s)
                       </label>
                       <input
@@ -541,7 +541,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
                         onChange={(e) =>
                           setMetadata({ ...metadata, editors: e.target.value })
                         }
-                        className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
+                        className="w-full rounded-lg border theme-border px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
                         placeholder="For edited books"
                       />
                     </div>
@@ -550,7 +550,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
 
                 {fieldVisibility.narrator && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium theme-text-secondary mb-2">
                       Editor(s)
                     </label>
                     <input
@@ -559,14 +559,14 @@ export function BookMetadataEditor({ book, onClose }: Props) {
                       onChange={(e) =>
                         setMetadata({ ...metadata, editors: e.target.value })
                       }
-                      className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
+                      className="w-full rounded-lg border theme-border px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
                       placeholder="For edited books"
                     />
                   </div>
                 )}
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium theme-text-secondary mb-2">
                     Translator(s)
                   </label>
                   <input
@@ -578,13 +578,13 @@ export function BookMetadataEditor({ book, onClose }: Props) {
                         translators: e.target.value,
                       })
                     }
-                    className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
+                    className="w-full rounded-lg border theme-border px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
                     placeholder="For translated works"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium theme-text-secondary mb-2">
                     Description
                   </label>
                   <textarea
@@ -593,7 +593,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
                       setMetadata({ ...metadata, description: e.target.value })
                     }
                     rows={4}
-                    className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20 resize-none"
+                    className="w-full rounded-lg border theme-border px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20 resize-none"
                     placeholder="Brief description of the book..."
                   />
                 </div>
@@ -603,7 +603,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
             {activeTab === "identifiers" && (
               <>
                 <div className="theme-bg-secondary rounded-lg p-4 mb-6 border theme-border">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium theme-text-secondary mb-2">
                     Quick Identifier Lookup
                   </label>
                   <div className="flex gap-2 flex-col sm:flex-row">
@@ -616,7 +616,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
                           ? "Enter DOI to auto-fill"
                           : "Enter ISBN to auto-fill"
                       }
-                      className="flex-1 rounded-lg border border-gray-300 px-4 py-2 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
+                      className="flex-1 rounded-lg border theme-border px-4 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
                       onKeyDown={(e) =>
                         e.key === "Enter" && handleIdentifierFetch()
                       }
@@ -624,7 +624,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
                     <button
                       onClick={handleIdentifierFetch}
                       disabled={isLoading || !identifierLookup.trim()}
-                      className="cursor-pointer px-5 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 disabled:bg-gray-400 disabled:cursor-not-allowed text-sm font-medium transition-colors"
+                      className="cursor-pointer px-5 py-2 theme-btn-primary rounded-lg hover:theme-btn-primary disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors"
                     >
                       {isLoading ? "Fetching..." : "Fetch Data"}
                     </button>
@@ -634,7 +634,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {fieldVisibility.isbn && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium theme-text-secondary mb-2">
                         ISBN
                       </label>
                       <input
@@ -645,7 +645,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
                         onChange={(e) =>
                           handleIdentifierChange("isbn", e.target.value)
                         }
-                        className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
+                        className="w-full rounded-lg border theme-border px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
                         placeholder="978-0-123456-78-9"
                       />
                     </div>
@@ -653,7 +653,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
 
                   {fieldVisibility.asin && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium theme-text-secondary mb-2">
                         ASIN
                       </label>
                       <input
@@ -664,7 +664,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
                         onChange={(e) =>
                           handleIdentifierChange("asin", e.target.value)
                         }
-                        className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
+                        className="w-full rounded-lg border theme-border px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
                         placeholder="B08XYZ1234"
                       />
                     </div>
@@ -672,7 +672,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
 
                   {fieldVisibility.audibleAsin && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium theme-text-secondary mb-2">
                         Audible ASIN
                       </label>
                       <input
@@ -684,7 +684,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
                         onChange={(e) =>
                           handleIdentifierChange("audibleAsin", e.target.value)
                         }
-                        className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
+                        className="w-full rounded-lg border theme-border px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
                         placeholder="Audible-specific ASIN"
                       />
                     </div>
@@ -692,7 +692,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
 
                   {fieldVisibility.doi && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium theme-text-secondary mb-2">
                         DOI
                       </label>
                       <input
@@ -701,7 +701,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
                         onChange={(e) =>
                           handleIdentifierChange("doi", e.target.value)
                         }
-                        className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
+                        className="w-full rounded-lg border theme-border px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
                         placeholder="10.1234/example"
                       />
                     </div>
@@ -709,7 +709,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
 
                   {fieldVisibility.issn && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium theme-text-secondary mb-2">
                         ISSN
                       </label>
                       <input
@@ -720,7 +720,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
                         onChange={(e) =>
                           handleIdentifierChange("issn", e.target.value)
                         }
-                        className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
+                        className="w-full rounded-lg border theme-border px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
                         placeholder="1234-5678"
                       />
                     </div>
@@ -734,7 +734,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {fieldVisibility.publisher && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium theme-text-secondary mb-2">
                         Publisher
                       </label>
                       <input
@@ -746,7 +746,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
                             publisher: e.target.value,
                           })
                         }
-                        className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
+                        className="w-full rounded-lg border theme-border px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
                         placeholder="Publisher name"
                       />
                     </div>
@@ -754,7 +754,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
 
                   {fieldVisibility.audioPublisher && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium theme-text-secondary mb-2">
                         Audio Publisher
                       </label>
                       <input
@@ -766,7 +766,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
                             e.target.value
                           )
                         }
-                        className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
+                        className="w-full rounded-lg border theme-border px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
                         placeholder="e.g., Audible Studios"
                       />
                     </div>
@@ -774,7 +774,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
 
                   {fieldVisibility.placeOfPublication && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium theme-text-secondary mb-2">
                         Place of Publication
                       </label>
                       <input
@@ -786,7 +786,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
                             placeOfPublication: e.target.value,
                           })
                         }
-                        className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
+                        className="w-full rounded-lg border theme-border px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
                         placeholder="e.g., New York, NY"
                       />
                     </div>
@@ -795,7 +795,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium theme-text-secondary mb-2">
                       Published Date
                     </label>
                     <input
@@ -807,14 +807,14 @@ export function BookMetadataEditor({ book, onClose }: Props) {
                           publishedDate: e.target.value,
                         })
                       }
-                      className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
+                      className="w-full rounded-lg border theme-border px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
                       placeholder="e.g., 2023 or March 2023"
                     />
                   </div>
 
                   {fieldVisibility.edition && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium theme-text-secondary mb-2">
                         Edition
                       </label>
                       <input
@@ -823,7 +823,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
                         onChange={(e) =>
                           setMetadata({ ...metadata, edition: e.target.value })
                         }
-                        className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
+                        className="w-full rounded-lg border theme-border px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
                         placeholder="e.g., 2nd edition, Revised"
                       />
                     </div>
@@ -831,7 +831,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
 
                   {fieldVisibility.abridged && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium theme-text-secondary mb-2">
                         Abridged
                       </label>
                       <select
@@ -842,7 +842,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
                             e.target.value === "true"
                           )
                         }
-                        className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
+                        className="w-full rounded-lg border theme-border px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
                       >
                         <option value="false">Unabridged</option>
                         <option value="true">Abridged</option>
@@ -854,7 +854,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   {fieldVisibility.pageCount && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium theme-text-secondary mb-2">
                         Page Count
                       </label>
                       <input
@@ -866,7 +866,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
                             pageCount: parseInt(e.target.value) || undefined,
                           })
                         }
-                        className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
+                        className="w-full rounded-lg border theme-border px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
                         placeholder="320"
                       />
                     </div>
@@ -874,7 +874,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
 
                   {fieldVisibility.pageRange && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium theme-text-secondary mb-2">
                         Pages
                       </label>
                       <input
@@ -886,14 +886,14 @@ export function BookMetadataEditor({ book, onClose }: Props) {
                             pageRange: e.target.value,
                           })
                         }
-                        className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
+                        className="w-full rounded-lg border theme-border px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
                         placeholder="e.g., 123-145"
                       />
                     </div>
                   )}
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium theme-text-secondary mb-2">
                       Language
                     </label>
                     <input
@@ -902,13 +902,13 @@ export function BookMetadataEditor({ book, onClose }: Props) {
                       onChange={(e) =>
                         setMetadata({ ...metadata, language: e.target.value })
                       }
-                      className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
+                      className="w-full rounded-lg border theme-border px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
                       placeholder="English"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium theme-text-secondary mb-2">
                       Original Language
                     </label>
                     <input
@@ -920,7 +920,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
                           originalLanguage: e.target.value,
                         })
                       }
-                      className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
+                      className="w-full rounded-lg border theme-border px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
                       placeholder="For translations"
                     />
                   </div>
@@ -930,7 +930,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
                 {itemType === "article" && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium theme-text-secondary mb-2">
                         Volume Number
                       </label>
                       <input
@@ -942,12 +942,12 @@ export function BookMetadataEditor({ book, onClose }: Props) {
                             volumeNumber: e.target.value,
                           })
                         }
-                        className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
+                        className="w-full rounded-lg border theme-border px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
                         placeholder="Volume number"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium theme-text-secondary mb-2">
                         Issue Number
                       </label>
                       <input
@@ -959,7 +959,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
                             issueNumber: e.target.value,
                           })
                         }
-                        className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
+                        className="w-full rounded-lg border theme-border px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
                         placeholder="Issue number"
                       />
                     </div>
@@ -967,7 +967,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
                 )}
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium theme-text-secondary mb-2">
                     Categories
                   </label>
                   <TagInput
@@ -987,7 +987,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
                   <div className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-sm font-medium theme-text-secondary mb-2">
                           Duration
                         </label>
                         <div className="flex gap-2">
@@ -998,7 +998,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
                               "Detecting..."
                             }
                             readOnly
-                            className="flex-1 rounded-lg border border-gray-300 theme-bg-secondary px-4 py-3 text-sm theme-text-secondary"
+                            className="flex-1 rounded-lg border theme-border theme-bg-secondary px-4 py-3 text-sm theme-text-secondary"
                             placeholder="Auto-detected"
                           />
                           <button
@@ -1016,7 +1016,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
                                   );
                               }
                             }}
-                            className="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg"
+                            className="px-3 py-2 text-sm theme-bg-secondary hover\:theme-bg-tertiary rounded-lg"
                           >
                             Edit
                           </button>
@@ -1025,7 +1025,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium theme-text-secondary mb-2">
                         Production Company
                       </label>
                       <input
@@ -1037,7 +1037,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
                             e.target.value
                           )
                         }
-                        className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
+                        className="w-full rounded-lg border theme-border px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
                         placeholder="e.g., Penguin Audio"
                       />
                     </div>
@@ -1048,7 +1048,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
                   <>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-sm font-medium theme-text-secondary mb-2">
                           Series
                         </label>
                         <input
@@ -1057,12 +1057,12 @@ export function BookMetadataEditor({ book, onClose }: Props) {
                           onChange={(e) =>
                             setMetadata({ ...metadata, series: e.target.value })
                           }
-                          className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
+                          className="w-full rounded-lg border theme-border px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
                           placeholder="e.g., Harry Potter"
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-sm font-medium theme-text-secondary mb-2">
                           Series Number
                         </label>
                         <input
@@ -1074,7 +1074,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
                               seriesNumber: e.target.value,
                             })
                           }
-                          className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
+                          className="w-full rounded-lg border theme-border px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
                           placeholder="e.g., 1 or Book 1"
                         />
                       </div>
@@ -1082,7 +1082,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-sm font-medium theme-text-secondary mb-2">
                           Volume
                         </label>
                         <input
@@ -1091,12 +1091,12 @@ export function BookMetadataEditor({ book, onClose }: Props) {
                           onChange={(e) =>
                             setMetadata({ ...metadata, volume: e.target.value })
                           }
-                          className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
+                          className="w-full rounded-lg border theme-border px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
                           placeholder="For multi-volume works"
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-sm font-medium theme-text-secondary mb-2">
                           Number of Volumes
                         </label>
                         <input
@@ -1109,7 +1109,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
                                 parseInt(e.target.value) || undefined,
                             })
                           }
-                          className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
+                          className="w-full rounded-lg border theme-border px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
                           placeholder="Total volumes in set"
                         />
                       </div>
@@ -1117,7 +1117,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
                   </>
                 )}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium theme-text-secondary mb-2">
                     URL
                   </label>
                   <input
@@ -1126,13 +1126,13 @@ export function BookMetadataEditor({ book, onClose }: Props) {
                     onChange={(e) =>
                       setMetadata({ ...metadata, url: e.target.value })
                     }
-                    className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
+                    className="w-full rounded-lg border theme-border px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
                     placeholder="https://example.com/book"
                   />
                 </div>
                 {metadata.url && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium theme-text-secondary mb-2">
                       Access Date
                     </label>
                     <input
@@ -1141,7 +1141,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
                       onChange={(e) =>
                         setMetadata({ ...metadata, accessDate: e.target.value })
                       }
-                      className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
+                      className="w-full rounded-lg border theme-border px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
                     />
                   </div>
                 )}
@@ -1151,7 +1151,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
             {activeTab === "user" && (
               <>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium theme-text-secondary mb-2">
                     Your Rating
                   </label>
                   <select
@@ -1162,7 +1162,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
                         userRating: parseInt(e.target.value) || undefined,
                       })
                     }
-                    className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20"
+                    className="w-full rounded-lg border theme-border px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
                   >
                     <option value="">No rating</option>
                     <option value="1">★ 1 star</option>
@@ -1174,7 +1174,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium theme-text-secondary mb-2">
                     Your Notes
                   </label>
                   <textarea
@@ -1183,7 +1183,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
                       setMetadata({ ...metadata, userNotes: e.target.value })
                     }
                     rows={4}
-                    className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500/20 resize-none"
+                    className="w-full rounded-lg border theme-border px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20 resize-none"
                     placeholder="Personal notes about this book..."
                   />
                 </div>
@@ -1192,12 +1192,12 @@ export function BookMetadataEditor({ book, onClose }: Props) {
 
             {activeTab === "collections" && (
               <div>
-                <h3 className="text-sm font-medium text-gray-700 mb-3">
+                <h3 className="text-sm font-medium theme-text-secondary mb-3">
                   Assign to Collections
                 </h3>
                 <div className="space-y-2 max-h-72 md:max-h-96 overflow-y-auto border theme-border rounded-lg p-3">
                   {collections.length === 0 ? (
-                    <p className="text-sm text-gray-500 italic p-4 text-center">
+                    <p className="text-sm theme-text-secondary italic p-4 text-center">
                       No collections created yet. Create collections from the
                       sidebar to organize your books.
                     </p>
@@ -1205,15 +1205,15 @@ export function BookMetadataEditor({ book, onClose }: Props) {
                     collections.map((collection) => (
                       <label
                         key={collection.id}
-                        className="flex items-center gap-3 p-2 hover:theme-bg-secondary rounded cursor-pointer"
+                        className="flex items-center gap-3 p-2 hover\:theme-bg-secondary rounded cursor-pointer"
                       >
                         <input
                           type="checkbox"
                           checked={selectedCollections.has(collection.id)}
                           onChange={() => toggleCollection(collection.id)}
-                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 theme-border rounded"
                         />
-                        <span className="text-sm text-gray-900">
+                        <span className="text-sm theme-text-primary">
                           {collection.parentId && "↳ "}
                           {collection.name}
                         </span>
@@ -1230,14 +1230,14 @@ export function BookMetadataEditor({ book, onClose }: Props) {
         <div className="px-4 md:px-6 py-4 border-t theme-border flex flex-col-reverse sm:flex-row sm:items-center gap-3 sm:justify-end theme-bg-primary flex-shrink-0">
           <button
             onClick={onClose}
-            className="px-6 py-2 text-gray-700 hover:text-gray-900 font-medium rounded-lg transition-colors cursor-pointer"
+            className="px-6 py-2 theme-text-secondary hover\:theme-text-primary font-medium rounded-lg transition-colors cursor-pointer"
           >
             Cancel
           </button>
           <button
             onClick={handleSave}
             disabled={isLoading}
-            className="px-6 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 font-medium transition-colors cursor-pointer disabled:opacity-50"
+            className="px-6 py-2 theme-btn-primary rounded-lg hover:theme-btn-primary font-medium transition-colors cursor-pointer disabled:opacity-50"
           >
             {isLoading ? "Saving..." : "Save Changes"}
           </button>

@@ -31,8 +31,8 @@ export function FileUpload() {
         onClick={() => setIsOpen(!isOpen)}
         className={`flex items-center gap-2 rounded-full px-2 sm:px-4 py-2 text-sm font-medium transition-all cursor-pointer ${
           isOpen
-            ? "bg-slate-700 text-white shadow-md"
-            : "bg-slate-900 text-white hover:bg-slate-800"
+            ? "view-toggle-active shadow-md"
+            : "theme-btn-primary hover:theme-btn-primary"
         }`}
       >
         <PlusIcon
@@ -58,7 +58,7 @@ export function FileUpload() {
             </p>
 
             <div
-              className="relative flex h-24 items-center justify-center rounded-lg border-2 border-dashed theme-border theme-bg-secondary hover:theme-border transition-colors cursor-pointer"
+              className="relative flex h-24 items-center justify-center rounded-lg border-2 border-dashed theme-border theme-bg-secondary hover\:theme-border transition-colors cursor-pointer"
               onDrop={(e) => {
                 e.preventDefault();
                 const files = e.dataTransfer.files;

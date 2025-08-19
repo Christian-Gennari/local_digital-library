@@ -207,7 +207,7 @@ export function SmartNoteTextarea({
         placeholder={placeholder}
         rows={rows}
         disabled={disabled}
-        className={`w-full px-3 py-2 text-sm border theme-border rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-slate-500 resize-none ${className}`}
+        className={`w-full px-3 py-2 text-sm border theme-border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none ${className}`}
       />
 
       {showSuggestions && (
@@ -220,7 +220,7 @@ export function SmartNoteTextarea({
               <button
                 key={suggestion}
                 onClick={() => insertSuggestion(suggestion)}
-                className={`w-full text-left px-3 py-2 text-sm hover:theme-bg-secondary ${
+                className={`w-full text-left px-3 py-2 text-sm hover\:theme-bg-secondary ${
                   index === selectedIndex ? "theme-bg-tertiary" : ""
                 }`}
               >
@@ -230,7 +230,7 @@ export function SmartNoteTextarea({
           ) : suggestionQuery.trim() ? (
             <button
               onClick={() => insertSuggestion(suggestionQuery.trim())}
-              className={`w-full text-left px-3 py-2 text-sm hover:theme-bg-secondary ${
+              className={`w-full text-left px-3 py-2 text-sm hover\:theme-bg-secondary ${
                 selectedIndex === 0 ? "theme-bg-tertiary" : ""
               }`}
             >
@@ -238,7 +238,7 @@ export function SmartNoteTextarea({
               <span className="font-medium">{suggestionQuery.trim()}</span>
             </button>
           ) : (
-            <div className="px-3 py-2 text-sm text-gray-500">
+            <div className="px-3 py-2 text-sm theme-text-secondary">
               Type to search or create concepts
             </div>
           )}

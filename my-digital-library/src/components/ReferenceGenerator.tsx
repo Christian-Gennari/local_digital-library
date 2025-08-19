@@ -159,7 +159,7 @@ export function ReferenceGenerator({ book, onClose }: Props) {
       >
         {/* Grabber (mobile) */}
         <div className="md:hidden pt-2">
-          <div className="mx-auto h-1.5 w-12 rounded-full bg-slate-200" />
+          <div className="mx-auto h-1.5 w-12 rounded-full theme-bg-tertiary" />
         </div>
 
         {/* Header */}
@@ -169,7 +169,7 @@ export function ReferenceGenerator({ book, onClose }: Props) {
             <div className="min-w-0">
               <h2
                 id="refgen-title"
-                className="text-xl md:text-2xl font-bold text-gray-900"
+                className="text-xl md:text-2xl font-bold theme-text-primary"
               >
                 Generate Reference
               </h2>
@@ -181,7 +181,7 @@ export function ReferenceGenerator({ book, onClose }: Props) {
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-lg hover:theme-bg-tertiary"
+            className="p-2 rounded-lg hover\:theme-bg-tertiary"
             aria-label="Close"
           >
             <XMarkIcon className="h-6 w-6 theme-text-secondary" />
@@ -192,7 +192,7 @@ export function ReferenceGenerator({ book, onClose }: Props) {
         <div className="p-4 md:p-6 overflow-y-auto">
           {/* Format Selection */}
           <div className="mb-6">
-            <h3 className="text-sm font-medium text-gray-700 mb-3">
+            <h3 className="text-sm font-medium theme-text-secondary mb-3">
               Citation Format
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
@@ -205,12 +205,14 @@ export function ReferenceGenerator({ book, onClose }: Props) {
                     className={`p-4 rounded-lg border-2 text-left transition-all cursor-pointer ${
                       active
                         ? "border-slate-600 theme-bg-secondary"
-                        : "theme-border hover:border-gray-300"
+                        : "theme-border hover:theme-border"
                     }`}
                     aria-pressed={active}
                   >
-                    <p className="font-medium text-gray-900">{format.name}</p>
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="font-medium theme-text-primary">
+                      {format.name}
+                    </p>
+                    <p className="text-xs theme-text-secondary mt-1">
                       {format.description}
                     </p>
                   </button>
@@ -239,7 +241,7 @@ export function ReferenceGenerator({ book, onClose }: Props) {
 
           {/* Generated Citation */}
           <div className="mb-6">
-            <h3 className="text-sm font-medium text-gray-700 mb-3">
+            <h3 className="text-sm font-medium theme-text-secondary mb-3">
               Generated Citation
             </h3>
             <div className="relative">
@@ -248,7 +250,7 @@ export function ReferenceGenerator({ book, onClose }: Props) {
                 ref={citationRef}
               >
                 <p
-                  className="text-sm text-gray-900 font-serif leading-relaxed break-words"
+                  className="text-sm theme-text-primary font-serif leading-relaxed break-words"
                   // generateCitation returns HTML (italics, etc.)
                   dangerouslySetInnerHTML={{ __html: citation }}
                 />
@@ -310,13 +312,13 @@ export function ReferenceGenerator({ book, onClose }: Props) {
         <div className="px-4 md:px-6 py-4 border-t theme-border flex flex-col-reverse sm:flex-row sm:items-center gap-3 sm:justify-end sticky bottom-0 theme-bg-primary">
           <button
             onClick={onClose}
-            className="px-6 py-2 text-gray-700 hover:text-gray-900 font-medium rounded-lg transition-colors cursor-pointer"
+            className="px-6 py-2 theme-text-secondary hover\:theme-text-primary font-medium rounded-lg transition-colors cursor-pointer"
           >
             Close
           </button>
           <button
             onClick={handleCopy}
-            className="px-6 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 font-medium flex items-center gap-2 transition-colors cursor-pointer"
+            className="px-6 py-2 theme-btn-primary rounded-lg hover:theme-btn-primary font-medium flex items-center gap-2 transition-colors cursor-pointer"
           >
             <DocumentDuplicateIcon className="h-5 w-5" />
             Copy Citation

@@ -23,13 +23,13 @@ interface BookCoverProps {
 const getIconForFormat = (format: string) => {
   switch (format) {
     case "pdf":
-      return <DocumentIcon className="h-16 w-16 text-slate-300" />;
+      return <DocumentIcon className="h-16 w-16 theme-text-muted" />;
     case "epub":
-      return <BookOpenIcon className="h-16 w-16 text-slate-300" />;
+      return <BookOpenIcon className="h-16 w-16 theme-text-muted" />;
     case "audio":
-      return <PlayIcon className="h-16 w-16 text-slate-300" />;
+      return <PlayIcon className="h-16 w-16 theme-text-muted" />;
     default:
-      return <BookOpenIcon className="h-16 w-16 text-slate-300" />;
+      return <BookOpenIcon className="h-16 w-16 theme-text-muted" />;
   }
 };
 
@@ -88,7 +88,7 @@ const BookCover = memo<BookCoverProps>(
             {isVisible ? (
               getIconForFormat(book.format)
             ) : (
-              <div className="h-16 w-16 rounded-lg bg-slate-200 animate-pulse" />
+              <div className="h-16 w-16 rounded-lg theme-bg-tertiary animate-pulse" />
             )}
           </div>
         )}

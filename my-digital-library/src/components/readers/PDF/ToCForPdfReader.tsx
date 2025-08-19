@@ -47,7 +47,7 @@ const TOCItem = memo(function TOCItem({
         {hasSubitems ? (
           <button
             onClick={() => onTocToggle(item.id)}
-            className="flex h-6 w-6 items-center justify-center theme-text-muted hover:theme-text-secondary cursor-pointer flex-shrink-0"
+            className="flex h-6 w-6 items-center justify-center theme-text-muted hover\:theme-text-secondary cursor-pointer flex-shrink-0"
             aria-label={isOpen ? "Collapse section" : "Expand section"}
           >
             <svg
@@ -75,7 +75,7 @@ const TOCItem = memo(function TOCItem({
           className={`flex-1 text-left px-2 py-1.5 rounded-lg text-sm transition-colors cursor-pointer w-full ${
             isCurrent
               ? "bg-amber-50 text-amber-900 border border-amber-200"
-              : "hover:theme-bg-secondary theme-text-primary border border-transparent"
+              : "hover\:theme-bg-secondary theme-text-primary border border-transparent"
           }`}
           // indent by level
           style={{ paddingLeft: `${8 + (item.level - 1) * 12}px` }}
@@ -175,7 +175,7 @@ const TableOfContents = memo(function TableOfContents({
               </h3>
               <button
                 onClick={onTocClose}
-                className="flex h-8 w-8 items-center justify-center rounded-lg border theme-border theme-text-secondary hover:theme-bg-tertiary transition-colors cursor-pointer"
+                className="flex h-8 w-8 items-center justify-center rounded-lg border theme-border theme-text-secondary hover\:theme-bg-tertiary transition-colors cursor-pointer"
                 title="Close"
                 aria-label="Close contents"
               >

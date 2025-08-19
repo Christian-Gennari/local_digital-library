@@ -23,7 +23,7 @@ const CoverPreview: React.FC<CoverPreviewProps> = ({
     <div className={containerClassName}>
       <div className="flex-shrink-0">
         <div
-          className={`${className} bg-gray-100 rounded-lg border border-gray-300 overflow-hidden flex items-center justify-center`}
+          className={`${className} theme-bg-secondary rounded-lg border theme-border overflow-hidden flex items-center justify-center`}
         >
           {coverPreview ? (
             <Image
@@ -37,7 +37,7 @@ const CoverPreview: React.FC<CoverPreviewProps> = ({
             />
           ) : (
             <svg
-              className="h-10 w-10 md:h-12 md:w-12 text-gray-400"
+              className="h-10 w-10 md:h-12 md:w-12 theme-text-muted"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -54,7 +54,7 @@ const CoverPreview: React.FC<CoverPreviewProps> = ({
       </div>
 
       <div className="flex-1 w-full">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium theme-text-secondary mb-2">
           Book Cover
         </label>
         <div className="flex items-center gap-2 flex-wrap">
@@ -67,7 +67,7 @@ const CoverPreview: React.FC<CoverPreviewProps> = ({
           />
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 text-sm font-medium transition-colors cursor-pointer"
+            className="px-4 py-2 theme-bg-secondary theme-text-secondary rounded-lg hover\:theme-bg-tertiary text-sm font-medium transition-colors cursor-pointer"
           >
             Upload Cover
           </button>

@@ -73,17 +73,19 @@ export function BookDetailsSidebar() {
     switch (format) {
       case "pdf":
         return (
-          <DocumentIcon className="h-16 w-16 sm:h-24 sm:w-24 text-gray-400" />
+          <DocumentIcon className="h-16 w-16 sm:h-24 sm:w-24 theme-text-muted" />
         );
       case "epub":
         return (
-          <BookOpenIcon className="h-16 w-16 sm:h-24 sm:w-24 text-gray-400" />
+          <BookOpenIcon className="h-16 w-16 sm:h-24 sm:w-24 theme-text-muted" />
         );
       case "audio":
-        return <PlayIcon className="h-16 w-16 sm:h-24 sm:w-24 text-gray-400" />;
+        return (
+          <PlayIcon className="h-16 w-16 sm:h-24 sm:w-24 theme-text-muted" />
+        );
       default:
         return (
-          <BookOpenIcon className="h-16 w-16 sm:h-24 sm:w-24 text-gray-400" />
+          <BookOpenIcon className="h-16 w-16 sm:h-24 sm:w-24 theme-text-muted" />
         );
     }
   };
@@ -130,7 +132,7 @@ export function BookDetailsSidebar() {
   if (!selectedBook) {
     return (
       <div className="w-full sm:w-80 theme-bg-secondary border-l theme-border p-6 flex items-center justify-center">
-        <p className="text-gray-500 text-center">
+        <p className="theme-text-secondary text-center">
           Select a book to view details
         </p>
       </div>
@@ -160,7 +162,7 @@ export function BookDetailsSidebar() {
       {/* Sticky Header with Cover */}
       <div className="p-4 sm:p-6 theme-bg-primary border-b theme-border sticky top-0 z-10">
         <div className="flex items-start gap-4 mb-3">
-          <div className="flex-shrink-0 w-20 h-28 sm:w-24 sm:h-36 bg-gray-100 rounded-lg overflow-hidden shadow">
+          <div className="flex-shrink-0 w-20 h-28 sm:w-24 sm:h-36 theme-bg-secondary rounded-lg overflow-hidden shadow">
             {coverSrc ? (
               <img
                 src={coverSrc}
@@ -168,7 +170,7 @@ export function BookDetailsSidebar() {
                 className="w-full h-full object-cover"
               />
             ) : (
-              <div className="w-full h-full flex items-center justify-center bg-gray-200">
+              <div className="w-full h-full flex items-center justify-center theme-bg-tertiary">
                 {getIconForFormat(selectedBook.format)}
               </div>
             )}
@@ -192,7 +194,7 @@ export function BookDetailsSidebar() {
                 : "📚 Book"}
             </span>
 
-            <h3 className="font-bold text-gray-900 text-base sm:text-lg leading-tight mb-1 line-clamp-2">
+            <h3 className="font-bold theme-text-primary text-base sm:text-lg leading-tight mb-1 line-clamp-2">
               {selectedBook.metadata.title}
             </h3>
             {selectedBook.metadata.subtitle && (
@@ -218,12 +220,11 @@ export function BookDetailsSidebar() {
               )}
           </div>
         </div>
-
         {/* Actions */}
         <div className="flex items-center gap-3">
           <button
             onClick={() => openBook(selectedBook)}
-            className="flex-1 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-all font-medium text-sm cursor-pointer"
+            className="flex-1 px-4 py-2 theme-btn-primary rounded-lg transition-all font-medium text-sm cursor-pointer"
           >
             Open Book
           </button>
@@ -231,7 +232,7 @@ export function BookDetailsSidebar() {
           <div className="flex gap-2">
             <button
               onClick={() => setIsEditingMetadata(true)}
-              className="p-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors cursor-pointer"
+              className="p-2 theme-bg-secondary theme-text-secondary hover:theme-bg-tertiary rounded-lg transition-colors cursor-pointer"
               title="Edit metadata"
               aria-label="Edit metadata"
             >
@@ -239,7 +240,7 @@ export function BookDetailsSidebar() {
             </button>
             <button
               onClick={() => setShowReferenceGenerator(true)}
-              className="p-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors cursor-pointer"
+              className="p-2 theme-bg-secondary theme-text-secondary hover:theme-bg-tertiary rounded-lg transition-colors cursor-pointer"
               title="Generate reference"
               aria-label="Generate reference"
             >
@@ -255,7 +256,6 @@ export function BookDetailsSidebar() {
             </button>
           </div>
         </div>
-
         {/* Reading Progress */}
         {(selectedBook.metadata.readingProgress ?? 0) > 0 && (
           <div className="mt-3">
@@ -263,7 +263,7 @@ export function BookDetailsSidebar() {
               <span>Reading Progress</span>
               <span>{selectedBook.metadata.readingProgress}%</span>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
+            <div className="w-full theme-bg-tertiary rounded-full h-2">
               <div
                 className="bg-emerald-500 h-2 rounded-full transition-all duration-300"
                 style={{ width: `${selectedBook.metadata.readingProgress}%` }}
@@ -285,7 +285,7 @@ export function BookDetailsSidebar() {
                   className={`text-lg sm:text-xl ${
                     i < selectedBook.metadata.userRating!
                       ? "text-yellow-400"
-                      : "text-gray-300"
+                      : "theme-text-muted"
                   }`}
                 >
                   ★
@@ -301,12 +301,12 @@ export function BookDetailsSidebar() {
         {/* Description */}
         {selectedBook.metadata.description && (
           <div>
-            <p className="text-[10px] sm:text-xs text-gray-500 font-semibold mb-2 uppercase tracking-wide">
+            <p className="text-[10px] sm:text-xs theme-text-secondary font-semibold mb-2 uppercase tracking-wide">
               Description
             </p>
             <div className="theme-bg-primary p-4 rounded-lg shadow-sm border theme-border">
               <p
-                className={`text-sm text-gray-700 leading-relaxed ${
+                className={`text-sm theme-text-secondary leading-relaxed ${
                   !isDescriptionExpanded ? "line-clamp-8" : ""
                 }`}
               >
@@ -336,11 +336,11 @@ export function BookDetailsSidebar() {
               aria-expanded={expandedSections.identifiers}
               aria-controls="section-identifiers"
             >
-              <h4 className="font-semibold text-gray-900 text-sm uppercase tracking-wide">
+              <h4 className="font-semibold theme-text-primary text-sm uppercase tracking-wide">
                 Identifiers
               </h4>
               <svg
-                className={`h-4 w-4 text-gray-500 transform transition-transform ${
+                className={`h-4 w-4 theme-text-secondary transform transition-transform ${
                   expandedSections.identifiers ? "rotate-180" : ""
                 }`}
                 fill="none"
@@ -366,12 +366,12 @@ export function BookDetailsSidebar() {
                     key={`${identifier.type}-${identifier.value}`}
                     className="flex items-start gap-3"
                   >
-                    <DocumentTextIcon className="h-4 w-4 text-gray-400 flex-shrink-0 mt-0.5" />
+                    <DocumentTextIcon className="h-4 w-4 theme-text-muted flex-shrink-0 mt-0.5" />
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs theme-text-secondary">
                         {identifier.label}
                       </p>
-                      <p className="text-sm text-gray-900 break-all">
+                      <p className="text-sm theme-text-primary break-all">
                         {identifier.value}
                       </p>
                     </div>
@@ -379,7 +379,7 @@ export function BookDetailsSidebar() {
                       onClick={() =>
                         copyToClipboard(identifier.value, identifier.type)
                       }
-                      className="px-2 py-1 text-xs rounded bg-gray-100 hover:bg-gray-200 text-gray-700 cursor-pointer"
+                      className="px-2 py-1 text-xs rounded theme-bg-secondary hover\:theme-bg-tertiary theme-text-secondary cursor-pointer"
                       title={`Copy ${identifier.label}`}
                     >
                       {copiedKey === identifier.type ? (
@@ -392,7 +392,7 @@ export function BookDetailsSidebar() {
                 ))}
 
                 {getAllIdentifiers(selectedBook.metadata).length === 0 && (
-                  <p className="text-sm text-gray-500 italic">
+                  <p className="text-sm theme-text-secondary italic">
                     No identifiers available
                   </p>
                 )}
@@ -409,11 +409,11 @@ export function BookDetailsSidebar() {
                 aria-expanded={expandedSections.media}
                 aria-controls="section-media"
               >
-                <h4 className="font-semibold text-gray-900 text-sm uppercase tracking-wide">
+                <h4 className="font-semibold theme-text-primary text-sm uppercase tracking-wide">
                   Media Details
                 </h4>
                 <svg
-                  className={`h-4 w-4 text-gray-500 transform transition-transform ${
+                  className={`h-4 w-4 theme-text-secondary transform transition-transform ${
                     expandedSections.media ? "rotate-180" : ""
                   }`}
                   fill="none"
@@ -436,10 +436,10 @@ export function BookDetailsSidebar() {
                 >
                   {selectedBook.metadata.audiobook.narrator && (
                     <div className="flex items-start gap-3">
-                      <MicrophoneIcon className="h-4 w-4 text-gray-400 flex-shrink-0 mt-0.5" />
+                      <MicrophoneIcon className="h-4 w-4 theme-text-muted flex-shrink-0 mt-0.5" />
                       <div>
-                        <p className="text-xs text-gray-500">Narrator</p>
-                        <p className="text-sm text-gray-900">
+                        <p className="text-xs theme-text-secondary">Narrator</p>
+                        <p className="text-sm theme-text-primary">
                           {selectedBook.metadata.audiobook.narrator}
                         </p>
                       </div>
@@ -448,10 +448,10 @@ export function BookDetailsSidebar() {
 
                   {selectedBook.metadata.audiobook.duration && (
                     <div className="flex items-start gap-3">
-                      <ClockIcon className="h-4 w-4 text-gray-400 flex-shrink-0 mt-0.5" />
+                      <ClockIcon className="h-4 w-4 theme-text-muted flex-shrink-0 mt-0.5" />
                       <div>
-                        <p className="text-xs text-gray-500">Duration</p>
-                        <p className="text-sm text-gray-900">
+                        <p className="text-xs theme-text-secondary">Duration</p>
+                        <p className="text-sm theme-text-primary">
                           {formatDuration(
                             selectedBook.metadata.audiobook.duration
                           )}
@@ -462,10 +462,10 @@ export function BookDetailsSidebar() {
 
                   {selectedBook.metadata.audiobook.format && (
                     <div className="flex items-start gap-3">
-                      <SpeakerWaveIcon className="h-4 w-4 text-gray-400 flex-shrink-0 mt-0.5" />
+                      <SpeakerWaveIcon className="h-4 w-4 theme-text-muted flex-shrink-0 mt-0.5" />
                       <div>
-                        <p className="text-xs text-gray-500">Format</p>
-                        <p className="text-sm text-gray-900">
+                        <p className="text-xs theme-text-secondary">Format</p>
+                        <p className="text-sm theme-text-primary">
                           {selectedBook.metadata.audiobook.format.toUpperCase()}
                         </p>
                       </div>
@@ -474,10 +474,10 @@ export function BookDetailsSidebar() {
 
                   {selectedBook.metadata.audiobook.abridged !== undefined && (
                     <div className="flex items-start gap-3">
-                      <BookOpenIcon className="h-4 w-4 text-gray-400 flex-shrink-0 mt-0.5" />
+                      <BookOpenIcon className="h-4 w-4 theme-text-muted flex-shrink-0 mt-0.5" />
                       <div>
-                        <p className="text-xs text-gray-500">Version</p>
-                        <p className="text-sm text-gray-900">
+                        <p className="text-xs theme-text-secondary">Version</p>
+                        <p className="text-sm theme-text-primary">
                           {selectedBook.metadata.audiobook.abridged
                             ? "Abridged"
                             : "Unabridged"}
@@ -488,10 +488,12 @@ export function BookDetailsSidebar() {
 
                   {selectedBook.metadata.audiobook.audioPublisher && (
                     <div className="flex items-start gap-3">
-                      <BuildingOfficeIcon className="h-4 w-4 text-gray-400 flex-shrink-0 mt-0.5" />
+                      <BuildingOfficeIcon className="h-4 w-4 theme-text-muted flex-shrink-0 mt-0.5" />
                       <div>
-                        <p className="text-xs text-gray-500">Audio Publisher</p>
-                        <p className="text-sm text-gray-900">
+                        <p className="text-xs theme-text-secondary">
+                          Audio Publisher
+                        </p>
+                        <p className="text-sm theme-text-primary">
                           {selectedBook.metadata.audiobook.audioPublisher}
                         </p>
                       </div>
@@ -500,12 +502,12 @@ export function BookDetailsSidebar() {
 
                   {selectedBook.metadata.audiobook.productionCompany && (
                     <div className="flex items-start gap-3">
-                      <BuildingOfficeIcon className="h-4 w-4 text-gray-400 flex-shrink-0 mt-0.5" />
+                      <BuildingOfficeIcon className="h-4 w-4 theme-text-muted flex-shrink-0 mt-0.5" />
                       <div>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs theme-text-secondary">
                           Production Company
                         </p>
-                        <p className="text-sm text-gray-900">
+                        <p className="text-sm theme-text-primary">
                           {selectedBook.metadata.audiobook.productionCompany}
                         </p>
                       </div>
@@ -524,11 +526,11 @@ export function BookDetailsSidebar() {
               aria-expanded={expandedSections.basic}
               aria-controls="section-basic"
             >
-              <h4 className="font-semibold text-gray-900 text-sm uppercase tracking-wide">
+              <h4 className="font-semibold theme-text-primary text-sm uppercase tracking-wide">
                 Basic Information
               </h4>
               <svg
-                className={`h-4 w-4 text-gray-500 transform transition-transform ${
+                className={`h-4 w-4 theme-text-secondary transform transition-transform ${
                   expandedSections.basic ? "rotate-180" : ""
                 }`}
                 fill="none"
@@ -554,10 +556,12 @@ export function BookDetailsSidebar() {
                   <>
                     {selectedBook.metadata.journalTitle && (
                       <div className="flex items-start gap-3">
-                        <BookOpenIcon className="h-4 w-4 text-gray-400 flex-shrink-0 mt-0.5" />
+                        <BookOpenIcon className="h-4 w-4 theme-text-muted flex-shrink-0 mt-0.5" />
                         <div>
-                          <p className="text-xs text-gray-500">Journal</p>
-                          <p className="text-sm text-gray-900">
+                          <p className="text-xs theme-text-secondary">
+                            Journal
+                          </p>
+                          <p className="text-sm theme-text-primary">
                             {selectedBook.metadata.journalTitle}
                           </p>
                         </div>
@@ -567,10 +571,12 @@ export function BookDetailsSidebar() {
                     {(selectedBook.metadata.volumeNumber ||
                       selectedBook.metadata.issueNumber) && (
                       <div className="flex items-start gap-3">
-                        <DocumentIcon className="h-4 w-4 text-gray-400 flex-shrink-0 mt-0.5" />
+                        <DocumentIcon className="h-4 w-4 theme-text-muted flex-shrink-0 mt-0.5" />
                         <div>
-                          <p className="text-xs text-gray-500">Volume/Issue</p>
-                          <p className="text-sm text-gray-900">
+                          <p className="text-xs theme-text-secondary">
+                            Volume/Issue
+                          </p>
+                          <p className="text-sm theme-text-primary">
                             {selectedBook.metadata.volumeNumber &&
                               `Vol. ${selectedBook.metadata.volumeNumber}`}
                             {selectedBook.metadata.volumeNumber &&
@@ -585,10 +591,10 @@ export function BookDetailsSidebar() {
 
                     {selectedBook.metadata.pageRange && (
                       <div className="flex items-start gap-3">
-                        <DocumentTextIcon className="h-4 w-4 text-gray-400 flex-shrink-0 mt-0.5" />
+                        <DocumentTextIcon className="h-4 w-4 theme-text-muted flex-shrink-0 mt-0.5" />
                         <div>
-                          <p className="text-xs text-gray-500">Pages</p>
-                          <p className="text-sm text-gray-900">
+                          <p className="text-xs theme-text-secondary">Pages</p>
+                          <p className="text-sm theme-text-primary">
                             {selectedBook.metadata.pageRange}
                           </p>
                         </div>
@@ -599,13 +605,13 @@ export function BookDetailsSidebar() {
 
                 {selectedBook.metadata.language && (
                   <div className="flex items-start gap-3">
-                    <LanguageIcon className="h-4 w-4 text-gray-400 flex-shrink-0 mt-0.5" />
+                    <LanguageIcon className="h-4 w-4 theme-text-muted flex-shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-xs text-gray-500">Language</p>
-                      <p className="text-sm text-gray-900">
+                      <p className="text-xs theme-text-secondary">Language</p>
+                      <p className="text-sm theme-text-primary">
                         {selectedBook.metadata.language}
                         {selectedBook.metadata.originalLanguage && (
-                          <span className="text-gray-500 text-xs ml-1">
+                          <span className="theme-text-secondary text-xs ml-1">
                             (Original: {selectedBook.metadata.originalLanguage})
                           </span>
                         )}
@@ -616,10 +622,12 @@ export function BookDetailsSidebar() {
 
                 {selectedBook.metadata.translators && (
                   <div className="flex items-start gap-3">
-                    <UserGroupIcon className="h-4 w-4 text-gray-400 flex-shrink-0 mt-0.5" />
+                    <UserGroupIcon className="h-4 w-4 theme-text-muted flex-shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-xs text-gray-500">Translator(s)</p>
-                      <p className="text-sm text-gray-900">
+                      <p className="text-xs theme-text-secondary">
+                        Translator(s)
+                      </p>
+                      <p className="text-sm theme-text-primary">
                         {selectedBook.metadata.translators}
                       </p>
                     </div>
@@ -628,13 +636,13 @@ export function BookDetailsSidebar() {
 
                 {selectedBook.metadata.pageCount && (
                   <div className="flex items-start gap-3">
-                    <DocumentIcon className="h-4 w-4 text-gray-400 flex-shrink-0 mt-0.5" />
+                    <DocumentIcon className="h-4 w-4 theme-text-muted flex-shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-xs text-gray-500">Pages</p>
-                      <p className="text-sm text-gray-900">
+                      <p className="text-xs theme-text-secondary">Pages</p>
+                      <p className="text-sm theme-text-primary">
                         {selectedBook.metadata.pageCount}
                         {selectedBook.metadata.numberOfVolumes && (
-                          <span className="text-gray-500 text-xs ml-1">
+                          <span className="theme-text-secondary text-xs ml-1">
                             ({selectedBook.metadata.numberOfVolumes} volumes)
                           </span>
                         )}
@@ -646,15 +654,17 @@ export function BookDetailsSidebar() {
                 {selectedBook.metadata.categories &&
                   selectedBook.metadata.categories.length > 0 && (
                     <div className="flex items-start gap-3">
-                      <TagIcon className="h-4 w-4 text-gray-400 flex-shrink-0 mt-0.5" />
+                      <TagIcon className="h-4 w-4 theme-text-muted flex-shrink-0 mt-0.5" />
                       <div>
-                        <p className="text-xs text-gray-500 mb-1">Categories</p>
+                        <p className="text-xs theme-text-secondary mb-1">
+                          Categories
+                        </p>
                         <div className="flex flex-wrap gap-2">
                           {selectedBook.metadata.categories.map(
                             (category, index) => (
                               <span
                                 key={index}
-                                className="text-xs font-medium bg-gray-100 text-gray-700 px-2.5 py-0.5 rounded-full"
+                                className="text-xs font-medium theme-bg-secondary theme-text-secondary px-2.5 py-0.5 rounded-full"
                               >
                                 {category}
                               </span>
@@ -676,11 +686,11 @@ export function BookDetailsSidebar() {
               aria-expanded={expandedSections.publication}
               aria-controls="section-publication"
             >
-              <h4 className="font-semibold text-gray-900 text-sm uppercase tracking-wide">
+              <h4 className="font-semibold theme-text-primary text-sm uppercase tracking-wide">
                 Publication Details
               </h4>
               <svg
-                className={`h-4 w-4 text-gray-500 transform transition-transform ${
+                className={`h-4 w-4 theme-text-secondary transform transition-transform ${
                   expandedSections.publication ? "rotate-180" : ""
                 }`}
                 fill="none"
@@ -703,10 +713,10 @@ export function BookDetailsSidebar() {
               >
                 {selectedBook.metadata.publisher && (
                   <div className="flex items-start gap-3">
-                    <BuildingOfficeIcon className="h-4 w-4 text-gray-400 flex-shrink-0 mt-0.5" />
+                    <BuildingOfficeIcon className="h-4 w-4 theme-text-muted flex-shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-xs text-gray-500">Publisher</p>
-                      <p className="text-sm text-gray-900">
+                      <p className="text-xs theme-text-secondary">Publisher</p>
+                      <p className="text-sm theme-text-primary">
                         {selectedBook.metadata.publisher}
                       </p>
                     </div>
@@ -715,12 +725,12 @@ export function BookDetailsSidebar() {
 
                 {selectedBook.metadata.placeOfPublication && (
                   <div className="flex items-start gap-3">
-                    <MapPinIcon className="h-4 w-4 text-gray-400 flex-shrink-0 mt-0.5" />
+                    <MapPinIcon className="h-4 w-4 theme-text-muted flex-shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs theme-text-secondary">
                         Place of Publication
                       </p>
-                      <p className="text-sm text-gray-900">
+                      <p className="text-sm theme-text-primary">
                         {selectedBook.metadata.placeOfPublication}
                       </p>
                     </div>
@@ -729,10 +739,10 @@ export function BookDetailsSidebar() {
 
                 {selectedBook.metadata.publishedDate && (
                   <div className="flex items-start gap-3">
-                    <CalendarIcon className="h-4 w-4 text-gray-400 flex-shrink-0 mt-0.5" />
+                    <CalendarIcon className="h-4 w-4 theme-text-muted flex-shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-xs text-gray-500">Published</p>
-                      <p className="text-sm text-gray-900">
+                      <p className="text-xs theme-text-secondary">Published</p>
+                      <p className="text-sm theme-text-primary">
                         {selectedBook.metadata.publishedDate}
                       </p>
                     </div>
@@ -741,10 +751,10 @@ export function BookDetailsSidebar() {
 
                 {selectedBook.metadata.edition && (
                   <div className="flex items-start gap-3">
-                    <AcademicCapIcon className="h-4 w-4 text-gray-400 flex-shrink-0 mt-0.5" />
+                    <AcademicCapIcon className="h-4 w-4 theme-text-muted flex-shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-xs text-gray-500">Edition</p>
-                      <p className="text-sm text-gray-900">
+                      <p className="text-xs theme-text-secondary">Edition</p>
+                      <p className="text-sm theme-text-primary">
                         {selectedBook.metadata.edition}
                       </p>
                     </div>
@@ -763,11 +773,11 @@ export function BookDetailsSidebar() {
                 aria-expanded={expandedSections.series}
                 aria-controls="section-series"
               >
-                <h4 className="font-semibold text-gray-900 text-sm uppercase tracking-wide">
+                <h4 className="font-semibold theme-text-primary text-sm uppercase tracking-wide">
                   Series Information
                 </h4>
                 <svg
-                  className={`h-4 w-4 text-gray-500 transform transition-transform ${
+                  className={`h-4 w-4 theme-text-secondary transform transition-transform ${
                     expandedSections.series ? "rotate-180" : ""
                   }`}
                   fill="none"
@@ -790,13 +800,13 @@ export function BookDetailsSidebar() {
                 >
                   {selectedBook.metadata.series && (
                     <div className="flex items-start gap-3">
-                      <FolderIcon className="h-4 w-4 text-gray-400 flex-shrink-0 mt-0.5" />
+                      <FolderIcon className="h-4 w-4 theme-text-muted flex-shrink-0 mt-0.5" />
                       <div>
-                        <p className="text-xs text-gray-500">Series</p>
-                        <p className="text-sm text-gray-900">
+                        <p className="text-xs theme-text-secondary">Series</p>
+                        <p className="text-sm theme-text-primary">
                           {selectedBook.metadata.series}
                           {selectedBook.metadata.seriesNumber && (
-                            <span className="text-gray-500 ml-1">
+                            <span className="theme-text-secondary ml-1">
                               #{selectedBook.metadata.seriesNumber}
                             </span>
                           )}
@@ -807,10 +817,10 @@ export function BookDetailsSidebar() {
 
                   {selectedBook.metadata.volume && (
                     <div className="flex items-start gap-3">
-                      <BookmarkIcon className="h-4 w-4 text-gray-400 flex-shrink-0 mt-0.5" />
+                      <BookmarkIcon className="h-4 w-4 theme-text-muted flex-shrink-0 mt-0.5" />
                       <div>
-                        <p className="text-xs text-gray-500">Volume</p>
-                        <p className="text-sm text-gray-900">
+                        <p className="text-xs theme-text-secondary">Volume</p>
+                        <p className="text-sm theme-text-primary">
                           {selectedBook.metadata.volume}
                         </p>
                       </div>
@@ -830,11 +840,11 @@ export function BookDetailsSidebar() {
                 aria-expanded={expandedSections.digital}
                 aria-controls="section-digital"
               >
-                <h4 className="font-semibold text-gray-900 text-sm uppercase tracking-wide">
+                <h4 className="font-semibold theme-text-primary text-sm uppercase tracking-wide">
                   Digital Information
                 </h4>
                 <svg
-                  className={`h-4 w-4 text-gray-500 transform transition-transform ${
+                  className={`h-4 w-4 theme-text-secondary transform transition-transform ${
                     expandedSections.digital ? "rotate-180" : ""
                   }`}
                   fill="none"
@@ -857,9 +867,9 @@ export function BookDetailsSidebar() {
                 >
                   {selectedBook.metadata.url && (
                     <div className="flex items-start gap-3">
-                      <LinkIcon className="h-4 w-4 text-gray-400 flex-shrink-0 mt-0.5" />
+                      <LinkIcon className="h-4 w-4 theme-text-muted flex-shrink-0 mt-0.5" />
                       <div className="min-w-0">
-                        <p className="text-xs text-gray-500">URL</p>
+                        <p className="text-xs theme-text-secondary">URL</p>
                         <a
                           href={selectedBook.metadata.url}
                           target="_blank"
@@ -869,7 +879,7 @@ export function BookDetailsSidebar() {
                           {selectedBook.metadata.url}
                         </a>
                         {selectedBook.metadata.accessDate && (
-                          <p className="text-xs text-gray-500 mt-1">
+                          <p className="text-xs theme-text-secondary mt-1">
                             Accessed:{" "}
                             {formatDate(selectedBook.metadata.accessDate)}
                           </p>
@@ -890,11 +900,11 @@ export function BookDetailsSidebar() {
               aria-expanded={expandedSections.personal}
               aria-controls="section-personal"
             >
-              <h4 className="font-semibold text-gray-900 text-sm uppercase tracking-wide">
+              <h4 className="font-semibold theme-text-primary text-sm uppercase tracking-wide">
                 Miscellaneous
               </h4>
               <svg
-                className={`h-4 w-4 text-gray-500 transform transition-transform ${
+                className={`h-4 w-4 theme-text-secondary transform transition-transform ${
                   expandedSections.personal ? "rotate-180" : ""
                 }`}
                 fill="none"
@@ -916,10 +926,12 @@ export function BookDetailsSidebar() {
                 className="p-4 pt-4 border-t theme-border space-y-4"
               >
                 <div className="flex items-start gap-3">
-                  <CalendarIcon className="h-4 w-4 text-gray-400 flex-shrink-0 mt-0.5" />
+                  <CalendarIcon className="h-4 w-4 theme-text-muted flex-shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-xs text-gray-500">Added to Library</p>
-                    <p className="text-sm text-gray-900">
+                    <p className="text-xs theme-text-secondary">
+                      Added to Library
+                    </p>
+                    <p className="text-sm theme-text-primary">
                       {formatDate(selectedBook.metadata.dateAdded)}
                     </p>
                   </div>
@@ -927,10 +939,10 @@ export function BookDetailsSidebar() {
 
                 {selectedBook.metadata.lastRead && (
                   <div className="flex items-start gap-3">
-                    <ClockIcon className="h-4 w-4 text-gray-400 flex-shrink-0 mt-0.5" />
+                    <ClockIcon className="h-4 w-4 theme-text-muted flex-shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-xs text-gray-500">Last Read</p>
-                      <p className="text-sm text-gray-900">
+                      <p className="text-xs theme-text-secondary">Last Read</p>
+                      <p className="text-sm theme-text-primary">
                         {formatDate(selectedBook.metadata.lastRead)}
                       </p>
                     </div>
@@ -939,10 +951,10 @@ export function BookDetailsSidebar() {
 
                 {selectedBook.metadata.userNotes && (
                   <div>
-                    <p className="text-xs text-gray-500 font-semibold mb-2 uppercase tracking-wide">
+                    <p className="text-xs theme-text-secondary font-semibold mb-2 uppercase tracking-wide">
                       Your Notes
                     </p>
-                    <p className="text-sm text-gray-700 leading-relaxed theme-bg-secondary p-3 rounded-lg border theme-border">
+                    <p className="text-sm theme-text-secondary leading-relaxed theme-bg-secondary p-3 rounded-lg border theme-border">
                       {selectedBook.metadata.userNotes}
                     </p>
                   </div>

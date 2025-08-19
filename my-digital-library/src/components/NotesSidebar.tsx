@@ -211,7 +211,7 @@ export function NotesSidebar({
             {canCreateHighlight && (
               <button
                 onClick={toggleHighlightsVisibility}
-                className={`p-2 rounded hover:theme-bg-tertiary ${
+                className={`p-2 rounded hover\:theme-bg-tertiary ${
                   highlightsVisible ? "text-amber-700" : "theme-text-secondary"
                 }`}
                 title={
@@ -241,7 +241,7 @@ export function NotesSidebar({
             )}
             <button
               onClick={handleExportNotes}
-              className="p-2 rounded hover:theme-bg-tertiary theme-text-secondary"
+              className="p-2 rounded hover\:theme-bg-tertiary theme-text-secondary"
               title="Export notes"
             >
               <svg
@@ -260,7 +260,7 @@ export function NotesSidebar({
             </button>
             <button
               onClick={onToggle}
-              className="p-2 rounded hover:theme-bg-tertiary theme-text-secondary"
+              className="p-2 rounded hover\:theme-bg-tertiary theme-text-secondary"
               aria-label="Close notes"
             >
               <svg
@@ -286,7 +286,7 @@ export function NotesSidebar({
           placeholder="Search notes…"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full px-3 py-2 text-sm border theme-border rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-slate-500 theme-bg-primary placeholder-slate-400"
+          className="w-full px-3 py-2 text-sm border theme-border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 theme-bg-primary placeholder:theme-text-muted"
         />
 
         {/* Context - KEEP AS IS */}
@@ -324,7 +324,7 @@ export function NotesSidebar({
               className={`flex-1 px-3 py-2 text-sm font-medium rounded-md ${
                 noteMode === "quick"
                   ? "theme-bg-primary shadow-sm"
-                  : "theme-text-secondary hover:theme-text-primary"
+                  : "theme-text-secondary hover\:theme-text-primary"
               }`}
             >
               Quick Note
@@ -334,7 +334,7 @@ export function NotesSidebar({
               className={`flex-1 px-3 py-2 text-sm font-medium rounded-md ${
                 noteMode === "quote"
                   ? "theme-bg-primary shadow-sm"
-                  : "theme-text-secondary hover:theme-text-primary"
+                  : "theme-text-secondary hover\:theme-text-primary"
               }`}
             >
               Quote + Note
@@ -368,7 +368,7 @@ export function NotesSidebar({
                 setNoteMode("quick");
                 if (pendingHighlight) clearPendingHighlight();
               }}
-              className="mt-2 text-xs theme-text-secondary hover:theme-text-primary"
+              className="mt-2 text-xs theme-text-secondary hover\:theme-text-primary"
             >
               Clear selection
             </button>
@@ -396,7 +396,7 @@ export function NotesSidebar({
           </div>
           <button
             onClick={handleAddNote}
-            className="px-3 py-2 rounded-lg bg-slate-900 text-white text-sm font-medium hover:bg-slate-800 disabled:opacity-50 cursor-pointer"
+            className="px-3 py-2 rounded-lg theme-btn-primary text-sm font-medium hover:theme-btn-primary disabled:opacity-50 cursor-pointer"
             disabled={!noteContent.trim() || !currentReference}
           >
             Add note
@@ -436,7 +436,7 @@ export function NotesSidebar({
           filtered.map((note) => (
             <div
               key={note.id}
-              className="theme-bg-secondary rounded-lg p-4 border theme-border hover:theme-border transition-colors"
+              className="theme-bg-secondary rounded-lg p-4 border theme-border hover\:theme-border transition-colors"
             >
               {note.quote && isQuoteAvailable && (
                 <div className="mb-3 p-3 bg-amber-50 border-l-4 border-amber-400 rounded-md">
@@ -468,7 +468,7 @@ export function NotesSidebar({
                         setEditingNoteId(null);
                         setEditingContent("");
                       }}
-                      className="theme-text-secondary hover:theme-text-primary"
+                      className="theme-text-secondary hover\:theme-text-primary"
                     >
                       Cancel
                     </button>
@@ -486,7 +486,7 @@ export function NotesSidebar({
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => handleNavigateToNote(note)}
-                        className="p-1 rounded hover:theme-bg-tertiary"
+                        className="p-1 rounded hover\:theme-bg-tertiary"
                         title="Go to this location"
                       >
                         <svg
@@ -529,7 +529,7 @@ export function NotesSidebar({
                           setEditingNoteId(note.id);
                           setEditingContent(note.content); // ADD: Set content for editing
                         }}
-                        className="p-1 rounded hover:theme-bg-tertiary"
+                        className="p-1 rounded hover\:theme-bg-tertiary"
                       >
                         Edit
                       </button>

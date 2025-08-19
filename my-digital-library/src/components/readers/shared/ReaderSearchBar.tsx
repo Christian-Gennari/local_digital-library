@@ -42,7 +42,7 @@ export function ReaderSearchBar({
       className="absolute top-4 right-4 z-50 flex items-center gap-2 
                     theme-bg-primary/95 backdrop-blur-sm rounded-lg shadow-lg p-2"
     >
-      <MagnifyingGlassIcon className="w-5 h-5 text-gray-500" />
+      <MagnifyingGlassIcon className="w-5 h-5 theme-text-secondary" />
       <input
         ref={inputRef}
         type="text"
@@ -55,23 +55,25 @@ export function ReaderSearchBar({
         }`}
       />
       {!isReady && (
-        <span className="text-xs text-gray-500 animate-pulse">Loading...</span>
+        <span className="text-xs theme-text-secondary animate-pulse">
+          Loading...
+        </span>
       )}
       {isReady && totalMatches > 0 && (
         <>
-          <span className="text-sm text-gray-500">
+          <span className="text-sm theme-text-secondary">
             {currentMatch}/{totalMatches}
           </span>
           <button
             onClick={onPrevious}
-            className="p-1 hover:bg-gray-100 rounded"
+            className="p-1 hover\:theme-bg-secondary rounded"
             title="Previous match (Shift+Enter)"
           >
             ↑
           </button>
           <button
             onClick={onNext}
-            className="p-1 hover:bg-gray-100 rounded"
+            className="p-1 hover\:theme-bg-secondary rounded"
             title="Next match (Enter)"
           >
             ↓
@@ -80,7 +82,7 @@ export function ReaderSearchBar({
       )}
       <button
         onClick={onClose}
-        className="p-1 hover:bg-gray-100 rounded"
+        className="p-1 hover\:theme-bg-secondary rounded"
         title="Close (Esc)"
       >
         <XMarkIcon className="w-5 h-5" />

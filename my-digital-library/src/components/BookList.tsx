@@ -41,13 +41,13 @@ interface BookListProps {
 const getIconForFormat = (format: string) => {
   switch (format) {
     case "pdf":
-      return <DocumentIcon className="h-16 w-16 text-slate-300" />;
+      return <DocumentIcon className="h-16 w-16 theme-text-muted" />;
     case "epub":
-      return <BookOpenIcon className="h-16 w-16 text-slate-300" />;
+      return <BookOpenIcon className="h-16 w-16 theme-text-muted" />;
     case "audio":
-      return <PlayIcon className="h-16 w-16 text-slate-300" />;
+      return <PlayIcon className="h-16 w-16 theme-text-muted" />;
     default:
-      return <BookOpenIcon className="h-16 w-16 text-slate-300" />;
+      return <BookOpenIcon className="h-16 w-16 theme-text-muted" />;
   }
 };
 
@@ -91,7 +91,7 @@ const BookListItem = memo<BookListItemProps>(
     if (isMobile) {
       return (
         <div
-          className={`relative p-4 transition-colors active:theme-bg-secondary ${
+          className={`relative p-4 transition-colors active\:theme-bg-secondary ${
             isSelected ? "theme-bg-tertiary shadow-sm" : ""
           }`}
           onClick={() => handleBookClick(book)}
@@ -129,7 +129,7 @@ const BookListItem = memo<BookListItemProps>(
                   e.stopPropagation();
                   setShowActions(!showActions);
                 }}
-                className="p-2 rounded-lg active:theme-bg-tertiary"
+                className="p-2 rounded-lg active\:theme-bg-tertiary"
               >
                 <EllipsisVerticalIcon className="h-5 w-5 theme-text-secondary" />
               </button>
@@ -145,7 +145,7 @@ const BookListItem = memo<BookListItemProps>(
                   setEditingBook(book);
                   setShowActions(false);
                 }}
-                className="flex items-center gap-2 w-full px-4 py-2 text-sm theme-text-primary hover:theme-bg-secondary"
+                className="flex items-center gap-2 w-full px-4 py-2 text-sm theme-text-primary hover\:theme-bg-secondary"
               >
                 <PencilSquareIcon className="h-4 w-4" />
                 Edit
@@ -169,20 +169,20 @@ const BookListItem = memo<BookListItemProps>(
     // Desktop: Original grid layout
     return (
       <div
-        className={`group grid grid-cols-12 cursor-pointer items-center gap-x-6 p-4 transition-colors hover:theme-bg-secondary ${
+        className={`group grid grid-cols-12 cursor-pointer items-center gap-x-6 p-4 transition-colors hover\:theme-bg-secondary ${
           isSelected ? "theme-bg-tertiary shadow-sm" : ""
         }`}
         onClick={() => handleBookClick(book)}
       >
         <div className="col-span-5">
-          <h3 className="line-clamp-2 font-sans text-sm font-medium leading-tight theme-text-primary transition-colors duration-200 group-hover:theme-text-primary">
+          <h3 className="line-clamp-2 font-sans text-sm font-medium leading-tight theme-text-primary transition-colors duration-200 group-hover\:theme-text-primary">
             {book.metadata.title}
           </h3>
         </div>
 
         <div className="col-span-3">
           {book.metadata.author && (
-            <p className="line-clamp-1 font-serif text-sm theme-text-secondary group-hover:theme-text-muted">
+            <p className="line-clamp-1 font-serif text-sm theme-text-secondary group-hover\:theme-text-muted">
               {book.metadata.author}
             </p>
           )}
@@ -207,7 +207,7 @@ const BookListItem = memo<BookListItemProps>(
                 e.stopPropagation();
                 setEditingBook(book);
               }}
-              className="p-1 theme-text-secondary hover:theme-text-primary rounded cursor-pointer"
+              className="p-1 theme-text-secondary hover\:theme-text-primary rounded cursor-pointer"
               title="Edit book"
             >
               <PencilSquareIcon className="h-4 w-4" />
@@ -273,11 +273,10 @@ const BookGridItem = memo<BookGridItemProps>(
                   e.stopPropagation();
                   onEditClick(book);
                 }}
-                className={`flex h-10 w-10 md:h-8 md:w-8 cursor-pointer items-center justify-center rounded-full theme-bg-primary/90 md:theme-bg-primary/70 theme-text-secondary md:theme-text-secondary shadow-sm backdrop-blur-sm transition-all duration-200 hover:theme-bg-tertiary hover:theme-text-primary active:scale-95 ${
-                  isMobile
-                    ? ""
-                    : "opacity-0 group-hover:opacity-100 group-hover:scale-110"
-                }`}
+                className={`flex h-10 w-10 md:h-8 md:w-8 cursor-pointer items-center justify-center rounded-full theme-bg-primary/90 md:theme-bg-primary/70 theme-text-secondary md:theme-text-secondary shadow-sm backdrop-blur-sm transition-all duration-200 hover\:theme-bg-tertiary hover\:theme-text-primary
+ active:scale-95 ${
+   isMobile ? "" : "opacity-0 group-hover:opacity-100 group-hover:scale-110"
+ }`}
                 title="Edit metadata"
               >
                 <PencilSquareIcon className="h-5 w-5 md:h-4 md:w-4" />
@@ -304,7 +303,7 @@ const BookGridItem = memo<BookGridItemProps>(
             )}
           </div>
           <div className="space-y-1">
-            <h3 className="line-clamp-2 font-sans text-sm md:text-base font-medium leading-tight theme-text-primary transition-colors duration-200 md:group-hover:theme-text-primary">
+            <h3 className="line-clamp-2 font-sans text-sm md:text-base font-medium leading-tight theme-text-primary transition-colors duration-200 md:group-hover\:theme-text-primary">
               {book.metadata.title}
             </h3>
             {book.metadata.author && (
@@ -321,7 +320,7 @@ const BookGridItem = memo<BookGridItemProps>(
                       className={`text-xs ${
                         i < book.metadata.userRating!
                           ? "text-yellow-500"
-                          : "text-gray-300"
+                          : "theme-text-muted"
                       }`}
                     >
                       ★
@@ -377,8 +376,8 @@ const ViewToggle = memo<ViewToggleProps>(({ viewMode, setViewMode }) => {
         onClick={() => toggleView("grid")}
         className={`rounded-full p-1.5 md:p-1 transition-colors ${
           viewMode === "grid"
-            ? "bg-slate-700 text-white"
-            : "hover:theme-bg-tertiary active:bg-slate-200"
+            ? "view-toggle-active"
+            : "theme-bg-primary hover:theme-bg-tertiary active:theme-bg-tertiary"
         }`}
         aria-label="Grid view"
       >
@@ -389,8 +388,8 @@ const ViewToggle = memo<ViewToggleProps>(({ viewMode, setViewMode }) => {
         onClick={() => toggleView("list")}
         className={`rounded-full p-1.5 md:p-1 transition-colors ${
           viewMode === "list"
-            ? "bg-slate-700 text-white"
-            : "hover:theme-bg-tertiary active:bg-slate-200"
+            ? "view-toggle-active"
+            : "theme-bg-primary hover:theme-bg-tertiary active:theme-bg-tertiary"
         }`}
         aria-label="List view"
       >
@@ -590,18 +589,18 @@ export function BookList({
   }, [books, searchQuery, selectedCollection, filters, collections]);
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col theme-bg-primary">
       {/* Header with View Toggle */}
       <div className="flex items-center justify-between p-3 md:p-4 border-b theme-border">
         <div className="flex items-center space-x-2 md:space-x-4 min-w-0">
-          <h2 className="text-base md:text-lg font-semibold text-gray-900 truncate">
+          <h2 className="text-base md:text-lg font-semibold theme-text-primary truncate">
             {selectedCollection
               ? collections.find((c) => c.id === selectedCollection)?.name ||
                 selectedCollection.charAt(0).toUpperCase() +
                   selectedCollection.slice(1).replace("-", " ")
               : "All Books"}
           </h2>
-          <span className="text-xs md:text-sm text-gray-500 flex-shrink-0">
+          <span className="text-xs md:text-sm theme-text-secondary flex-shrink-0">
             {filteredBooks.length}{" "}
             {filteredBooks.length === 1 ? "book" : "books"}
           </span>
@@ -617,7 +616,7 @@ export function BookList({
           </div>
         ) : filteredBooks.length === 0 ? (
           <div className="text-center py-12">
-            <BookOpenIcon className="h-16 w-16 text-slate-300 mx-auto mb-4" />
+            <BookOpenIcon className="h-16 w-16 theme-text-muted mx-auto mb-4" />
             <h3 className="text-lg font-medium theme-text-primary mb-2">
               {searchQuery || selectedCollection
                 ? "No books found"
@@ -635,17 +634,21 @@ export function BookList({
           // List View - Responsive with mobile cards
           <div className="theme-bg-primary rounded-lg shadow-sm border theme-border">
             <BookListHeader />
-            <div className="divide-y divide-slate-200">
-              {filteredBooks.map((book) => (
-                <BookListItem
+            <div>
+              {filteredBooks.map((book, index) => (
+                <div
                   key={book.id}
-                  book={book}
-                  isSelected={selectedBook?.id === book.id}
-                  handleBookClick={handleBookClick}
-                  setEditingBook={handleSetEditingBook}
-                  handleDeleteBook={handleDeleteBook}
-                  isMobile={isMobile}
-                />
+                  className={index > 0 ? "border-t theme-border" : ""}
+                >
+                  <BookListItem
+                    book={book}
+                    isSelected={selectedBook?.id === book.id}
+                    handleBookClick={handleBookClick}
+                    setEditingBook={handleSetEditingBook}
+                    handleDeleteBook={handleDeleteBook}
+                    isMobile={isMobile}
+                  />
+                </div>
               ))}
             </div>
           </div>

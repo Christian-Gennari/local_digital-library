@@ -356,7 +356,7 @@ const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(
           <div className="flex justify-center items-center gap-4 mb-6">
             <button
               onClick={handleSkipBackward}
-              className="flex h-10 w-10 items-center justify-center rounded-lg theme-bg-tertiary theme-text-primary hover:bg-slate-200 transition-colors cursor-pointer"
+              className="flex h-10 w-10 items-center justify-center rounded-lg theme-bg-tertiary theme-text-primary hover\:theme-bg-tertiary transition-colors cursor-pointer"
               title="Rewind 15s"
             >
               <svg
@@ -376,7 +376,7 @@ const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(
 
             <button
               onClick={handlePlayPause}
-              className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-900 text-white hover:bg-slate-800 transition-colors cursor-pointer"
+              className="flex h-12 w-12 items-center justify-center rounded-full theme-btn-primary hover:theme-btn-primary transition-colors cursor-pointer"
               disabled={!sound || sound.state() !== "loaded"}
             >
               {isPlaying ? (
@@ -412,7 +412,7 @@ const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(
 
             <button
               onClick={handleSkipForward}
-              className="flex h-10 w-10 items-center justify-center rounded-lg theme-bg-tertiary theme-text-primary hover:bg-slate-200 transition-colors cursor-pointer"
+              className="flex h-10 w-10 items-center justify-center rounded-lg theme-bg-tertiary theme-text-primary hover\:theme-bg-tertiary transition-colors cursor-pointer"
               title="Forward 15s"
             >
               <svg
@@ -433,7 +433,7 @@ const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(
 
           <button
             onClick={handleStop}
-            className="rounded-lg border theme-border px-4 py-2 text-sm font-sans font-medium theme-text-primary hover:theme-bg-secondary transition-colors cursor-pointer"
+            className="rounded-lg border theme-border px-4 py-2 text-sm font-sans font-medium theme-text-primary hover\:theme-bg-secondary transition-colors cursor-pointer"
           >
             Stop
           </button>

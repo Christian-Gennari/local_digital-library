@@ -372,8 +372,8 @@ export function TTSPlayer({
             title="Close"
             aria-label="Close TTS"
             className={[
-              "p-1 rounded-lg hover:theme-bg-tertiary focus:outline-none focus:ring-1 focus:ring-slate-300",
-              "theme-text-secondary hover:theme-text-primary",
+              "p-1 rounded-lg hover\:theme-bg-tertiary focus:outline-none focus:ring-1 focus:ring-slate-300",
+              "theme-text-secondary hover\:theme-text-primary",
             ].join(" ")}
           >
             <XMarkIcon className="h-4 w-4" />
@@ -381,7 +381,7 @@ export function TTSPlayer({
         )}
 
         {/* Divider */}
-        {onClose && <span className="mx-1 h-4 w-px bg-slate-200" />}
+        {onClose && <span className="mx-1 h-4 w-px theme-bg-tertiary" />}
 
         {/* Error glyph (compact) */}
         {error && (
@@ -400,7 +400,7 @@ export function TTSPlayer({
           disabled={isLoading || (!canPlay && !isPlaying)}
           title={isPlaying ? "Pause" : isPaused ? "Resume" : "Play"}
           className={[
-            "p-1 rounded-lg hover:theme-bg-tertiary disabled:opacity-50",
+            "p-1 rounded-lg hover\:theme-bg-tertiary disabled:opacity-50",
             "focus:outline-none focus:ring-1 focus:ring-slate-300",
           ].join(" ")}
         >
@@ -419,7 +419,7 @@ export function TTSPlayer({
           disabled={!isPlaying && !isPaused}
           title="Stop"
           className={[
-            "p-1 rounded-lg hover:theme-bg-tertiary disabled:opacity-50",
+            "p-1 rounded-lg hover\:theme-bg-tertiary disabled:opacity-50",
             "focus:outline-none focus:ring-1 focus:ring-slate-300",
           ].join(" ")}
         >
@@ -427,7 +427,7 @@ export function TTSPlayer({
         </button>
 
         {/* Divider */}
-        <span className="mx-1 h-4 w-px bg-slate-200" />
+        <span className="mx-1 h-4 w-px theme-bg-tertiary" />
 
         {/* Voice Selector (compact) */}
         <label className="sr-only" htmlFor="tts-voice-select">
@@ -466,7 +466,7 @@ export function TTSPlayer({
           title={`Speed: ${rate}× (click to change)`}
           className={[
             "ml-1 px-2 py-1 text-[11px] border theme-border rounded-lg",
-            "theme-bg-primary hover:theme-bg-secondary",
+            "theme-bg-primary hover\:theme-bg-secondary",
             "focus:outline-none focus:ring-1 focus:ring-slate-300",
           ].join(" ")}
         >

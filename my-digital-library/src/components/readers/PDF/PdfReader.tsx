@@ -379,7 +379,7 @@ const PdfReader = forwardRef<PdfReaderRef, PdfReaderProps>(
         {!isTocOpen && tableOfContents.length > 0 && (
           <button
             onClick={() => setIsTocOpen(true)}
-            className="fixed z-40 md:left-4 md:top-1/2 md:-translate-y-1/2 right-3 md:right-auto md:bottom-auto bottom-[calc(60px+env(safe-area-inset-bottom))] h-11 w-11 md:h-12 md:w-12 hidden md:flex items-center justify-center rounded-full theme-bg-primary shadow-lg border theme-border theme-text-secondary hover:theme-bg-secondary hover:shadow-xl transition-all cursor-pointer"
+            className="fixed z-40 md:left-4 md:top-1/2 md:-translate-y-1/2 right-3 md:right-auto md:bottom-auto bottom-[calc(60px+env(safe-area-inset-bottom))] h-11 w-11 md:h-12 md:w-12 hidden md:flex items-center justify-center rounded-full theme-bg-primary shadow-lg border theme-border theme-text-secondary hover\:theme-bg-secondary hover:shadow-xl transition-all cursor-pointer"
             title="Show Contents"
             aria-label="Table of Contents"
           >
@@ -475,7 +475,7 @@ const PdfReader = forwardRef<PdfReaderRef, PdfReaderProps>(
                     className={`inline-flex items-center gap-1 px-3 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer ${
                       currentPage <= 1
                         ? "theme-bg-tertiary theme-text-muted cursor-not-allowed"
-                        : "bg-slate-900 text-white hover:bg-slate-800"
+                        : "theme-btn-primary hover:theme-btn-primary"
                     }`}
                   >
                     <ChevronLeftIcon className="h-4 w-4" />
@@ -487,7 +487,7 @@ const PdfReader = forwardRef<PdfReaderRef, PdfReaderProps>(
                     className={`inline-flex items-center gap-1 px-3 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer ${
                       currentPage >= numPages
                         ? "theme-bg-tertiary theme-text-muted cursor-not-allowed"
-                        : "bg-slate-900 text-white hover:bg-slate-800"
+                        : "theme-btn-primary hover:theme-btn-primary"
                     }`}
                   >
                     <span className="hidden xs:inline">Next</span>
@@ -500,7 +500,7 @@ const PdfReader = forwardRef<PdfReaderRef, PdfReaderProps>(
                   <button
                     aria-label="Zoom out"
                     onClick={zoomOut}
-                    className="h-8 w-8 grid place-items-center rounded-md border theme-border theme-bg-primary theme-text-primary hover:theme-bg-secondary active:theme-bg-tertiary cursor-pointer"
+                    className="h-8 w-8 grid place-items-center rounded-md border theme-border theme-bg-primary theme-text-primary hover\:theme-bg-secondary active\:theme-bg-tertiary cursor-pointer"
                   >
                     <MinusIcon className="h-4 w-4" />
                   </button>
@@ -510,7 +510,7 @@ const PdfReader = forwardRef<PdfReaderRef, PdfReaderProps>(
                   <button
                     aria-label="Zoom in"
                     onClick={zoomIn}
-                    className="h-8 w-8 grid place-items-center rounded-md border theme-border theme-bg-primary theme-text-primary hover:theme-bg-secondary active:theme-bg-tertiary cursor-pointer"
+                    className="h-8 w-8 grid place-items-center rounded-md border theme-border theme-bg-primary theme-text-primary hover\:theme-bg-secondary active\:theme-bg-tertiary cursor-pointer"
                   >
                     <PlusIcon className="h-4 w-4" />
                   </button>
@@ -520,7 +520,7 @@ const PdfReader = forwardRef<PdfReaderRef, PdfReaderProps>(
                 <div className="flex items-center justify-end gap-2">
                   {numPages > 0 && (
                     <>
-                      <div className="w-24 md:w-28 h-2 bg-slate-200 rounded-full overflow-hidden">
+                      <div className="w-24 md:w-28 h-2 theme-bg-tertiary rounded-full overflow-hidden">
                         <div
                           className="h-full bg-emerald-500 transition-all duration-300"
                           style={{
