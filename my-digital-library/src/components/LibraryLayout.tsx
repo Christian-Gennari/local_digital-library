@@ -54,8 +54,9 @@ export function LibraryLayout() {
 
   const isMobile = useMediaQuery("(max-width: 768px)");
 
+  // Fixed click outside handler with touch support
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
+    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
       if (
         settingsRef.current &&
         !settingsRef.current.contains(event.target as Node)
@@ -65,11 +66,16 @@ export function LibraryLayout() {
     };
 
     if (showSettings) {
-      document.addEventListener("mousedown", handleClickOutside);
+      // Add small delay for touch devices
+      setTimeout(() => {
+        document.addEventListener("mousedown", handleClickOutside);
+        document.addEventListener("touchstart", handleClickOutside);
+      }, 10);
     }
 
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
     };
   }, [showSettings]);
 
@@ -197,18 +203,34 @@ export function LibraryLayout() {
               <div className="flex items-center gap-2">
                 <FileUpload />
 
-                {/* Mobile Settings Button */}
-                <button
-                  onClick={() => setShowSettings(!showSettings)}
-                  className={`p-2 rounded-lg transition-colors ${
-                    showSettings
-                      ? "theme-bg-tertiary theme-text-primary"
-                      : "theme-text-secondary hover:theme-text-primary hover:theme-bg-tertiary"
-                  }`}
-                  aria-label="Settings"
-                >
-                  <Cog6ToothIcon className="h-5 w-5" />
-                </button>
+                {/* Mobile Settings Button - WRAPPED IN DIV WITH REF */}
+                <div ref={settingsRef} className="relative">
+                  <button
+                    onClick={() => setShowSettings(!showSettings)}
+                    className={`p-2 rounded-lg transition-colors ${
+                      showSettings
+                        ? "theme-bg-tertiary theme-text-primary"
+                        : "theme-text-secondary hover:theme-text-primary hover:theme-bg-tertiary"
+                    }`}
+                    aria-label="Settings"
+                  >
+                    <Cog6ToothIcon className="h-5 w-5" />
+                  </button>
+
+                  {/* Mobile Settings Panel - MOVED INSIDE REF DIV */}
+                  {showSettings && (
+                    <div className="absolute right-0 top-10 z-50 w-[calc(100vw-1.5rem)] max-w-sm theme-bg-primary rounded-lg border theme-border shadow-lg">
+                      <div className="border-b theme-border px-4 py-3 theme-bg-secondary">
+                        <h3 className="text-sm font-semibold theme-text-primary">
+                          Settings
+                        </h3>
+                      </div>
+                      <div className="max-h-[400px] overflow-y-auto">
+                        <ThemeSelector />
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -221,20 +243,6 @@ export function LibraryLayout() {
                 onFiltersChange={setFilters}
               />
             </div>
-
-            {/* Mobile Settings Panel */}
-            {showSettings && (
-              <div className="mt-3 theme-bg-primary rounded-lg border theme-border shadow-lg">
-                <div className="border-b theme-border px-4 py-3 theme-bg-secondary">
-                  <h3 className="text-sm font-semibold theme-text-primary">
-                    Settings
-                  </h3>
-                </div>
-                <div className="max-h-[400px] overflow-y-auto">
-                  <ThemeSelector />
-                </div>
-              </div>
-            )}
           </div>
         </header>
 
