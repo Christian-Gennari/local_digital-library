@@ -185,7 +185,7 @@ export function LibraryLayout() {
       {/* MOBILE BOTTOM TAB NAVIGATION */}
       {isMobile && (
         <nav
-          className="fixed bottom-0 left-0 right-0 z-40 border-t theme-border theme-bg-primary/95 backdrop-blur-sm"
+          className="fixed bottom-0 left-0 right-0 z-40 border-t theme-border theme-bg-primary"
           style={{
             paddingBottom: "env(safe-area-inset-bottom)",
           }}
