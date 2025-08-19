@@ -50,11 +50,6 @@ export const defaultThemes: Record<string, ThemeDefinition> = {
         "margin-bottom": "1rem",
         color: "#1F1F1F !important",
       },
-      a: {
-        color: "#3B82F6 !important",
-        "text-decoration": "underline",
-        "text-underline-offset": "0.2em",
-      },
       blockquote: {
         "border-left": "3px solid rgba(0, 0, 0, 0.1)",
         "padding-left": "1.5rem",
