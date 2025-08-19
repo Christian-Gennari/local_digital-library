@@ -16,6 +16,7 @@ import {
   BookOpenIcon,
   PlusIcon,
   Cog6ToothIcon,
+  RectangleStackIcon,
 } from "@heroicons/react/24/outline";
 import { ThemeSelector } from "./ThemeSelector";
 
@@ -34,9 +35,9 @@ function useMediaQuery(query: string) {
 
 export function LibraryLayout() {
   const { selectedBook, updateBookMetadata } = useStore();
-  const { currentTheme, setTheme } = useThemeStore(); // Add this
-  const [leftOpen, setLeftOpen] = useState(false); // Changed from true to false
-  const [rightOpen, setRightOpen] = useState(false); // Changed from true to false
+  const { currentTheme, setTheme } = useThemeStore();
+  const [leftOpen, setLeftOpen] = useState(false);
+  const [rightOpen, setRightOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCollection, setSelectedCollection] = useState<string | null>(
     null
@@ -48,8 +49,8 @@ export function LibraryLayout() {
   });
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [hasMounted, setHasMounted] = useState(false);
-  const [showSettings, setShowSettings] = useState(false); // Add this state
-  const settingsRef = useRef<HTMLDivElement>(null); // Add ref for click outside
+  const [showSettings, setShowSettings] = useState(false);
+  const settingsRef = useRef<HTMLDivElement>(null);
 
   const isMobile = useMediaQuery("(max-width: 768px)");
 
@@ -161,7 +162,7 @@ export function LibraryLayout() {
                   className={`p-2.5 rounded-lg transition-colors ${
                     showSettings
                       ? "theme-bg-tertiary theme-text-primary"
-                      : "theme-text-secondary hover\:theme-text-primary hover\:theme-bg-tertiary"
+                      : "theme-text-secondary hover:theme-text-primary hover:theme-bg-tertiary"
                   }`}
                   aria-label="Settings"
                 >
@@ -202,7 +203,7 @@ export function LibraryLayout() {
                   className={`p-2 rounded-lg transition-colors ${
                     showSettings
                       ? "theme-bg-tertiary theme-text-primary"
-                      : "theme-text-secondary hover\:theme-text-primary hover\:theme-bg-tertiary"
+                      : "theme-text-secondary hover:theme-text-primary hover:theme-bg-tertiary"
                   }`}
                   aria-label="Settings"
                 >
@@ -252,7 +253,36 @@ export function LibraryLayout() {
         <BookDetailsSidebar />
       </aside>
 
-      {/* LEFT DRAWER (mobile) - Updated with conditional transitions */}
+      {/* MOBILE FLOATING ACTION BUTTONS */}
+      <div className="md:hidden">
+        {/* Collections FAB - Bottom Left */}
+        <button
+          onClick={() => setLeftOpen(true)}
+          className="fixed left-4 bottom-4 z-40 h-14 w-14 flex items-center justify-center rounded-full theme-bg-primary shadow-lg border theme-border theme-text-secondary hover:theme-bg-secondary hover:shadow-xl transition-all"
+          aria-label="Open collections"
+          style={{
+            marginBottom: "env(safe-area-inset-bottom)",
+          }}
+        >
+          <RectangleStackIcon className="h-6 w-6" />
+        </button>
+
+        {/* Book Details FAB - Bottom Right (only show when a book is selected) */}
+        {selectedBook && (
+          <button
+            onClick={() => setRightOpen(true)}
+            className="fixed right-4 bottom-4 z-40 h-14 w-14 flex items-center justify-center rounded-full theme-bg-primary shadow-lg border theme-border theme-text-secondary hover:theme-bg-secondary hover:shadow-xl transition-all"
+            aria-label="Open book details"
+            style={{
+              marginBottom: "env(safe-area-inset-bottom)",
+            }}
+          >
+            <BookOpenIcon className="h-6 w-6" />
+          </button>
+        )}
+      </div>
+
+      {/* LEFT DRAWER (mobile) */}
       <div
         className={`md:hidden fixed inset-0 z-50 ${
           leftOpen ? "" : "pointer-events-none"
@@ -262,18 +292,18 @@ export function LibraryLayout() {
         {/* Backdrop */}
         <div
           onClick={() => setLeftOpen(false)}
-          className={`absolute inset-0 bg-black/40 ${
-            hasMounted ? "transition-opacity" : ""
-          } ${leftOpen ? "opacity-100" : "opacity-0"}`}
+          className="absolute inset-0 bg-black/40"
+          style={{
+            opacity: leftOpen ? 1 : 0,
+            transition: hasMounted ? "opacity 300ms ease-in-out" : "none",
+          }}
         />
         {/* Panel */}
         <div
-          className={`absolute inset-y-0 left-0 w-[82%] max-w-[22rem] theme-bg-primary border-r theme-border shadow-xl pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] ${
-            hasMounted ? "transition-transform duration-300" : ""
-          } ${leftOpen ? "translate-x-0" : "-translate-x-full"}`}
+          className="absolute inset-y-0 left-0 w-[82%] max-w-[22rem] theme-bg-primary border-r theme-border shadow-xl pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]"
           style={{
-            transform:
-              !hasMounted && !leftOpen ? "translateX(-100%)" : undefined,
+            transform: leftOpen ? "translateX(0)" : "translateX(-100%)",
+            transition: hasMounted ? "transform 300ms ease-in-out" : "none",
           }}
           role="dialog"
           aria-label="Collections"
@@ -285,7 +315,7 @@ export function LibraryLayout() {
             </span>
             <button
               onClick={() => setLeftOpen(false)}
-              className="p-2 rounded-lg hover\\:theme-bg-tertiary transition-colors"
+              className="p-2 rounded-lg hover:theme-bg-tertiary transition-colors"
               aria-label="Close collections"
             >
               <XMarkIcon className="h-5 w-5 theme-text-secondary" />
@@ -305,7 +335,7 @@ export function LibraryLayout() {
         </div>
       </div>
 
-      {/* RIGHT DRAWER (mobile) - Updated with conditional transitions */}
+      {/* RIGHT DRAWER (mobile) */}
       <div
         className={`md:hidden fixed inset-0 z-50 ${
           rightOpen ? "" : "pointer-events-none"
@@ -314,18 +344,17 @@ export function LibraryLayout() {
       >
         <div
           onClick={() => setRightOpen(false)}
-          className={`absolute inset-0 bg-black/40 ${
-            hasMounted ? "transition-opacity" : ""
-          } ${rightOpen ? "opacity-100" : "opacity-0"}`}
+          className="absolute inset-0 bg-black/40"
+          style={{
+            opacity: rightOpen ? 1 : 0,
+            transition: hasMounted ? "opacity 300ms ease-in-out" : "none",
+          }}
         />
         <div
-          className={`absolute inset-y-0 right-0 w-[86%] max-w-[24rem] theme-bg-primary border-l theme-border shadow-xl pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] ${
-            hasMounted ? "transition-transform duration-300" : ""
-          } ${rightOpen ? "translate-x-0" : "translate-x-full"}`}
+          className="absolute inset-y-0 right-0 w-[86%] max-w-[24rem] theme-bg-primary border-l theme-border shadow-xl pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]"
           style={{
-            // Ensure it starts hidden even without transition
-            transform:
-              !hasMounted && !rightOpen ? "translateX(100%)" : undefined,
+            transform: rightOpen ? "translateX(0)" : "translateX(100%)",
+            transition: hasMounted ? "transform 300ms ease-in-out" : "none",
           }}
           role="dialog"
           aria-label="Details"
@@ -336,7 +365,7 @@ export function LibraryLayout() {
             </span>
             <button
               onClick={() => setRightOpen(false)}
-              className="p-2 rounded hover\:theme-bg-tertiary"
+              className="p-2 rounded-lg hover:theme-bg-tertiary transition-colors"
               aria-label="Close"
             >
               <XMarkIcon className="h-5 w-5 theme-text-secondary" />
