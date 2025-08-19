@@ -9,6 +9,7 @@ import { NostosLogo } from "../assets/NostosLogo";
 import { FileUpload } from "./FileUpload";
 import { getIdentifier } from "../utils/metadataHelpers";
 import { useThemeStore } from "../stores/themeStore";
+import { SettingsMenu } from "./SettingsMenu";
 
 import {
   XMarkIcon,
@@ -49,35 +50,8 @@ export function LibraryLayout() {
   });
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [hasMounted, setHasMounted] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
-  const settingsRef = useRef<HTMLDivElement>(null);
 
   const isMobile = useMediaQuery("(max-width: 768px)");
-
-  // Fixed click outside handler with touch support
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
-      if (
-        settingsRef.current &&
-        !settingsRef.current.contains(event.target as Node)
-      ) {
-        setShowSettings(false);
-      }
-    };
-
-    if (showSettings) {
-      // Add small delay for touch devices
-      setTimeout(() => {
-        document.addEventListener("mousedown", handleClickOutside);
-        document.addEventListener("touchstart", handleClickOutside);
-      }, 10);
-    }
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-      document.removeEventListener("touchstart", handleClickOutside);
-    };
-  }, [showSettings]);
 
   // Set mounted flag after initial render
   useEffect(() => {
@@ -160,35 +134,7 @@ export function LibraryLayout() {
             {/* Actions - Better spacing */}
             <div className="flex items-center gap-3 ml-8">
               <FileUpload />
-
-              {/* Settings Button with Dropdown */}
-              <div className="relative" ref={settingsRef}>
-                <button
-                  onClick={() => setShowSettings(!showSettings)}
-                  className={`p-2.5 rounded-lg transition-colors ${
-                    showSettings
-                      ? "theme-bg-tertiary theme-text-primary"
-                      : "theme-text-secondary hover:theme-text-primary hover:theme-bg-tertiary"
-                  }`}
-                  aria-label="Settings"
-                >
-                  <Cog6ToothIcon className="h-6 w-6" />
-                </button>
-
-                {/* Settings Dropdown */}
-                {showSettings && (
-                  <div className="absolute right-0 mt-2 w-96 theme-bg-primary rounded-lg shadow-xl border theme-border overflow-hidden">
-                    <div className="border-b theme-border px-4 py-3 theme-bg-secondary">
-                      <h3 className="text-sm font-semibold theme-text-primary">
-                        Settings
-                      </h3>
-                    </div>
-                    <div className="max-h-[600px] overflow-y-auto">
-                      <ThemeSelector />
-                    </div>
-                  </div>
-                )}
-              </div>
+              {!isMobile && <SettingsMenu isMobile={false} />}
             </div>
           </div>
 
@@ -202,35 +148,7 @@ export function LibraryLayout() {
 
               <div className="flex items-center gap-2">
                 <FileUpload />
-
-                {/* Mobile Settings Button - WRAPPED IN DIV WITH REF */}
-                <div ref={settingsRef} className="relative">
-                  <button
-                    onClick={() => setShowSettings(!showSettings)}
-                    className={`p-2 rounded-lg transition-colors ${
-                      showSettings
-                        ? "theme-bg-tertiary theme-text-primary"
-                        : "theme-text-secondary hover:theme-text-primary hover:theme-bg-tertiary"
-                    }`}
-                    aria-label="Settings"
-                  >
-                    <Cog6ToothIcon className="h-5 w-5" />
-                  </button>
-
-                  {/* Mobile Settings Panel - MOVED INSIDE REF DIV */}
-                  {showSettings && (
-                    <div className="absolute right-0 top-10 z-50 w-[calc(100vw-1.5rem)] max-w-sm theme-bg-primary rounded-lg border theme-border shadow-lg">
-                      <div className="border-b theme-border px-4 py-3 theme-bg-secondary">
-                        <h3 className="text-sm font-semibold theme-text-primary">
-                          Settings
-                        </h3>
-                      </div>
-                      <div className="max-h-[400px] overflow-y-auto">
-                        <ThemeSelector />
-                      </div>
-                    </div>
-                  )}
-                </div>
+                {isMobile && <SettingsMenu isMobile />}
               </div>
             </div>
 
