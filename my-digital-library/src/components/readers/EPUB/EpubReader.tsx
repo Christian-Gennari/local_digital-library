@@ -990,11 +990,11 @@ const EpubReader = forwardRef<EpubReaderRef, EpubReaderProps>(
                 </div>
               )}
 
-              {/* Centered white canvas that the rendition fills */}
-              <div className="w-full h-full grid place-items-center">
+              {/* Centered hidden canvas that the rendition fills */}
+              <div className="w-full h-full grid place-items-center pt-10">
                 <div
                   ref={viewerRef}
-                  className="w-full h-full theme-bg-primary rounded md:rounded-lg shadow-sm md:shadow-lg overflow-hidden
+                  className="w-full h-full theme-bg-primary overflow-hidden
                md:max-w-5xl md:max-h-[90vh] md:mx-auto"
                   tabIndex={0}
                   style={{
