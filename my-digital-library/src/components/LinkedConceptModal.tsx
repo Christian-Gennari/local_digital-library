@@ -75,15 +75,15 @@ export function LinkedConceptModal({
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-hidden"
+        className="theme-bg-primary rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="p-4 border-b border-gray-200">
+        <div className="p-4 border-b theme-border">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold">Notes about "{concept}"</h2>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 p-1"
+              className="text-gray-400 hover:theme-text-secondary p-1"
               aria-label="Close modal"
               disabled={isNavigating}
             >
@@ -120,7 +120,7 @@ export function LinkedConceptModal({
               {linkedNotes.map((note) => (
                 <div
                   key={note.id}
-                  className="border border-gray-200 rounded-lg p-4 hover:border-gray-300 transition-colors"
+                  className="border theme-border rounded-lg p-4 hover:border-gray-300 transition-colors"
                 >
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-xs text-gray-500 font-medium">
@@ -132,7 +132,7 @@ export function LinkedConceptModal({
                   </div>
 
                   {note.quote && (
-                    <blockquote className="text-sm italic text-gray-600 border-l-2 border-blue-200 pl-3 mb-3">
+                    <blockquote className="text-sm italic theme-text-secondary border-l-2 border-blue-200 pl-3 mb-3">
                       "{note.quote}"
                     </blockquote>
                   )}

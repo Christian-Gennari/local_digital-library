@@ -260,7 +260,7 @@ export function BookMetadataEntry({ fileName, onSave, onSkip }: Props) {
         role="dialog"
         aria-modal="true"
         aria-labelledby="entry-title"
-        className="absolute inset-x-0 bottom-0 md:inset-auto md:top-1/2 md:left-1/2 w-full md:max-w-4xl md:-translate-x-1/2 md:-translate-y-1/2 bg-white shadow-2xl md:rounded-xl pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] max-h-[95vh] flex flex-col"
+        className="absolute inset-x-0 bottom-0 md:inset-auto md:top-1/2 md:left-1/2 w-full md:max-w-4xl md:-translate-x-1/2 md:-translate-y-1/2 theme-bg-primary shadow-2xl md:rounded-xl pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] max-h-[95vh] flex flex-col"
       >
         {/* Grabber (mobile) */}
         <div className="md:hidden pt-2">
@@ -268,7 +268,7 @@ export function BookMetadataEntry({ fileName, onSave, onSkip }: Props) {
         </div>
 
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white z-10">
+        <div className="px-6 py-4 border-b theme-border flex items-center justify-between sticky top-0 theme-bg-primary z-10">
           <div>
             <h2
               id="entry-title"
@@ -276,17 +276,17 @@ export function BookMetadataEntry({ fileName, onSave, onSkip }: Props) {
             >
               Add Book Metadata
             </h2>
-            <p className="text-sm text-gray-600 mt-1 truncate">
+            <p className="text-sm theme-text-secondary mt-1 truncate">
               Fill in the details for "
               <span className="font-medium">{fileName}</span>"
             </p>
           </div>
           <button
             onClick={onSkip}
-            className="p-2 rounded-lg hover:bg-slate-100"
+            className="p-2 rounded-lg hover:theme-bg-tertiary"
             aria-label="Close"
           >
-            <XMarkIcon className="h-6 w-6 text-slate-600" />
+            <XMarkIcon className="h-6 w-6 theme-text-secondary" />
           </button>
         </div>
 
@@ -316,13 +316,13 @@ export function BookMetadataEntry({ fileName, onSave, onSkip }: Props) {
           />
 
           {/* Tabs */}
-          <div className="border-b border-gray-200 mb-6 overflow-x-auto hide-scrollbar">
+          <div className="border-b theme-border mb-6 overflow-x-auto hide-scrollbar">
             <nav className="-mb-px flex space-x-6 min-w-max" aria-label="Tabs">
               <button
                 onClick={() => setActiveTab("basic")}
                 className={`py-3 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors cursor-pointer ${
                   activeTab === "basic"
-                    ? "border-slate-600 text-slate-900"
+                    ? "border-slate-600 theme-text-primary"
                     : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                 }`}
               >
@@ -332,7 +332,7 @@ export function BookMetadataEntry({ fileName, onSave, onSkip }: Props) {
                 onClick={() => setActiveTab("identifiers")}
                 className={`py-3 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors cursor-pointer ${
                   activeTab === "identifiers"
-                    ? "border-slate-600 text-slate-900"
+                    ? "border-slate-600 theme-text-primary"
                     : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                 }`}
               >
@@ -342,7 +342,7 @@ export function BookMetadataEntry({ fileName, onSave, onSkip }: Props) {
                 onClick={() => setActiveTab("publication")}
                 className={`py-3 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors cursor-pointer ${
                   activeTab === "publication"
-                    ? "border-slate-600 text-slate-900"
+                    ? "border-slate-600 theme-text-primary"
                     : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                 }`}
               >
@@ -352,7 +352,7 @@ export function BookMetadataEntry({ fileName, onSave, onSkip }: Props) {
                 onClick={() => setActiveTab("digital")}
                 className={`py-3 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors cursor-pointer ${
                   activeTab === "digital"
-                    ? "border-slate-600 text-slate-900"
+                    ? "border-slate-600 theme-text-primary"
                     : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                 }`}
               >
@@ -362,7 +362,7 @@ export function BookMetadataEntry({ fileName, onSave, onSkip }: Props) {
                 onClick={() => setActiveTab("user")}
                 className={`py-3 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors cursor-pointer ${
                   activeTab === "user"
-                    ? "border-slate-600 text-slate-900"
+                    ? "border-slate-600 theme-text-primary"
                     : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                 }`}
               >
@@ -530,7 +530,7 @@ export function BookMetadataEntry({ fileName, onSave, onSkip }: Props) {
 
             {activeTab === "identifiers" && (
               <>
-                <div className="bg-gray-50 rounded-lg p-4 mb-6 border border-gray-200">
+                <div className="theme-bg-secondary rounded-lg p-4 mb-6 border theme-border">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Quick Identifier Lookup
                   </label>
@@ -926,7 +926,7 @@ export function BookMetadataEntry({ fileName, onSave, onSkip }: Props) {
                               "Detecting..."
                             }
                             readOnly
-                            className="flex-1 rounded-lg border border-gray-300 bg-gray-50 px-4 py-3 text-sm text-gray-600"
+                            className="flex-1 rounded-lg border border-gray-300 theme-bg-secondary px-4 py-3 text-sm theme-text-secondary"
                             placeholder="Auto-detected"
                           />
                           <button
@@ -1140,7 +1140,7 @@ export function BookMetadataEntry({ fileName, onSave, onSkip }: Props) {
         </div>
 
         {/* Footer */}
-        <div className="px-4 md:px-6 py-4 border-t border-gray-200 flex justify-between items-center gap-3 bottom-0 bg-white">
+        <div className="px-4 md:px-6 py-4 border-t theme-border flex justify-between items-center gap-3 bottom-0 theme-bg-primary">
           <button
             onClick={onSkip}
             className="px-6 py-2 text-gray-700 hover:text-gray-900 font-medium rounded-lg transition-colors cursor-pointer"

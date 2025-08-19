@@ -349,7 +349,9 @@ export function TTSPlayer({
     return (
       <div className={`flex items-center gap-2 ${className}`}>
         <div className="animate-spin h-4 w-4 border-2 border-primary/80 border-t-transparent rounded-full" />
-        <span className="text-[11px] text-slate-600">Initializing TTS…</span>
+        <span className="text-[11px] theme-text-secondary">
+          Initializing TTS…
+        </span>
       </div>
     );
   }
@@ -359,7 +361,7 @@ export function TTSPlayer({
       {/* Compact pill toolbar */}
       <div
         className={[
-          "inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-white/80",
+          "inline-flex items-center gap-1 rounded-xl border theme-border theme-bg-primary/80",
           "backdrop-blur px-2 py-1 shadow-sm",
         ].join(" ")}
       >
@@ -370,8 +372,8 @@ export function TTSPlayer({
             title="Close"
             aria-label="Close TTS"
             className={[
-              "p-1 rounded-lg hover:bg-slate-100 focus:outline-none focus:ring-1 focus:ring-slate-300",
-              "text-slate-500 hover:text-slate-700",
+              "p-1 rounded-lg hover:theme-bg-tertiary focus:outline-none focus:ring-1 focus:ring-slate-300",
+              "theme-text-secondary hover:theme-text-primary",
             ].join(" ")}
           >
             <XMarkIcon className="h-4 w-4" />
@@ -398,7 +400,7 @@ export function TTSPlayer({
           disabled={isLoading || (!canPlay && !isPlaying)}
           title={isPlaying ? "Pause" : isPaused ? "Resume" : "Play"}
           className={[
-            "p-1 rounded-lg hover:bg-slate-100 disabled:opacity-50",
+            "p-1 rounded-lg hover:theme-bg-tertiary disabled:opacity-50",
             "focus:outline-none focus:ring-1 focus:ring-slate-300",
           ].join(" ")}
         >
@@ -417,7 +419,7 @@ export function TTSPlayer({
           disabled={!isPlaying && !isPaused}
           title="Stop"
           className={[
-            "p-1 rounded-lg hover:bg-slate-100 disabled:opacity-50",
+            "p-1 rounded-lg hover:theme-bg-tertiary disabled:opacity-50",
             "focus:outline-none focus:ring-1 focus:ring-slate-300",
           ].join(" ")}
         >
@@ -438,8 +440,8 @@ export function TTSPlayer({
           disabled={!isAvailable || voices.length === 0}
           title="Select voice"
           className={[
-            "px-2 py-1 text-[11px] border border-slate-300 rounded-lg",
-            "bg-white focus:outline-none focus:ring-1 focus:ring-slate-300",
+            "px-2 py-1 text-[11px] border theme-border rounded-lg",
+            "theme-bg-primary focus:outline-none focus:ring-1 focus:ring-slate-300",
             "max-w-[160px] truncate",
             "disabled:opacity-50",
           ].join(" ")}
@@ -463,8 +465,8 @@ export function TTSPlayer({
           }}
           title={`Speed: ${rate}× (click to change)`}
           className={[
-            "ml-1 px-2 py-1 text-[11px] border border-slate-300 rounded-lg",
-            "bg-white hover:bg-slate-50",
+            "ml-1 px-2 py-1 text-[11px] border theme-border rounded-lg",
+            "theme-bg-primary hover:theme-bg-secondary",
             "focus:outline-none focus:ring-1 focus:ring-slate-300",
           ].join(" ")}
         >
@@ -474,7 +476,7 @@ export function TTSPlayer({
 
       {/* Now-playing line (single row, truncates) */}
       {currentSentence && (
-        <div className="text-[11px] leading-tight text-slate-600 max-w-[360px] truncate">
+        <div className="text-[11px] leading-tight theme-text-secondary max-w-[360px] truncate">
           {currentSentence.text}
         </div>
       )}

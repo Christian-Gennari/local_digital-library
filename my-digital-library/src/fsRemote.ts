@@ -1,5 +1,6 @@
 // src/fsRemote.ts
 import type { BookMetadata } from "./types";
+import type { ThemeSettings } from "./types/theme";
 
 export type RemoteBook = {
   id: string;
@@ -134,6 +135,55 @@ export const RemoteFS = {
         })
       )
     ).json(),
+
+  // ------- themes -------
+
+  getThemeSettings: async (): Promise<ThemeSettings | null> => {
+    // In production, just use localStorage
+    if (import.meta.env.PROD) {
+      const stored = localStorage.getItem("theme-settings");
+      return stored ? JSON.parse(stored) : null;
+    }
+
+    // In development, try API first then fallback
+    try {
+      const response = await fetch("/api/settings/theme");
+      if (response.ok) {
+        return await response.json();
+      }
+    } catch (error) {
+      // Silent fallback
+    }
+
+    const stored = localStorage.getItem("theme-settings");
+    return stored ? JSON.parse(stored) : null;
+  },
+
+  saveThemeSettings: async (settings: ThemeSettings) => {
+    // Always save to localStorage first
+    localStorage.setItem("theme-settings", JSON.stringify(settings));
+
+    // In production, don't try API
+    if (import.meta.env.PROD) {
+      return { success: true };
+    }
+
+    // In development, try API but don't fail
+    try {
+      const response = await fetch("/api/settings/theme", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(settings),
+      });
+      if (response.ok) {
+        return await response.json();
+      }
+    } catch (error) {
+      // Silent - localStorage is already saved
+    }
+
+    return { success: true };
+  },
 };
 
 // Re-export Collection type for convenience

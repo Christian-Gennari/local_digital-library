@@ -374,12 +374,12 @@ const PdfReader = forwardRef<PdfReaderRef, PdfReaderProps>(
     }, [goPrev, goNext, zoomIn, zoomOut]);
 
     return (
-      <div className="flex h-full bg-slate-50 relative">
+      <div className="flex h-full theme-bg-secondary relative">
         {/* ToC FAB on desktop; on mobile it sits bottom-right by CSS below */}
         {!isTocOpen && tableOfContents.length > 0 && (
           <button
             onClick={() => setIsTocOpen(true)}
-            className="fixed z-40 md:left-4 md:top-1/2 md:-translate-y-1/2 right-3 md:right-auto md:bottom-auto bottom-[calc(60px+env(safe-area-inset-bottom))] h-11 w-11 md:h-12 md:w-12 hidden md:flex items-center justify-center rounded-full bg-white shadow-lg border border-slate-200 text-slate-600 hover:bg-slate-50 hover:shadow-xl transition-all cursor-pointer"
+            className="fixed z-40 md:left-4 md:top-1/2 md:-translate-y-1/2 right-3 md:right-auto md:bottom-auto bottom-[calc(60px+env(safe-area-inset-bottom))] h-11 w-11 md:h-12 md:w-12 hidden md:flex items-center justify-center rounded-full theme-bg-primary shadow-lg border theme-border theme-text-secondary hover:theme-bg-secondary hover:shadow-xl transition-all cursor-pointer"
             title="Show Contents"
             aria-label="Table of Contents"
           >
@@ -463,7 +463,7 @@ const PdfReader = forwardRef<PdfReaderRef, PdfReaderProps>(
 
             {/* Toolbar: sticky on mobile, static on desktop */}
             <div
-              className="bg-white border-t border-slate-200 md:static fixed bottom-0 left-0 right-0 z-30"
+              className="theme-bg-primary border-t theme-border md:static fixed bottom-0 left-0 right-0 z-30"
               style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
             >
               <div className="px-3 py-2 md:px-4 md:py-3 grid grid-cols-3 items-center gap-2">
@@ -474,7 +474,7 @@ const PdfReader = forwardRef<PdfReaderRef, PdfReaderProps>(
                     disabled={currentPage <= 1}
                     className={`inline-flex items-center gap-1 px-3 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer ${
                       currentPage <= 1
-                        ? "bg-slate-100 text-slate-400 cursor-not-allowed"
+                        ? "theme-bg-tertiary theme-text-muted cursor-not-allowed"
                         : "bg-slate-900 text-white hover:bg-slate-800"
                     }`}
                   >
@@ -486,7 +486,7 @@ const PdfReader = forwardRef<PdfReaderRef, PdfReaderProps>(
                     disabled={currentPage >= numPages}
                     className={`inline-flex items-center gap-1 px-3 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer ${
                       currentPage >= numPages
-                        ? "bg-slate-100 text-slate-400 cursor-not-allowed"
+                        ? "theme-bg-tertiary theme-text-muted cursor-not-allowed"
                         : "bg-slate-900 text-white hover:bg-slate-800"
                     }`}
                   >
@@ -500,17 +500,17 @@ const PdfReader = forwardRef<PdfReaderRef, PdfReaderProps>(
                   <button
                     aria-label="Zoom out"
                     onClick={zoomOut}
-                    className="h-8 w-8 grid place-items-center rounded-md border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 active:bg-slate-100 cursor-pointer"
+                    className="h-8 w-8 grid place-items-center rounded-md border theme-border theme-bg-primary theme-text-primary hover:theme-bg-secondary active:theme-bg-tertiary cursor-pointer"
                   >
                     <MinusIcon className="h-4 w-4" />
                   </button>
-                  <span className="tabular-nums text-sm text-slate-700 min-w-[3ch] text-center">
+                  <span className="tabular-nums text-sm theme-text-primary min-w-[3ch] text-center">
                     {`${Math.round(scale * 100)}%`}
                   </span>
                   <button
                     aria-label="Zoom in"
                     onClick={zoomIn}
-                    className="h-8 w-8 grid place-items-center rounded-md border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 active:bg-slate-100 cursor-pointer"
+                    className="h-8 w-8 grid place-items-center rounded-md border theme-border theme-bg-primary theme-text-primary hover:theme-bg-secondary active:theme-bg-tertiary cursor-pointer"
                   >
                     <PlusIcon className="h-4 w-4" />
                   </button>
@@ -528,7 +528,7 @@ const PdfReader = forwardRef<PdfReaderRef, PdfReaderProps>(
                           }}
                         />
                       </div>
-                      <span className="text-sm text-slate-600 font-medium tabular-nums">
+                      <span className="text-sm theme-text-secondary font-medium tabular-nums">
                         {Math.round((currentPage / numPages) * 100)}%
                       </span>
                     </>

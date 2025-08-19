@@ -49,7 +49,7 @@ export function SearchBar({
         {value && (
           <button
             onClick={() => onChange("")}
-            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:theme-text-secondary"
           >
             <XMarkIcon className="h-5 w-5" />
           </button>
@@ -77,15 +77,15 @@ export function SearchBar({
 
         {/* Filter Dropdown */}
         {isOpen && (
-          <div className="absolute right-0 mt-2 w-72 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
+          <div className="absolute right-0 mt-2 w-72 origin-top-right rounded-md theme-bg-primary shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
             <div className="p-4 space-y-4">
-              <h3 className="text-sm font-medium text-slate-900">
+              <h3 className="text-sm font-medium theme-text-primary">
                 Filter Books
               </h3>
 
               <div className="space-y-3">
                 <div>
-                  <label className="block text-xs font-medium text-slate-600 mb-1">
+                  <label className="block text-xs font-medium theme-text-secondary mb-1">
                     Format
                   </label>
                   <select
@@ -93,7 +93,7 @@ export function SearchBar({
                     onChange={(e) =>
                       handleFilterChange("format", e.target.value)
                     }
-                    className="w-full text-xs border border-slate-200 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-slate-50"
+                    className="w-full text-xs border theme-border rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500 theme-bg-secondary"
                   >
                     <option value="all">All Formats</option>
                     <option value="pdf">PDF</option>
@@ -103,7 +103,7 @@ export function SearchBar({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-slate-600 mb-1">
+                  <label className="block text-xs font-medium theme-text-secondary mb-1">
                     Rating
                   </label>
                   <select
@@ -111,7 +111,7 @@ export function SearchBar({
                     onChange={(e) =>
                       handleFilterChange("rating", e.target.value)
                     }
-                    className="w-full text-xs border border-slate-200 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-slate-50"
+                    className="w-full text-xs border theme-border rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500 theme-bg-secondary"
                   >
                     <option value="all">All Ratings</option>
                     <option value="5">★★★★★</option>
@@ -122,7 +122,7 @@ export function SearchBar({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-slate-600 mb-1">
+                  <label className="block text-xs font-medium theme-text-secondary mb-1">
                     Status
                   </label>
                   <select
@@ -130,7 +130,7 @@ export function SearchBar({
                     onChange={(e) =>
                       handleFilterChange("readingStatus", e.target.value)
                     }
-                    className="w-full text-xs border border-slate-200 rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-slate-50"
+                    className="w-full text-xs border theme-border rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-blue-500 theme-bg-secondary"
                   >
                     <option value="all">All Books</option>
                     <option value="unread">Not Started</option>

@@ -258,7 +258,7 @@ export function CollectionsSidebar({
         {isOpen && (
           <div
             role="menu"
-            className="absolute right-0 mt-1 w-44 rounded-lg border border-slate-200 bg-white shadow-lg z-20 p-1"
+            className="absolute right-0 mt-1 w-44 rounded-lg border theme-border theme-bg-primary shadow-lg z-20 p-1"
           >
             <button
               role="menuitem"
@@ -271,7 +271,7 @@ export function CollectionsSidebar({
                 setExpandedFolders(next);
                 setOpenMenuId(null);
               }}
-              className="w-full text-left px-3 py-2 text-sm rounded hover:bg-slate-100 flex items-center gap-2"
+              className="w-full text-left px-3 py-2 text-sm rounded hover:theme-bg-tertiary flex items-center gap-2"
             >
               <PlusIcon className="h-4 w-4" />
               Add subcollection
@@ -285,7 +285,7 @@ export function CollectionsSidebar({
                 setEditingCollectionName(col?.name || "");
                 setOpenMenuId(null);
               }}
-              className="w-full text-left px-3 py-2 text-sm rounded hover:bg-slate-100 flex items-center gap-2"
+              className="w-full text-left px-3 py-2 text-sm rounded hover:theme-bg-tertiary flex items-center gap-2"
             >
               <PencilIcon className="h-4 w-4" />
               Rename
@@ -332,7 +332,7 @@ export function CollectionsSidebar({
                   setEditingCollectionName("");
                 }
               }}
-              className="flex-1 h-9 px-2 text-sm border border-slate-300 rounded focus:outline-none focus:border-slate-500"
+              className="flex-1 h-9 px-2 text-sm border theme-border rounded focus:outline-none focus:border-slate-500"
               autoFocus
               placeholder="Rename collection"
             />
@@ -361,8 +361,8 @@ export function CollectionsSidebar({
           <div
             className={`group relative flex items-center justify-between w-full px-3 py-2 text-sm transition-colors ${
               isSelected
-                ? "bg-slate-100 text-slate-900"
-                : "text-slate-700 hover:bg-slate-50"
+                ? "theme-bg-tertiary theme-text-primary"
+                : "theme-text-primary hover:theme-bg-secondary"
             }`}
             style={{ paddingLeft: `${12 + level * 16}px` }}
             onClick={() => {
@@ -389,7 +389,7 @@ export function CollectionsSidebar({
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-500 tabular-nums">
+              <span className="text-xs theme-text-secondary tabular-nums">
                 {count}
               </span>
               <ActionMenu
@@ -426,7 +426,7 @@ export function CollectionsSidebar({
                 if (e.key === "Escape") handleCancelCreateSub();
               }}
               placeholder="Subcollection name"
-              className="flex-1 h-9 px-2 text-sm border border-slate-300 rounded focus:outline-none focus:border-slate-500"
+              className="flex-1 h-9 px-2 text-sm border theme-border rounded focus:outline-none focus:border-slate-500"
               autoFocus
             />
             <button
@@ -460,8 +460,8 @@ export function CollectionsSidebar({
     <div className="h-full flex flex-col select-none">
       {/* Header - Only show on desktop */}
       {!isMobile && (
-        <div className="p-4 border-b border-slate-200">
-          <h2 className="font-semibold text-slate-900">Collections</h2>
+        <div className="p-4 border-b theme-border">
+          <h2 className="font-semibold theme-text-primary">Collections</h2>
         </div>
       )}
 
@@ -471,22 +471,22 @@ export function CollectionsSidebar({
           onClick={() => onSelectCollection(null)}
           className={`w-full flex items-center justify-between px-3 py-2 text-sm transition-colors ${
             selectedCollection === null
-              ? "bg-slate-100 text-slate-900"
-              : "text-slate-700 hover:bg-slate-50"
+              ? "theme-bg-tertiary theme-text-primary"
+              : "theme-text-primary hover:theme-bg-secondary"
           }`}
         >
           <div className="flex items-center gap-2">
             <BookOpenIcon className="h-4 w-4" />
             <span>All Books</span>
           </div>
-          <span className="text-xs text-slate-500 tabular-nums">
+          <span className="text-xs theme-text-secondary tabular-nums">
             {books.length}
           </span>
         </button>
 
         {/* Smart Collections */}
         <div className="mt-4">
-          <h3 className="px-3 text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
+          <h3 className="px-3 text-[10px] font-semibold theme-text-secondary uppercase tracking-wider">
             Smart Collections
           </h3>
           <div className="mt-2">
@@ -498,15 +498,15 @@ export function CollectionsSidebar({
                   onClick={() => onSelectCollection(c.id)}
                   className={`w-full flex items-center justify-between px-3 py-2 text-sm transition-colors ${
                     isSelected
-                      ? "bg-slate-100 text-slate-900"
-                      : "text-slate-700 hover:bg-slate-50"
+                      ? "theme-bg-tertiary theme-text-primary"
+                      : "theme-text-primary hover:theme-bg-secondary"
                   }`}
                 >
                   <div className="flex items-center gap-2">
                     {c.icon}
                     <span className="truncate">{c.name}</span>
                   </div>
-                  <span className="text-xs text-slate-500 tabular-nums">
+                  <span className="text-xs theme-text-secondary tabular-nums">
                     {c.count}
                   </span>
                 </button>
@@ -518,7 +518,7 @@ export function CollectionsSidebar({
         {/* Create root collection row */}
         {isCreatingCollection && (
           <div className="px-3 mb-2 flex items-center gap-2">
-            <FolderIcon className="h-4 w-4 flex-shrink-0 text-slate-400" />
+            <FolderIcon className="h-4 w-4 flex-shrink-0 theme-text-muted" />
             <input
               value={newCollectionName}
               onChange={(e) => setNewCollectionName(e.target.value)}
@@ -527,7 +527,7 @@ export function CollectionsSidebar({
                 if (e.key === "Escape") handleCancelCreateRoot();
               }}
               placeholder="Collection name"
-              className="flex-1 h-8 px-2 text-sm border border-slate-300 rounded focus:outline-none focus:border-slate-500"
+              className="flex-1 h-8 px-2 text-sm border theme-border rounded focus:outline-none focus:border-slate-500"
               autoFocus
             />
             <button
@@ -553,13 +553,13 @@ export function CollectionsSidebar({
         {/* User Collections */}
         <div className="mt-6">
           <div className="px-3 mb-2 flex items-center justify-between">
-            <h3 className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
+            <h3 className="text-[10px] font-semibold theme-text-secondary uppercase tracking-wider">
               My Collections
             </h3>
             {/* New Collection Button - Clean simple plus */}
             <button
               onClick={() => setIsCreatingCollection(true)}
-              className="h-6 w-6 inline-flex items-center justify-center rounded hover:bg-slate-100 text-slate-600 hover:text-slate-900 transition-colors"
+              className="h-6 w-6 inline-flex items-center justify-center rounded hover:theme-bg-tertiary theme-text-secondary hover:theme-text-primary transition-colors"
               title="Create new collection (Cmd/Ctrl+N)"
               aria-label="Create new collection"
             >
@@ -569,7 +569,7 @@ export function CollectionsSidebar({
 
           <div className="mt-2">
             {userCollections.length === 0 ? (
-              <p className="px-3 text-xs text-slate-500 italic">
+              <p className="px-3 text-xs theme-text-secondary italic">
                 No collections yet
               </p>
             ) : (

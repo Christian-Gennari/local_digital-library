@@ -65,13 +65,13 @@ export const TagInput: React.FC<TagInputProps> = ({
         {value.map((tag, index) => (
           <span
             key={index}
-            className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors"
+            className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm theme-bg-tertiary theme-text-primary hover:bg-slate-200 transition-colors"
           >
             {tag}
             <button
               type="button"
               onClick={() => removeTag(index)}
-              className="ml-1 text-slate-500 hover:text-slate-700 focus:outline-none"
+              className="ml-1 theme-text-secondary hover:theme-text-primary focus:outline-none"
               aria-label={`Remove ${tag}`}
             >
               <svg

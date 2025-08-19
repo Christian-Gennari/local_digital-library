@@ -155,7 +155,7 @@ export function ReferenceGenerator({ book, onClose }: Props) {
         role="dialog"
         aria-modal="true"
         aria-labelledby="refgen-title"
-        className="absolute inset-x-0 bottom-0 md:inset-auto md:top-1/2 md:left-1/2 w-full md:max-w-4xl md:-translate-x-1/2 md:-translate-y-1/2 bg-white shadow-2xl md:rounded-xl pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] max-h-[95vh] flex flex-col"
+        className="absolute inset-x-0 bottom-0 md:inset-auto md:top-1/2 md:left-1/2 w-full md:max-w-4xl md:-translate-x-1/2 md:-translate-y-1/2 theme-bg-primary shadow-2xl md:rounded-xl pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] max-h-[95vh] flex flex-col"
       >
         {/* Grabber (mobile) */}
         <div className="md:hidden pt-2">
@@ -163,9 +163,9 @@ export function ReferenceGenerator({ book, onClose }: Props) {
         </div>
 
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white z-10">
+        <div className="px-6 py-4 border-b theme-border flex items-center justify-between sticky top-0 theme-bg-primary z-10">
           <div className="flex items-center gap-3 min-w-0">
-            <AcademicCapIcon className="h-7 w-7 text-slate-600 flex-shrink-0" />
+            <AcademicCapIcon className="h-7 w-7 theme-text-secondary flex-shrink-0" />
             <div className="min-w-0">
               <h2
                 id="refgen-title"
@@ -173,7 +173,7 @@ export function ReferenceGenerator({ book, onClose }: Props) {
               >
                 Generate Reference
               </h2>
-              <p className="text-sm text-gray-600 truncate">
+              <p className="text-sm theme-text-secondary truncate">
                 Citations for "
                 <span className="font-medium">{book.metadata.title}</span>"
               </p>
@@ -181,10 +181,10 @@ export function ReferenceGenerator({ book, onClose }: Props) {
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-lg hover:bg-slate-100"
+            className="p-2 rounded-lg hover:theme-bg-tertiary"
             aria-label="Close"
           >
-            <XMarkIcon className="h-6 w-6 text-slate-600" />
+            <XMarkIcon className="h-6 w-6 theme-text-secondary" />
           </button>
         </div>
 
@@ -204,8 +204,8 @@ export function ReferenceGenerator({ book, onClose }: Props) {
                     onClick={() => setSelectedFormat(format.id as any)}
                     className={`p-4 rounded-lg border-2 text-left transition-all cursor-pointer ${
                       active
-                        ? "border-slate-600 bg-slate-50"
-                        : "border-gray-200 hover:border-gray-300"
+                        ? "border-slate-600 theme-bg-secondary"
+                        : "theme-border hover:border-gray-300"
                     }`}
                     aria-pressed={active}
                   >
@@ -244,7 +244,7 @@ export function ReferenceGenerator({ book, onClose }: Props) {
             </h3>
             <div className="relative">
               <div
-                className="p-4 bg-gray-50 rounded-lg border border-gray-200"
+                className="p-4 theme-bg-secondary rounded-lg border theme-border"
                 ref={citationRef}
               >
                 <p
@@ -255,14 +255,14 @@ export function ReferenceGenerator({ book, onClose }: Props) {
               </div>
               <button
                 onClick={handleCopy}
-                className="absolute top-2 right-2 p-2 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow"
+                className="absolute top-2 right-2 p-2 theme-bg-primary rounded-lg shadow-sm hover:shadow-md transition-shadow"
                 title="Copy to clipboard"
                 aria-live="polite"
               >
                 {copied ? (
                   <CheckIcon className="h-5 w-5 text-green-600" />
                 ) : (
-                  <DocumentDuplicateIcon className="h-5 w-5 text-gray-600" />
+                  <DocumentDuplicateIcon className="h-5 w-5 theme-text-secondary" />
                 )}
               </button>
             </div>
@@ -278,11 +278,11 @@ export function ReferenceGenerator({ book, onClose }: Props) {
           </div>
 
           {/* Citation Guidelines */}
-          <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-            <h4 className="text-sm font-medium text-slate-900 mb-2">
+          <div className="theme-bg-secondary rounded-lg p-4 border theme-border">
+            <h4 className="text-sm font-medium theme-text-primary mb-2">
               Citation Tips
             </h4>
-            <ul className="text-sm text-slate-700 space-y-1">
+            <ul className="text-sm theme-text-primary space-y-1">
               <li>
                 • Book titles should be italicized in your final document.
               </li>
@@ -307,7 +307,7 @@ export function ReferenceGenerator({ book, onClose }: Props) {
         </div>
 
         {/* Footer */}
-        <div className="px-4 md:px-6 py-4 border-t border-gray-200 flex flex-col-reverse sm:flex-row sm:items-center gap-3 sm:justify-end sticky bottom-0 bg-white">
+        <div className="px-4 md:px-6 py-4 border-t theme-border flex flex-col-reverse sm:flex-row sm:items-center gap-3 sm:justify-end sticky bottom-0 theme-bg-primary">
           <button
             onClick={onClose}
             className="px-6 py-2 text-gray-700 hover:text-gray-900 font-medium rounded-lg transition-colors cursor-pointer"

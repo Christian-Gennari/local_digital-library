@@ -261,12 +261,12 @@ const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(
     };
 
     return (
-      <div className="flex items-center justify-center h-full bg-slate-50">
-        <div className="text-center p-8 bg-white rounded-2xl shadow-lg max-w-md w-full mx-4">
+      <div className="flex items-center justify-center h-full theme-bg-secondary">
+        <div className="text-center p-8 theme-bg-primary rounded-2xl shadow-lg max-w-md w-full mx-4">
           <div className="mb-6">
-            <div className="mb-4 flex h-16 w-16 items-center justify-center mx-auto rounded-full bg-slate-100">
+            <div className="mb-4 flex h-16 w-16 items-center justify-center mx-auto rounded-full theme-bg-tertiary">
               <svg
-                className="h-8 w-8 text-slate-600"
+                className="h-8 w-8 theme-text-secondary"
                 fill="none"
                 viewBox="0 0 24 24"
                 strokeWidth={1.5}
@@ -279,11 +279,11 @@ const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(
                 />
               </svg>
             </div>
-            <h2 className="text-xl font-sans font-semibold text-slate-900 mb-2">
+            <h2 className="text-xl font-sans font-semibold theme-text-primary mb-2">
               {title}
             </h2>
             {author && (
-              <p className="text-sm font-serif text-slate-600 mb-4">
+              <p className="text-sm font-serif theme-text-secondary mb-4">
                 by {author}
               </p>
             )}
@@ -347,7 +347,7 @@ const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(
       }
     `}</style>
 
-              <div className="flex justify-between text-xs font-sans text-slate-500 mt-2">
+              <div className="flex justify-between text-xs font-sans theme-text-secondary mt-2">
                 <span>{formatTime(currentTime)}</span>
                 <span>{formatTime(duration)}</span>
               </div>
@@ -356,7 +356,7 @@ const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(
           <div className="flex justify-center items-center gap-4 mb-6">
             <button
               onClick={handleSkipBackward}
-              className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors cursor-pointer"
+              className="flex h-10 w-10 items-center justify-center rounded-lg theme-bg-tertiary theme-text-primary hover:bg-slate-200 transition-colors cursor-pointer"
               title="Rewind 15s"
             >
               <svg
@@ -412,7 +412,7 @@ const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(
 
             <button
               onClick={handleSkipForward}
-              className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors cursor-pointer"
+              className="flex h-10 w-10 items-center justify-center rounded-lg theme-bg-tertiary theme-text-primary hover:bg-slate-200 transition-colors cursor-pointer"
               title="Forward 15s"
             >
               <svg
@@ -433,7 +433,7 @@ const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(
 
           <button
             onClick={handleStop}
-            className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-sans font-medium text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
+            className="rounded-lg border theme-border px-4 py-2 text-sm font-sans font-medium theme-text-primary hover:theme-bg-secondary transition-colors cursor-pointer"
           >
             Stop
           </button>

@@ -165,19 +165,19 @@ function BookViewerContent() {
   return (
     <div
       ref={viewerRef}
-      className={`h-screen flex flex-col bg-white ${
+      className={`h-screen flex flex-col theme-bg-primary ${
         isFullscreen ? "fixed inset-0 z-50" : ""
       }`}
     >
       {/* Desktop header */}
       {!isMobile && (
-        <header className="border-b border-slate-200 bg-white/80 backdrop-blur-sm flex-shrink-0 relative z-30">
+        <header className="border-b theme-border theme-bg-primary/80 backdrop-blur-sm flex-shrink-0 relative z-30">
           <div className="px-6 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <button
                   onClick={() => setCurrentBook(null)}
-                  className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
+                  className="inline-flex items-center gap-2 rounded-lg border theme-border px-4 py-2 text-sm font-medium theme-text-primary hover:theme-bg-secondary transition-colors cursor-pointer"
                 >
                   <svg
                     className="h-4 w-4"
@@ -196,11 +196,11 @@ function BookViewerContent() {
                 </button>
 
                 <div>
-                  <h1 className="font-semibold text-lg text-slate-900 leading-tight">
+                  <h1 className="font-semibold text-lg theme-text-primary leading-tight">
                     {currentBook.metadata.title}
                   </h1>
                   {currentBook.metadata.author && (
-                    <p className="text-sm text-slate-600">
+                    <p className="text-sm theme-text-secondary">
                       {currentBook.metadata.author}
                     </p>
                   )}
@@ -209,14 +209,14 @@ function BookViewerContent() {
 
               <div className="flex items-center gap-2">
                 {displayReference && (
-                  <div className="px-3 py-1.5 rounded-full bg-slate-100 text-xs text-slate-600 mr-2">
+                  <div className="px-3 py-1.5 rounded-full theme-bg-tertiary text-xs theme-text-secondary mr-2">
                     {displayReference}
                   </div>
                 )}
                 {/* Fullscreen Button */}
                 <button
                   onClick={toggleFullscreen}
-                  className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors cursor-pointer"
+                  className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium theme-bg-tertiary theme-text-primary hover:bg-slate-200 transition-colors cursor-pointer"
                   title="Toggle Fullscreen"
                 >
                   {isFullscreen ? (
@@ -258,7 +258,7 @@ function BookViewerContent() {
                     className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors cursor-pointer ${
                       showTTS
                         ? "bg-slate-900 text-white"
-                        : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                        : "theme-bg-tertiary theme-text-primary hover:bg-slate-200"
                     }`}
                     title="Text-to-Speech"
                   >
@@ -285,7 +285,7 @@ function BookViewerContent() {
                     className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors cursor-pointer ${
                       showSearch
                         ? "bg-slate-900 text-white"
-                        : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                        : "theme-bg-tertiary theme-text-primary hover:bg-slate-200"
                     }`}
                     title="Search in Book"
                   >
@@ -312,7 +312,7 @@ function BookViewerContent() {
                   className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors cursor-pointer ${
                     isNotesOpen
                       ? "bg-slate-900 text-white"
-                      : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                      : "theme-bg-tertiary theme-text-primary hover:bg-slate-200"
                   }`}
                   title="Toggle Notes"
                 >
@@ -369,7 +369,7 @@ function BookViewerContent() {
             isMobile
               ? "fixed inset-y-0 right-0 w-[88%] max-w-[26rem]"
               : "fixed right-0 h-[calc(100%-64px)] w-80"
-          } z-40 transition-transform duration-300 bg-white border-l border-slate-200 shadow-lg`}
+          } z-40 transition-transform duration-300 theme-bg-primary border-l theme-border shadow-lg`}
           style={{
             transform: isNotesOpen ? "translateX(0)" : "translateX(100%)",
             paddingTop: isMobile ? "env(safe-area-inset-top)" : undefined,
@@ -400,27 +400,27 @@ function BookViewerContent() {
 
       {/* Mobile Top Bar */}
       {isMobile && (
-        <div className="fixed top-0 left-0 right-0 z-30 bg-white/90 backdrop-blur-sm border-b border-slate-200 pt-[env(safe-area-inset-top)]">
+        <div className="fixed top-0 left-0 right-0 z-30 theme-bg-primary/90 backdrop-blur-sm border-b theme-border pt-[env(safe-area-inset-top)]">
           <div className="px-3 py-2 flex items-center justify-between">
             <button
               onClick={() => setCurrentBook(null)}
-              className="px-3 py-2 rounded-lg border border-slate-200 text-slate-700 text-sm"
+              className="px-3 py-2 rounded-lg border theme-border theme-text-primary text-sm"
             >
               Back
             </button>
             <div className="min-w-0 flex-1 px-3">
-              <p className="text-sm font-medium truncate text-slate-900">
+              <p className="text-sm font-medium truncate theme-text-primary">
                 {currentBook.metadata.title}
               </p>
               {currentBook.metadata.author && (
-                <p className="text-xs text-slate-500 truncate">
+                <p className="text-xs theme-text-secondary truncate">
                   by {currentBook.metadata.author}
                 </p>
               )}
             </div>
             <button
               onClick={() => setIsMenuOpen((v) => !v)}
-              className="p-2 rounded-lg bg-slate-100 text-slate-700"
+              className="p-2 rounded-lg theme-bg-tertiary theme-text-primary"
               aria-label="Open menu"
             >
               {/* menu icon */}
@@ -450,7 +450,7 @@ function BookViewerContent() {
             onClick={() => setIsMenuOpen(false)}
             aria-label="Close menu backdrop"
           />
-          <div className="absolute right-2 top-[56px] rounded-xl bg-white shadow-2xl border border-slate-200 w-60 overflow-hidden">
+          <div className="absolute right-2 top-[56px] rounded-xl theme-bg-primary shadow-2xl border theme-border w-60 overflow-hidden">
             <div className="p-2">
               {/* TTS Toggle Button - Only show for PDF and EPUB */}
               {(format === "pdf" || format === "epub") && (
@@ -459,10 +459,10 @@ function BookViewerContent() {
                     setShowTTS(!showTTS);
                     setIsMenuOpen(false);
                   }}
-                  className="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2"
+                  className="w-full text-left px-3 py-2 rounded-lg hover:theme-bg-secondary flex items-center gap-2"
                 >
                   <svg
-                    className="h-5 w-5 text-slate-600"
+                    className="h-5 w-5 theme-text-secondary"
                     fill="none"
                     viewBox="0 0 24 24"
                     strokeWidth={1.5}
@@ -492,10 +492,10 @@ function BookViewerContent() {
                     // if (!showSearch && isNotesOpen) toggleNotes();
                     setIsMenuOpen(false);
                   }}
-                  className="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2"
+                  className="w-full text-left px-3 py-2 rounded-lg hover:theme-bg-secondary flex items-center gap-2"
                 >
                   <svg
-                    className="h-5 w-5 text-slate-600"
+                    className="h-5 w-5 theme-text-secondary"
                     fill="none"
                     viewBox="0 0 24 24"
                     strokeWidth={1.5}
@@ -519,10 +519,10 @@ function BookViewerContent() {
                     setIsTocOpen(!isTocOpen);
                     setIsMenuOpen(false);
                   }}
-                  className="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50 flex items-center gap-2"
+                  className="w-full text-left px-3 py-2 rounded-lg hover:theme-bg-secondary flex items-center gap-2"
                 >
                   <svg
-                    className="h-5 w-5 text-slate-600"
+                    className="h-5 w-5 theme-text-secondary"
                     fill="none"
                     viewBox="0 0 24 24"
                     strokeWidth={1.5}
@@ -545,7 +545,7 @@ function BookViewerContent() {
                   toggleNotes();
                   setIsMenuOpen(false);
                 }}
-                className="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50"
+                className="w-full text-left px-3 py-2 rounded-lg hover:theme-bg-secondary"
               >
                 {isNotesOpen ? "Hide notes" : "Open notes"}
               </button>
@@ -554,7 +554,7 @@ function BookViewerContent() {
                   toggleFullscreen();
                   setIsMenuOpen(false);
                 }}
-                className="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50"
+                className="w-full text-left px-3 py-2 rounded-lg hover:theme-bg-secondary"
               >
                 {isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
               </button>
@@ -563,7 +563,7 @@ function BookViewerContent() {
                   setCurrentBook(null);
                   setIsMenuOpen(false);
                 }}
-                className="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-50"
+                className="w-full text-left px-3 py-2 rounded-lg hover:theme-bg-secondary"
               >
                 Back to library
               </button>

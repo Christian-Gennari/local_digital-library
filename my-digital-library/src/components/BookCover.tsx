@@ -37,7 +37,7 @@ const BookCover = memo<BookCoverProps>(
   ({
     book,
     hideStarOverlay = false,
-    className = "relative aspect-[2/3] overflow-hidden rounded-xl bg-slate-50/50 shadow-inner",
+    className = "relative aspect-[2/3] overflow-hidden rounded-xl theme-bg-secondary/50 shadow-inner",
     width = 400,
     height = 600,
     priority = false,

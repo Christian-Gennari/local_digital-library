@@ -286,7 +286,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
         role="dialog"
         aria-modal="true"
         aria-labelledby="edit-title"
-        className="absolute inset-x-0 bottom-0 md:inset-auto md:top-1/2 md:left-1/2 w-full md:max-w-4xl md:-translate-x-1/2 md:-translate-y-1/2 bg-white shadow-2xl md:rounded-xl pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] max-h-[95vh] flex flex-col"
+        className="absolute inset-x-0 bottom-0 md:inset-auto md:top-1/2 md:left-1/2 w-full md:max-w-4xl md:-translate-x-1/2 md:-translate-y-1/2 theme-bg-primary shadow-2xl md:rounded-xl pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] max-h-[95vh] flex flex-col"
       >
         {/* Grabber (mobile) */}
         <div className="md:hidden pt-2">
@@ -294,7 +294,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
         </div>
 
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between sticky top-0 bg-white z-10">
+        <div className="px-6 py-4 border-b theme-border flex items-center justify-between sticky top-0 theme-bg-primary z-10">
           <div className="flex items-center gap-2 min-w-0">
             <h2
               id="edit-title"
@@ -302,7 +302,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
             >
               Edit Metadata
             </h2>
-            <span className="bg-slate-100 text-slate-700 font-semibold px-3 py-1 rounded-full text-xs flex-shrink-0">
+            <span className="theme-bg-tertiary theme-text-primary font-semibold px-3 py-1 rounded-full text-xs flex-shrink-0">
               {itemType === "article"
                 ? "Article"
                 : itemType === "audiobook"
@@ -312,10 +312,10 @@ export function BookMetadataEditor({ book, onClose }: Props) {
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-lg hover:bg-slate-100"
+            className="p-2 rounded-lg hover:theme-bg-tertiary"
             aria-label="Close"
           >
-            <XMarkIcon className="h-6 w-6 text-slate-600" />
+            <XMarkIcon className="h-6 w-6 theme-text-secondary" />
           </button>
         </div>
 
@@ -381,13 +381,13 @@ export function BookMetadataEditor({ book, onClose }: Props) {
           />
 
           {/* Tabs for organizing fields */}
-          <div className="border-b border-gray-200 mb-6 overflow-x-auto hide-scrollbar">
+          <div className="border-b theme-border mb-6 overflow-x-auto hide-scrollbar">
             <nav className="-mb-px flex space-x-6 min-w-max" aria-label="Tabs">
               <button
                 onClick={() => setActiveTab("basic")}
                 className={`py-3 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors cursor-pointer ${
                   activeTab === "basic"
-                    ? "border-slate-600 text-slate-900"
+                    ? "border-slate-600 theme-text-primary"
                     : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                 }`}
               >
@@ -397,7 +397,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
                 onClick={() => setActiveTab("identifiers")}
                 className={`py-3 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors cursor-pointer ${
                   activeTab === "identifiers"
-                    ? "border-slate-600 text-slate-900"
+                    ? "border-slate-600 theme-text-primary"
                     : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                 }`}
               >
@@ -407,7 +407,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
                 onClick={() => setActiveTab("publication")}
                 className={`py-3 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors cursor-pointer ${
                   activeTab === "publication"
-                    ? "border-slate-600 text-slate-900"
+                    ? "border-slate-600 theme-text-primary"
                     : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                 }`}
               >
@@ -417,7 +417,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
                 onClick={() => setActiveTab("digital")}
                 className={`py-3 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors cursor-pointer ${
                   activeTab === "digital"
-                    ? "border-slate-600 text-slate-900"
+                    ? "border-slate-600 theme-text-primary"
                     : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                 }`}
               >
@@ -427,7 +427,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
                 onClick={() => setActiveTab("user")}
                 className={`py-3 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors cursor-pointer ${
                   activeTab === "user"
-                    ? "border-slate-600 text-slate-900"
+                    ? "border-slate-600 theme-text-primary"
                     : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                 }`}
               >
@@ -437,7 +437,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
                 onClick={() => setActiveTab("collections")}
                 className={`py-3 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors cursor-pointer ${
                   activeTab === "collections"
-                    ? "border-slate-600 text-slate-900"
+                    ? "border-slate-600 theme-text-primary"
                     : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                 }`}
               >
@@ -602,7 +602,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
 
             {activeTab === "identifiers" && (
               <>
-                <div className="bg-gray-50 rounded-lg p-4 mb-6 border border-gray-200">
+                <div className="theme-bg-secondary rounded-lg p-4 mb-6 border theme-border">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Quick Identifier Lookup
                   </label>
@@ -998,7 +998,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
                               "Detecting..."
                             }
                             readOnly
-                            className="flex-1 rounded-lg border border-gray-300 bg-gray-50 px-4 py-3 text-sm text-gray-600"
+                            className="flex-1 rounded-lg border border-gray-300 theme-bg-secondary px-4 py-3 text-sm theme-text-secondary"
                             placeholder="Auto-detected"
                           />
                           <button
@@ -1195,7 +1195,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
                 <h3 className="text-sm font-medium text-gray-700 mb-3">
                   Assign to Collections
                 </h3>
-                <div className="space-y-2 max-h-72 md:max-h-96 overflow-y-auto border border-gray-200 rounded-lg p-3">
+                <div className="space-y-2 max-h-72 md:max-h-96 overflow-y-auto border theme-border rounded-lg p-3">
                   {collections.length === 0 ? (
                     <p className="text-sm text-gray-500 italic p-4 text-center">
                       No collections created yet. Create collections from the
@@ -1205,7 +1205,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
                     collections.map((collection) => (
                       <label
                         key={collection.id}
-                        className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded cursor-pointer"
+                        className="flex items-center gap-3 p-2 hover:theme-bg-secondary rounded cursor-pointer"
                       >
                         <input
                           type="checkbox"
@@ -1227,7 +1227,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
         </div>
 
         {/* Footer */}
-        <div className="px-4 md:px-6 py-4 border-t border-gray-200 flex flex-col-reverse sm:flex-row sm:items-center gap-3 sm:justify-end bg-white flex-shrink-0">
+        <div className="px-4 md:px-6 py-4 border-t theme-border flex flex-col-reverse sm:flex-row sm:items-center gap-3 sm:justify-end theme-bg-primary flex-shrink-0">
           <button
             onClick={onClose}
             className="px-6 py-2 text-gray-700 hover:text-gray-900 font-medium rounded-lg transition-colors cursor-pointer"

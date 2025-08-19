@@ -1,6 +1,6 @@
 export function NostosLogo() {
   return (
-    <div className="flex items-center px-2 py-2 bg-white">
+    <div className="flex items-center px-2 py-2 theme-bg-primary">
       {/* Icon */}
       <div className="flex items-center justify-center h-10 w-10 rounded-md bg-slate-800">
         <svg
@@ -20,7 +20,7 @@ export function NostosLogo() {
         <div className="text-lg font-serif text-slate-800 tracking-tight">
           Nostos
         </div>
-        <div className="text-xs italic font-sans text-slate-500">
+        <div className="text-xs italic font-sans theme-text-secondary">
           Your Intellectual Homecoming
         </div>
       </div>

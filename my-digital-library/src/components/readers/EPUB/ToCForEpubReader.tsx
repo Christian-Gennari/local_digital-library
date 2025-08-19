@@ -51,7 +51,7 @@ const TOCItem = memo(
           {hasSubitems ? (
             <button
               onClick={() => onTocToggle(item.id)}
-              className="toc_toggle flex h-5 w-5 items-center justify-center text-slate-400 hover:text-slate-600 cursor-pointer flex-shrink-0"
+              className="toc_toggle flex h-5 w-5 items-center justify-center theme-text-muted hover:theme-text-secondary cursor-pointer flex-shrink-0"
             >
               <svg
                 className={`h-3 w-3 transition-transform ${
@@ -77,7 +77,7 @@ const TOCItem = memo(
             className={`toc_link flex-1 text-left px-2 py-1 rounded-lg text-sm transition-colors cursor-pointer ${
               isCurrent
                 ? "bg-amber-50 text-amber-900 border border-amber-200"
-                : "hover:bg-slate-50 text-slate-700 border border-transparent"
+                : "hover:theme-bg-secondary theme-text-primary border border-transparent"
             } w-full`}
             style={{ paddingLeft: `${8 + (item.level - 1) * 12}px` }}
           >
@@ -131,7 +131,7 @@ const TableOfContents = memo(
         )}
 
         <div
-          className={`fixed left-0 z-50 bg-white border-r border-slate-200 shadow-xl ${
+          className={`fixed left-0 z-50 theme-bg-primary border-r theme-border shadow-xl ${
             isMobile ? "w-full top-0 h-[100vh]" : "w-80"
           }`}
           style={
@@ -143,12 +143,12 @@ const TableOfContents = memo(
           aria-modal="true"
           aria-label="Table of contents"
         >
-          <div className="bg-white flex flex-col h-full overflow-x-hidden">
-            <div className="p-4 border-b border-slate-200 bg-slate-50/30">
+          <div className="theme-bg-primary flex flex-col h-full overflow-x-hidden">
+            <div className="p-4 border-b theme-border theme-bg-secondary/30">
               <div className="flex items-center justify-between">
-                <h3 className="font-sans font-semibold text-lg text-slate-900 flex items-center gap-2">
+                <h3 className="font-sans font-semibold text-lg theme-text-primary flex items-center gap-2">
                   <svg
-                    className="h-5 w-5 text-slate-600"
+                    className="h-5 w-5 theme-text-secondary"
                     fill="none"
                     viewBox="0 0 24 24"
                     strokeWidth={1.5}
@@ -164,7 +164,7 @@ const TableOfContents = memo(
                 </h3>
                 <button
                   onClick={onTocClose}
-                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                  className="flex h-8 w-8 items-center justify-center rounded-lg border theme-border theme-text-secondary hover:theme-bg-tertiary transition-colors cursor-pointer"
                   title="Hide Contents"
                   aria-label="Hide Contents"
                 >
@@ -200,10 +200,10 @@ const TableOfContents = memo(
                 </ul>
               ) : (
                 <div className="p-4 text-center">
-                  <p className="text-sm font-sans font-medium text-slate-900 mb-1">
+                  <p className="text-sm font-sans font-medium theme-text-primary mb-1">
                     No contents available
                   </p>
-                  <p className="text-xs font-serif text-slate-500">
+                  <p className="text-xs font-serif theme-text-secondary">
                     This book doesn't have a table of contents
                   </p>
                 </div>

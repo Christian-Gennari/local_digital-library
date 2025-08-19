@@ -47,7 +47,7 @@ const TOCItem = memo(function TOCItem({
         {hasSubitems ? (
           <button
             onClick={() => onTocToggle(item.id)}
-            className="flex h-6 w-6 items-center justify-center text-slate-400 hover:text-slate-600 cursor-pointer flex-shrink-0"
+            className="flex h-6 w-6 items-center justify-center theme-text-muted hover:theme-text-secondary cursor-pointer flex-shrink-0"
             aria-label={isOpen ? "Collapse section" : "Expand section"}
           >
             <svg
@@ -75,13 +75,15 @@ const TOCItem = memo(function TOCItem({
           className={`flex-1 text-left px-2 py-1.5 rounded-lg text-sm transition-colors cursor-pointer w-full ${
             isCurrent
               ? "bg-amber-50 text-amber-900 border border-amber-200"
-              : "hover:bg-slate-50 text-slate-700 border border-transparent"
+              : "hover:theme-bg-secondary theme-text-primary border border-transparent"
           }`}
           // indent by level
           style={{ paddingLeft: `${8 + (item.level - 1) * 12}px` }}
         >
           <div className="font-medium font-sans truncate">{item.label}</div>
-          <div className="text-xs text-slate-500">Page {item.pageNumber}</div>
+          <div className="text-xs theme-text-secondary">
+            Page {item.pageNumber}
+          </div>
         </button>
       </div>
 
@@ -139,7 +141,7 @@ const TableOfContents = memo(function TableOfContents({
         // Desktop: left sidebar under sticky app header
         // Mobile: full-screen drawer under header with safe-area padding
         className="
-  fixed z-50 bg-white border-slate-200 shadow-xl
+  fixed z-50 theme-bg-primary theme-border shadow-xl
   md:left-0 md:top-[76px] md:h-[calc(100vh-73px)] md:w-80 md:border-r
   left-0 top-0 h-screen w-full md:rounded-none
 "
@@ -152,11 +154,11 @@ const TableOfContents = memo(function TableOfContents({
       >
         <div className="flex flex-col h-full overflow-x-hidden">
           {/* Header */}
-          <div className="px-4 py-3 border-b border-slate-200 bg-slate-50/40">
+          <div className="px-4 py-3 border-b theme-border theme-bg-secondary/40">
             <div className="flex items-center justify-between">
-              <h3 className="font-sans font-semibold text-lg text-slate-900 flex items-center gap-2">
+              <h3 className="font-sans font-semibold text-lg theme-text-primary flex items-center gap-2">
                 <svg
-                  className="h-5 w-5 text-slate-600"
+                  className="h-5 w-5 theme-text-secondary"
                   fill="none"
                   viewBox="0 0 24 24"
                   strokeWidth={1.5}
@@ -173,7 +175,7 @@ const TableOfContents = memo(function TableOfContents({
               </h3>
               <button
                 onClick={onTocClose}
-                className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                className="flex h-8 w-8 items-center justify-center rounded-lg border theme-border theme-text-secondary hover:theme-bg-tertiary transition-colors cursor-pointer"
                 title="Close"
                 aria-label="Close contents"
               >
@@ -211,10 +213,10 @@ const TableOfContents = memo(function TableOfContents({
               </ul>
             ) : (
               <div className="p-4 text-center">
-                <p className="text-sm font-sans font-medium text-slate-900 mb-1">
+                <p className="text-sm font-sans font-medium theme-text-primary mb-1">
                   No contents available
                 </p>
-                <p className="text-xs font-serif text-slate-500">
+                <p className="text-xs font-serif theme-text-secondary">
                   This PDF doesn’t include an outline.
                 </p>
               </div>

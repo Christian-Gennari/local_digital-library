@@ -129,7 +129,7 @@ export function BookDetailsSidebar() {
 
   if (!selectedBook) {
     return (
-      <div className="w-full sm:w-80 bg-gray-50 border-l border-gray-200 p-6 flex items-center justify-center">
+      <div className="w-full sm:w-80 theme-bg-secondary border-l theme-border p-6 flex items-center justify-center">
         <p className="text-gray-500 text-center">
           Select a book to view details
         </p>
@@ -156,9 +156,9 @@ export function BookDetailsSidebar() {
   };
 
   return (
-    <div className="w-full sm:w-80 bg-gray-50 border-l border-gray-200 flex flex-col h-full">
+    <div className="w-full sm:w-80 theme-bg-secondary border-l theme-border flex flex-col h-full">
       {/* Sticky Header with Cover */}
-      <div className="p-4 sm:p-6 bg-white border-b border-gray-200 sticky top-0 z-10">
+      <div className="p-4 sm:p-6 theme-bg-primary border-b theme-border sticky top-0 z-10">
         <div className="flex items-start gap-4 mb-3">
           <div className="flex-shrink-0 w-20 h-28 sm:w-24 sm:h-36 bg-gray-100 rounded-lg overflow-hidden shadow">
             {coverSrc ? (
@@ -196,13 +196,13 @@ export function BookDetailsSidebar() {
               {selectedBook.metadata.title}
             </h3>
             {selectedBook.metadata.subtitle && (
-              <p className="text-xs sm:text-sm text-gray-600 italic mb-1 line-clamp-1">
+              <p className="text-xs sm:text-sm theme-text-secondary italic mb-1 line-clamp-1">
                 {selectedBook.metadata.subtitle}
               </p>
             )}
             {(selectedBook.metadata.author ||
               selectedBook.metadata.editors) && (
-              <p className="text-xs sm:text-sm text-gray-600">
+              <p className="text-xs sm:text-sm theme-text-secondary">
                 {selectedBook.metadata.author
                   ? `by ${selectedBook.metadata.author}`
                   : `Edited by ${selectedBook.metadata.editors}`}
@@ -212,7 +212,7 @@ export function BookDetailsSidebar() {
             {/* Narrator for audiobooks */}
             {itemType === "audiobook" &&
               selectedBook.metadata.audiobook?.narrator && (
-                <p className="text-xs sm:text-sm text-gray-600 mt-1">
+                <p className="text-xs sm:text-sm theme-text-secondary mt-1">
                   Narrated by {selectedBook.metadata.audiobook.narrator}
                 </p>
               )}
@@ -259,7 +259,7 @@ export function BookDetailsSidebar() {
         {/* Reading Progress */}
         {(selectedBook.metadata.readingProgress ?? 0) > 0 && (
           <div className="mt-3">
-            <div className="flex justify-between text-xs sm:text-sm text-gray-600 mb-1">
+            <div className="flex justify-between text-xs sm:text-sm theme-text-secondary mb-1">
               <span>Reading Progress</span>
               <span>{selectedBook.metadata.readingProgress}%</span>
             </div>
@@ -275,7 +275,9 @@ export function BookDetailsSidebar() {
         {/* User Rating */}
         {selectedBook.metadata.userRating && (
           <div className="mt-3">
-            <p className="text-xs sm:text-sm text-gray-600 mb-1">Your Rating</p>
+            <p className="text-xs sm:text-sm theme-text-secondary mb-1">
+              Your Rating
+            </p>
             <div className="flex">
               {[...Array(5)].map((_, i) => (
                 <span
@@ -295,14 +297,14 @@ export function BookDetailsSidebar() {
       </div>
 
       {/* Scrollable Content */}
-      <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5 bg-gray-50 hide-scrollbar">
+      <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5 theme-bg-secondary hide-scrollbar">
         {/* Description */}
         {selectedBook.metadata.description && (
           <div>
             <p className="text-[10px] sm:text-xs text-gray-500 font-semibold mb-2 uppercase tracking-wide">
               Description
             </p>
-            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+            <div className="theme-bg-primary p-4 rounded-lg shadow-sm border theme-border">
               <p
                 className={`text-sm text-gray-700 leading-relaxed ${
                   !isDescriptionExpanded ? "line-clamp-8" : ""
@@ -327,7 +329,7 @@ export function BookDetailsSidebar() {
         {/* Accordion Sections */}
         <div className="space-y-4">
           {/* Identifiers Section */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+          <div className="theme-bg-primary rounded-lg shadow-sm border theme-border">
             <button
               onClick={() => toggleSection("identifiers")}
               className="w-full flex items-center justify-between text-left p-4 cursor-pointer"
@@ -357,7 +359,7 @@ export function BookDetailsSidebar() {
             {expandedSections.identifiers && (
               <div
                 id="section-identifiers"
-                className="p-4 pt-4 border-t border-gray-200 space-y-3"
+                className="p-4 pt-4 border-t theme-border space-y-3"
               >
                 {getAllIdentifiers(selectedBook.metadata).map((identifier) => (
                   <div
@@ -400,7 +402,7 @@ export function BookDetailsSidebar() {
 
           {/* Media Details Section (for audiobooks) */}
           {itemType === "audiobook" && selectedBook.metadata.audiobook && (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+            <div className="theme-bg-primary rounded-lg shadow-sm border theme-border">
               <button
                 onClick={() => toggleSection("media")}
                 className="w-full flex items-center justify-between text-left p-4 cursor-pointer"
@@ -430,7 +432,7 @@ export function BookDetailsSidebar() {
               {expandedSections.media && (
                 <div
                   id="section-media"
-                  className="p-4 pt-4 border-t border-gray-200 space-y-4"
+                  className="p-4 pt-4 border-t theme-border space-y-4"
                 >
                   {selectedBook.metadata.audiobook.narrator && (
                     <div className="flex items-start gap-3">
@@ -515,7 +517,7 @@ export function BookDetailsSidebar() {
           )}
 
           {/* Basic Information */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+          <div className="theme-bg-primary rounded-lg shadow-sm border theme-border">
             <button
               onClick={() => toggleSection("basic")}
               className="w-full flex items-center justify-between text-left p-4 cursor-pointer"
@@ -545,7 +547,7 @@ export function BookDetailsSidebar() {
             {expandedSections.basic && (
               <div
                 id="section-basic"
-                className="p-4 pt-4 border-t border-gray-200 space-y-4"
+                className="p-4 pt-4 border-t theme-border space-y-4"
               >
                 {/* Article-only fields */}
                 {itemType === "article" && (
@@ -667,7 +669,7 @@ export function BookDetailsSidebar() {
           </div>
 
           {/* Publication Details */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+          <div className="theme-bg-primary rounded-lg shadow-sm border theme-border">
             <button
               onClick={() => toggleSection("publication")}
               className="w-full flex items-center justify-between text-left p-4 cursor-pointer"
@@ -697,7 +699,7 @@ export function BookDetailsSidebar() {
             {expandedSections.publication && (
               <div
                 id="section-publication"
-                className="p-4 pt-4 border-t border-gray-200 space-y-4"
+                className="p-4 pt-4 border-t theme-border space-y-4"
               >
                 {selectedBook.metadata.publisher && (
                   <div className="flex items-start gap-3">
@@ -754,7 +756,7 @@ export function BookDetailsSidebar() {
 
           {/* Series Information */}
           {(selectedBook.metadata.series || selectedBook.metadata.volume) && (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+            <div className="theme-bg-primary rounded-lg shadow-sm border theme-border">
               <button
                 onClick={() => toggleSection("series")}
                 className="w-full flex items-center justify-between text-left p-4 cursor-pointer"
@@ -784,7 +786,7 @@ export function BookDetailsSidebar() {
               {expandedSections.series && (
                 <div
                   id="section-series"
-                  className="p-4 pt-4 border-t border-gray-200 space-y-4"
+                  className="p-4 pt-4 border-t theme-border space-y-4"
                 >
                   {selectedBook.metadata.series && (
                     <div className="flex items-start gap-3">
@@ -821,7 +823,7 @@ export function BookDetailsSidebar() {
 
           {/* Digital Information */}
           {selectedBook.metadata.url && (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+            <div className="theme-bg-primary rounded-lg shadow-sm border theme-border">
               <button
                 onClick={() => toggleSection("digital")}
                 className="w-full flex items-center justify-between text-left p-4 cursor-pointer"
@@ -851,7 +853,7 @@ export function BookDetailsSidebar() {
               {expandedSections.digital && (
                 <div
                   id="section-digital"
-                  className="p-4 pt-4 border-t border-gray-200 space-y-4"
+                  className="p-4 pt-4 border-t theme-border space-y-4"
                 >
                   {selectedBook.metadata.url && (
                     <div className="flex items-start gap-3">
@@ -881,7 +883,7 @@ export function BookDetailsSidebar() {
           )}
 
           {/* Miscellaneous */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+          <div className="theme-bg-primary rounded-lg shadow-sm border theme-border">
             <button
               onClick={() => toggleSection("personal")}
               className="w-full flex items-center justify-between text-left p-4 cursor-pointer"
@@ -911,7 +913,7 @@ export function BookDetailsSidebar() {
             {expandedSections.personal && (
               <div
                 id="section-personal"
-                className="p-4 pt-4 border-t border-gray-200 space-y-4"
+                className="p-4 pt-4 border-t theme-border space-y-4"
               >
                 <div className="flex items-start gap-3">
                   <CalendarIcon className="h-4 w-4 text-gray-400 flex-shrink-0 mt-0.5" />
@@ -940,7 +942,7 @@ export function BookDetailsSidebar() {
                     <p className="text-xs text-gray-500 font-semibold mb-2 uppercase tracking-wide">
                       Your Notes
                     </p>
-                    <p className="text-sm text-gray-700 leading-relaxed bg-gray-50 p-3 rounded-lg border border-gray-200">
+                    <p className="text-sm text-gray-700 leading-relaxed theme-bg-secondary p-3 rounded-lg border theme-border">
                       {selectedBook.metadata.userNotes}
                     </p>
                   </div>

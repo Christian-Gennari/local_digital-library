@@ -1,5 +1,5 @@
 // src/components/EpubReader.tsx
-import {
+import React, {
   useEffect,
   useRef,
   useState,
@@ -20,7 +20,8 @@ import {
   SentenceIndexer,
   LocalTTSStorage,
 } from "../../../services/SentenceIndexer";
-
+import { useThemeStore } from "../../../stores/themeStore";
+import { defaultThemes } from "../../../config/themes";
 import {
   generateTocItems,
   matchSectionToToc,
@@ -154,6 +155,15 @@ const EpubReader = forwardRef<EpubReaderRef, EpubReaderProps>(
         return href.split("#")[0];
       }
     };
+
+    const {
+      currentTheme,
+      themes,
+      fontSize: themeFontSize,
+      fontFamily,
+      lineHeight,
+      textAlign,
+    } = useThemeStore();
 
     const flattenToc = (
       items: Array<{
@@ -325,29 +335,47 @@ const EpubReader = forwardRef<EpubReaderRef, EpubReaderProps>(
     const clamp = (n: number, min: number, max: number) =>
       Math.max(min, Math.min(max, n));
 
-    const applyTheme = useCallback((r: any, size: number) => {
-      if (!r) return;
-      try {
-        // Ensure centered, readable line length and consistent padding
-        r.themes.register("reader-layout", {
-          "html, body": { margin: "0", padding: "0", background: "#ffffff" },
-          body: {
-            margin: "0 auto",
-            padding: "0 1rem",
-            maxWidth: "min(720px, 92vw)",
-            lineHeight: "1.65",
-            color: "#0f172a",
-          },
-          "@media (min-width: 768px)": {
-            body: { padding: "2rem 2rem", maxWidth: "800px" },
-          },
-          p: { margin: "0 0 1rem 0" },
-          img: { maxWidth: "100%", height: "auto" },
-        });
-        r.themes.select("reader-layout");
-        r.themes.fontSize(`${size}%`);
-      } catch {}
-    }, []);
+    const applyTheme = useCallback(
+      (r: any) => {
+        if (!r?.themes) return;
+
+        const theme = themes[currentTheme];
+        if (!theme) return;
+
+        try {
+          // Register all themes first (for quick switching)
+          Object.entries(themes).forEach(([id, themeConfig]) => {
+            r.themes.register(id, themeConfig.epubStyles);
+          });
+
+          // Apply current theme
+          r.themes.select(currentTheme);
+
+          // Apply typography settings
+          r.themes.fontSize(`${fontSize}%`);
+
+          // Override based on user preferences
+          const fontFamilyValue =
+            fontFamily === "serif"
+              ? "'Lora', Georgia, serif"
+              : "'Inter', sans-serif";
+
+          r.themes.override("font-family", fontFamilyValue, true);
+          r.themes.override("line-height", lineHeight.toString(), true);
+          r.themes.override("text-align", textAlign, true);
+
+          // Force overrides for night mode
+          if (currentTheme === "night") {
+            r.themes.override("color", theme.colors.readerText, true);
+            r.themes.override("background", theme.colors.readerBg, true);
+            r.themes.override("background-color", theme.colors.readerBg, true);
+          }
+        } catch (error) {
+          console.error("Failed to apply theme:", error);
+        }
+      },
+      [currentTheme, themes, fontSize, fontFamily, lineHeight, textAlign]
+    );
 
     const applyFontSize = useCallback(
       (size: number) => {
@@ -393,11 +421,9 @@ const EpubReader = forwardRef<EpubReaderRef, EpubReaderProps>(
 
     useEffect(() => {
       if (rendition) {
-        try {
-          applyTheme(rendition, fontSize);
-        } catch {}
+        applyTheme(rendition);
       }
-    }, [rendition, fontSize, applyTheme]);
+    }, [rendition, currentTheme, fontSize, fontFamily, lineHeight, textAlign]);
 
     // INIT
     useEffect(() => {
@@ -550,7 +576,7 @@ const EpubReader = forwardRef<EpubReaderRef, EpubReaderProps>(
 
           setRendition(newRendition);
           onRenditionReady?.(newRendition);
-          applyTheme(newRendition, fontSize);
+          applyTheme(newRendition);
 
           newRendition.on("selected", (_cfiRange: string, contents: any) => {
             try {
@@ -813,7 +839,10 @@ const EpubReader = forwardRef<EpubReaderRef, EpubReaderProps>(
         : 0;
 
     return (
-      <div ref={containerRef} className="flex h-full bg-slate-50 relative">
+      <div
+        ref={containerRef}
+        className="flex h-full theme-bg-secondary relative"
+      >
         {/* Search bar */}
         <ReaderSearchBar
           isVisible={showSearch}
@@ -854,7 +883,7 @@ const EpubReader = forwardRef<EpubReaderRef, EpubReaderProps>(
         {!isTocOpen && (
           <button
             onClick={() => setIsTocOpen(true)}
-            className="fixed z-40 md:left-4 md:top-1/2 md:-translate-y-1/2 right-3 md:right-auto md:bottom-auto bottom-[calc(60px+env(safe-area-inset-bottom))] h-11 w-11 md:h-12 md:w-12 hidden md:flex items-center justify-center rounded-full bg-white shadow-lg border border-slate-200 text-slate-600 hover:bg-slate-50 hover:shadow-xl transition-all cursor-pointer"
+            className="fixed z-40 md:left-4 md:top-1/2 md:-translate-y-1/2 right-3 md:right-auto md:bottom-auto bottom-[calc(60px+env(safe-area-inset-bottom))] h-11 w-11 md:h-12 md:w-12 hidden md:flex items-center justify-center rounded-full theme-bg-primary shadow-lg border theme-border theme-text-secondary hover:theme-bg-secondary hover:shadow-xl transition-all cursor-pointer"
             title="Table of Contents"
             aria-label="Table of Contents"
           >
@@ -883,7 +912,7 @@ const EpubReader = forwardRef<EpubReaderRef, EpubReaderProps>(
             {/* Reading area shell keeps the content centered and above toolbar */}
             <div
               ref={viewerShellRef}
-              className="flex-1 overflow-auto grid place-items-center p-3 md:p-8 lg:p-12 min-h-0"
+              className="flex-1 overflow-auto grid place-items-center min-h-0 theme-bg-primary theme-transition"
               style={{
                 paddingBottom: `max(${
                   TOOLBAR_MOBILE_HEIGHT + 16
@@ -894,11 +923,11 @@ const EpubReader = forwardRef<EpubReaderRef, EpubReaderProps>(
               onTouchEnd={onTouchEnd}
             >
               {isLoading && (
-                <div className="absolute inset-0 flex items-center justify-center bg-slate-50 z-20">
-                  <div className="text-center p-6 bg-white rounded-xl shadow-lg max-w-md w-[92vw]">
-                    <div className="mb-3 flex h-14 w-14 items-center justify-center mx-auto rounded-full bg-slate-100">
+                <div className="absolute inset-0 flex items-center justify-center theme-bg-secondary z-20">
+                  <div className="text-center p-6 theme-bg-primary rounded-xl shadow-lg max-w-md w-[92vw]">
+                    <div className="mb-3 flex h-14 w-14 items-center justify-center mx-auto rounded-full theme-bg-tertiary">
                       <svg
-                        className="h-7 w-7 text-slate-600 animate-spin"
+                        className="h-7 w-7 theme-text-secondary animate-spin"
                         fill="none"
                         viewBox="0 0 24 24"
                       >
@@ -917,10 +946,10 @@ const EpubReader = forwardRef<EpubReaderRef, EpubReaderProps>(
                         ></path>
                       </svg>
                     </div>
-                    <h2 className="text-lg font-sans font-semibold text-slate-900 mb-1">
+                    <h2 className="text-lg font-sans font-semibold theme-text-primary mb-1">
                       Loading EPUB…
                     </h2>
-                    <p className="text-sm font-serif text-slate-600">
+                    <p className="text-sm font-serif theme-text-secondary">
                       Preparing your book
                     </p>
                   </div>
@@ -928,8 +957,8 @@ const EpubReader = forwardRef<EpubReaderRef, EpubReaderProps>(
               )}
 
               {error && (
-                <div className="absolute inset-0 flex items-center justify-center bg-slate-50 z-20">
-                  <div className="text-center p-6 bg-white rounded-xl shadow-lg max-w-md w-[92vw]">
+                <div className="absolute inset-0 flex items-center justify-center theme-bg-secondary z-20">
+                  <div className="text-center p-6 theme-bg-primary rounded-xl shadow-lg max-w-md w-[92vw]">
                     <div className="mb-3 flex h-14 w-14 items-center justify-center mx-auto rounded-full bg-red-100">
                       <svg
                         className="h-7 w-7 text-red-600"
@@ -948,7 +977,7 @@ const EpubReader = forwardRef<EpubReaderRef, EpubReaderProps>(
                     <h2 className="text-lg font-sans font-semibold text-red-600 mb-1">
                       Error Loading Book
                     </h2>
-                    <p className="text-sm font-serif text-slate-600 mb-4">
+                    <p className="text-sm font-serif theme-text-secondary mb-4">
                       {error}
                     </p>
                     <button
@@ -965,7 +994,7 @@ const EpubReader = forwardRef<EpubReaderRef, EpubReaderProps>(
               <div className="w-full h-full grid place-items-center">
                 <div
                   ref={viewerRef}
-                  className="w-full h-full bg-white rounded md:rounded-lg shadow-sm md:shadow-lg overflow-hidden
+                  className="w-full h-full theme-bg-primary rounded md:rounded-lg shadow-sm md:shadow-lg overflow-hidden
                md:max-w-5xl md:max-h-[90vh] md:mx-auto"
                   tabIndex={0}
                   style={{
@@ -978,7 +1007,7 @@ const EpubReader = forwardRef<EpubReaderRef, EpubReaderProps>(
 
             {/* Compact bottom toolbar (mobile sticky, desktop static) */}
             <div
-              className="bg-white border-t border-slate-200 md:static fixed bottom-0 left-0 right-0 z-30"
+              className="theme-bg-primary border-t theme-border md:static fixed bottom-0 left-0 right-0 z-30"
               style={{
                 paddingBottom: "env(safe-area-inset-bottom)",
               }}
@@ -1010,18 +1039,18 @@ const EpubReader = forwardRef<EpubReaderRef, EpubReaderProps>(
                     data-epub-action="zoom-out"
                     aria-label="Font smaller"
                     onClick={zoomOut}
-                    className="h-8 w-8 grid place-items-center rounded-md border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 active:bg-slate-100 cursor-pointer"
+                    className="h-8 w-8 grid place-items-center rounded-md border theme-border theme-bg-primary theme-text-primary hover:theme-bg-secondary active:theme-bg-tertiary cursor-pointer"
                   >
                     <MinusIcon className="h-4 w-4" />
                   </button>
-                  <span className="tabular-nums text-sm text-slate-700 min-w-[3ch] text-center">
+                  <span className="tabular-nums text-sm theme-text-primary min-w-[3ch] text-center">
                     {fontSize}%
                   </span>
                   <button
                     data-epub-action="zoom-in"
                     aria-label="Font larger"
                     onClick={zoomIn}
-                    className="h-8 w-8 grid place-items-center rounded-md border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 active:bg-slate-100 cursor-pointer"
+                    className="h-8 w-8 grid place-items-center rounded-md border theme-border theme-bg-primary theme-text-primary hover:theme-bg-secondary active:theme-bg-tertiary cursor-pointer"
                   >
                     <PlusIcon className="h-4 w-4" />
                   </button>
@@ -1035,7 +1064,7 @@ const EpubReader = forwardRef<EpubReaderRef, EpubReaderProps>(
                       style={{ width: `${progressPercent}%` }}
                     />
                   </div>
-                  <span className="text-sm text-slate-600 font-medium tabular-nums">
+                  <span className="text-sm theme-text-secondary font-medium tabular-nums">
                     {progressPercent}%
                   </span>
                 </div>

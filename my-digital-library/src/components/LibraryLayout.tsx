@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useStore } from "../store";
 import { BookList } from "./BookList";
 import { CollectionsSidebar } from "./CollectionsSidebar";
@@ -8,6 +8,7 @@ import { fetchBookDataFromISBN } from "../utils/isbn";
 import { NostosLogo } from "../assets/NostosLogo";
 import { FileUpload } from "./FileUpload";
 import { getIdentifier } from "../utils/metadataHelpers";
+import { useThemeStore } from "../stores/themeStore";
 
 import {
   XMarkIcon,
@@ -16,6 +17,7 @@ import {
   PlusIcon,
   Cog6ToothIcon,
 } from "@heroicons/react/24/outline";
+import { ThemeSelector } from "./ThemeSelector";
 
 /** Simple media query hook */
 function useMediaQuery(query: string) {
@@ -32,6 +34,7 @@ function useMediaQuery(query: string) {
 
 export function LibraryLayout() {
   const { selectedBook, updateBookMetadata } = useStore();
+  const { currentTheme, setTheme } = useThemeStore(); // Add this
   const [leftOpen, setLeftOpen] = useState(false); // Changed from true to false
   const [rightOpen, setRightOpen] = useState(false); // Changed from true to false
   const [searchQuery, setSearchQuery] = useState("");
@@ -45,8 +48,29 @@ export function LibraryLayout() {
   });
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [hasMounted, setHasMounted] = useState(false);
+  const [showSettings, setShowSettings] = useState(false); // Add this state
+  const settingsRef = useRef<HTMLDivElement>(null); // Add ref for click outside
 
   const isMobile = useMediaQuery("(max-width: 768px)");
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        settingsRef.current &&
+        !settingsRef.current.contains(event.target as Node)
+      ) {
+        setShowSettings(false);
+      }
+    };
+
+    if (showSettings) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showSettings]);
 
   // Set mounted flag after initial render
   useEffect(() => {
@@ -83,119 +107,150 @@ export function LibraryLayout() {
     })();
   }, [selectedBook, updateBookMetadata]);
 
+  const cycleTheme = () => {
+    const themes = ["paper", "sepia", "night", "highContrast"];
+    const currentIndex = themes.indexOf(currentTheme);
+    const nextIndex = (currentIndex + 1) % themes.length;
+    setTheme(themes[nextIndex]);
+  };
+
   return (
-    <div className="min-h-screen bg-slate-50">
-      {/* Floating FABs on mobile */}
-      <div className="fixed bottom-4 left-4 z-40 flex gap-2 md:hidden">
-        <button
-          onClick={() => setLeftOpen(true)}
-          className="rounded-full bg-white p-3 shadow-lg hover:shadow-xl transition-shadow"
-          aria-label="Open collections"
-        >
-          <Bars3Icon className="h-5 w-5" />
-        </button>
-        <button
-          onClick={() => setRightOpen(true)}
-          className="rounded-full bg-white p-3 shadow-lg hover:shadow-xl transition-shadow"
-          aria-label="Open details"
-        >
-          <BookOpenIcon className="h-5 w-5" />
-        </button>
+    <div className="flex h-screen overflow-hidden relative">
+      {/* LEFT SIDEBAR (desktop rail) */}
+      <div className="hidden md:block border-r theme-border theme-bg-primary md:w-95">
+        <CollectionsSidebar
+          selectedCollection={selectedCollection}
+          onSelectCollection={setSelectedCollection}
+        />
       </div>
 
-      <div className="flex h-screen overflow-hidden">
-        {/* LEFT SIDEBAR (desktop rail) */}
-        <div className="hidden md:block border-r border-slate-200 bg-white md:w-95">
-          <CollectionsSidebar
-            selectedCollection={selectedCollection}
-            onSelectCollection={setSelectedCollection}
-          />
-        </div>
-
-        {/* MAIN */}
-        <div className="flex-1 flex flex-col min-w-0">
-          {/* Sticky header - Improved Layout */}
-          <header
-            className="sticky top-0 z-50 w-full border-b border-slate-200
-     bg-white/80 backdrop-blur-sm
-     supports-[backdrop-filter]:bg-white/70
+      {/* MAIN */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Sticky header - Improved Layout */}
+        <header
+          className="sticky top-0 z-50 w-full border-b theme-border
+     theme-bg-primary/80 backdrop-blur-sm
+     supports-[backdrop-filter]:theme-bg-primary/70
      pt-[env(safe-area-inset-top)]"
-          >
-            {/* Desktop Layout */}
-            <div className="hidden md:flex items-center px-6 py-4">
-              {/* Logo - Better spacing */}
-              <div className="flex-none mr-8">
-                <NostosLogo />
-              </div>
+        >
+          {/* Desktop Layout */}
+          <div className="hidden md:flex items-center px-6 py-4">
+            {/* Logo - Better spacing */}
+            <div className="flex-none mr-8">
+              <NostosLogo />
+            </div>
 
-              {/* Search - Centered with max width */}
-              <div className="flex-1 max-w-3xl mx-auto">
-                <SearchBar
-                  value={searchQuery}
-                  onChange={setSearchQuery}
-                  filters={filters}
-                  onFiltersChange={setFilters}
-                />
-              </div>
+            {/* Search - Centered with max width */}
+            <div className="flex-1 max-w-3xl mx-auto">
+              <SearchBar
+                value={searchQuery}
+                onChange={setSearchQuery}
+                filters={filters}
+                onFiltersChange={setFilters}
+              />
+            </div>
 
-              {/* Actions - Better spacing */}
-              <div className="flex items-center gap-3 ml-8">
-                <FileUpload />
+            {/* Actions - Better spacing */}
+            <div className="flex items-center gap-3 ml-8">
+              <FileUpload />
+
+              {/* Settings Button with Dropdown */}
+              <div className="relative" ref={settingsRef}>
                 <button
-                  className="p-2.5 rounded-lg text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                  onClick={() => setShowSettings(!showSettings)}
+                  className={`p-2.5 rounded-lg transition-colors ${
+                    showSettings
+                      ? "theme-bg-tertiary theme-text-primary"
+                      : "theme-text-secondary hover:theme-text-primary hover:theme-bg-tertiary"
+                  }`}
                   aria-label="Settings"
                 >
                   <Cog6ToothIcon className="h-6 w-6" />
                 </button>
+
+                {/* Settings Dropdown */}
+                {showSettings && (
+                  <div className="absolute right-0 mt-2 w-96 theme-bg-primary rounded-lg shadow-xl border theme-border overflow-hidden">
+                    <div className="border-b theme-border px-4 py-3 theme-bg-secondary">
+                      <h3 className="text-sm font-semibold theme-text-primary">
+                        Settings
+                      </h3>
+                    </div>
+                    <div className="max-h-[600px] overflow-y-auto">
+                      <ThemeSelector />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Mobile Layout */}
+          <div className="md:hidden px-3 py-3">
+            {/* First Row: Logo and Actions */}
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex-none">
+                <NostosLogo />
+              </div>
+
+              <div className="flex items-center gap-2">
+                <FileUpload />
+
+                {/* Mobile Settings Button */}
+                <button
+                  onClick={() => setShowSettings(!showSettings)}
+                  className={`p-2 rounded-lg transition-colors ${
+                    showSettings
+                      ? "theme-bg-tertiary theme-text-primary"
+                      : "theme-text-secondary hover:theme-text-primary hover:theme-bg-tertiary"
+                  }`}
+                  aria-label="Settings"
+                >
+                  <Cog6ToothIcon className="h-5 w-5" />
+                </button>
               </div>
             </div>
 
-            {/* Mobile Layout */}
-            <div className="md:hidden px-3 py-3">
-              {/* First Row: Logo and Actions */}
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex-none">
-                  <NostosLogo />
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <FileUpload />
-                  <button
-                    className="p-2 rounded-lg text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors"
-                    aria-label="Settings"
-                  >
-                    <Cog6ToothIcon className="h-5 w-5" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Second Row: Search (full width) */}
-              <div className="w-full">
-                <SearchBar
-                  value={searchQuery}
-                  onChange={setSearchQuery}
-                  filters={filters}
-                  onFiltersChange={setFilters}
-                />
-              </div>
+            {/* Second Row: Search (full width) */}
+            <div className="w-full">
+              <SearchBar
+                value={searchQuery}
+                onChange={setSearchQuery}
+                filters={filters}
+                onFiltersChange={setFilters}
+              />
             </div>
-          </header>
 
-          {/* Content */}
-          <main className="flex-1 overflow-auto">
-            <BookList
-              searchQuery={searchQuery}
-              selectedCollection={selectedCollection}
-              filters={filters}
-            />
-          </main>
-        </div>
+            {/* Mobile Settings Panel */}
+            {showSettings && (
+              <div className="mt-3 theme-bg-primary rounded-lg border theme-border shadow-lg">
+                <div className="border-b theme-border px-4 py-3 theme-bg-secondary">
+                  <h3 className="text-sm font-semibold theme-text-primary">
+                    Settings
+                  </h3>
+                </div>
+                <div className="max-h-[400px] overflow-y-auto">
+                  <ThemeSelector />
+                </div>
+              </div>
+            )}
+          </div>
+        </header>
 
-        {/* RIGHT SIDEBAR (desktop rail) */}
-        <aside className="hidden md:block border-l border-slate-200 bg-white md:w-80">
-          <BookDetailsSidebar />
-        </aside>
+        {/* Content */}
+        <main className="flex-1 overflow-auto">
+          <BookList
+            searchQuery={searchQuery}
+            selectedCollection={selectedCollection}
+            filters={filters}
+          />
+        </main>
       </div>
+
+      {/* RIGHT SIDEBAR (desktop rail) */}
+      <aside className="hidden md:block border-l theme-border theme-bg-primary md:w-80">
+        <BookDetailsSidebar />
+      </aside>
 
       {/* LEFT DRAWER (mobile) - Updated with conditional transitions */}
       <div
@@ -213,7 +268,7 @@ export function LibraryLayout() {
         />
         {/* Panel */}
         <div
-          className={`absolute inset-y-0 left-0 w-[82%] max-w-[22rem] bg-white border-r border-slate-200 shadow-xl pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] ${
+          className={`absolute inset-y-0 left-0 w-[82%] max-w-[22rem] theme-bg-primary border-r theme-border shadow-xl pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] ${
             hasMounted ? "transition-transform duration-300" : ""
           } ${leftOpen ? "translate-x-0" : "-translate-x-full"}`}
           style={{
@@ -224,16 +279,16 @@ export function LibraryLayout() {
           aria-label="Collections"
         >
           {/* Header with Collections text on left, close button on right */}
-          <div className="flex items-center justify-between p-3 border-b border-slate-200">
-            <span className="text-sm font-medium text-slate-700">
+          <div className="flex items-center justify-between p-3 border-b theme-border">
+            <span className="text-sm font-medium theme-text-primary">
               Collections
             </span>
             <button
               onClick={() => setLeftOpen(false)}
-              className="p-2 rounded-lg hover:bg-slate-100 transition-colors"
+              className="p-2 rounded-lg hover:theme-bg-tertiary transition-colors"
               aria-label="Close collections"
             >
-              <XMarkIcon className="h-5 w-5 text-slate-600" />
+              <XMarkIcon className="h-5 w-5 theme-text-secondary" />
             </button>
           </div>
           {/* Collections sidebar with mobile flag */}
@@ -264,7 +319,7 @@ export function LibraryLayout() {
           } ${rightOpen ? "opacity-100" : "opacity-0"}`}
         />
         <div
-          className={`absolute inset-y-0 right-0 w-[86%] max-w-[24rem] bg-white border-l border-slate-200 shadow-xl pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] ${
+          className={`absolute inset-y-0 right-0 w-[86%] max-w-[24rem] theme-bg-primary border-l theme-border shadow-xl pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] ${
             hasMounted ? "transition-transform duration-300" : ""
           } ${rightOpen ? "translate-x-0" : "translate-x-full"}`}
           style={{
@@ -275,14 +330,16 @@ export function LibraryLayout() {
           role="dialog"
           aria-label="Details"
         >
-          <div className="flex items-center justify-between p-3 border-b border-slate-200">
-            <span className="text-sm font-medium text-slate-700">Details</span>
+          <div className="flex items-center justify-between p-3 border-b theme-border">
+            <span className="text-sm font-medium theme-text-primary">
+              Details
+            </span>
             <button
               onClick={() => setRightOpen(false)}
-              className="p-2 rounded hover:bg-slate-100"
+              className="p-2 rounded hover:theme-bg-tertiary"
               aria-label="Close"
             >
-              <XMarkIcon className="h-5 w-5 text-slate-600" />
+              <XMarkIcon className="h-5 w-5 theme-text-secondary" />
             </button>
           </div>
           <div className="h-[calc(100%-56px)] overflow-y-auto">

@@ -40,7 +40,7 @@ export function ReaderSearchBar({
   return isVisible ? (
     <div
       className="absolute top-4 right-4 z-50 flex items-center gap-2 
-                    bg-white/95 backdrop-blur-sm rounded-lg shadow-lg p-2"
+                    theme-bg-primary/95 backdrop-blur-sm rounded-lg shadow-lg p-2"
     >
       <MagnifyingGlassIcon className="w-5 h-5 text-gray-500" />
       <input

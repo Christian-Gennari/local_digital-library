@@ -207,21 +207,21 @@ export function SmartNoteTextarea({
         placeholder={placeholder}
         rows={rows}
         disabled={disabled}
-        className={`w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-slate-500 resize-none ${className}`}
+        className={`w-full px-3 py-2 text-sm border theme-border rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-slate-500 resize-none ${className}`}
       />
 
       {showSuggestions && (
         <div
           ref={suggestionsRef}
-          className="absolute z-50 mt-1 w-64 bg-white border border-slate-200 rounded-lg shadow-lg max-h-48 overflow-y-auto"
+          className="absolute z-50 mt-1 w-64 theme-bg-primary border theme-border rounded-lg shadow-lg max-h-48 overflow-y-auto"
         >
           {suggestions.length > 0 ? (
             suggestions.map((suggestion, index) => (
               <button
                 key={suggestion}
                 onClick={() => insertSuggestion(suggestion)}
-                className={`w-full text-left px-3 py-2 text-sm hover:bg-slate-50 ${
-                  index === selectedIndex ? "bg-slate-100" : ""
+                className={`w-full text-left px-3 py-2 text-sm hover:theme-bg-secondary ${
+                  index === selectedIndex ? "theme-bg-tertiary" : ""
                 }`}
               >
                 <span className="font-medium">{suggestion}</span>
@@ -230,11 +230,11 @@ export function SmartNoteTextarea({
           ) : suggestionQuery.trim() ? (
             <button
               onClick={() => insertSuggestion(suggestionQuery.trim())}
-              className={`w-full text-left px-3 py-2 text-sm hover:bg-slate-50 ${
-                selectedIndex === 0 ? "bg-slate-100" : ""
+              className={`w-full text-left px-3 py-2 text-sm hover:theme-bg-secondary ${
+                selectedIndex === 0 ? "theme-bg-tertiary" : ""
               }`}
             >
-              <span className="text-slate-600">Create: </span>
+              <span className="theme-text-secondary">Create: </span>
               <span className="font-medium">{suggestionQuery.trim()}</span>
             </button>
           ) : (

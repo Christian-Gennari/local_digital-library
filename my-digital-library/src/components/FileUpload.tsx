@@ -45,20 +45,20 @@ export function FileUpload() {
 
       {isOpen && (
         <div
-          className="absolute mt-2 w-72 origin-top-right rounded-md bg-white shadow-lg 
+          className="absolute mt-2 w-72 origin-top-right rounded-md theme-bg-primary shadow-lg 
            ring-1 ring-black ring-opacity-5 focus:outline-none z-50
            -ml-55 sm:ml-0"
         >
           <div className="p-4">
-            <h3 className="text-sm font-medium text-slate-900 mb-2">
+            <h3 className="text-sm font-medium theme-text-primary mb-2">
               Add books to your library
             </h3>
-            <p className="text-xs text-slate-500 mb-4">
+            <p className="text-xs theme-text-secondary mb-4">
               Click to browse or drag and drop files here.
             </p>
 
             <div
-              className="relative flex h-24 items-center justify-center rounded-lg border-2 border-dashed border-slate-200 bg-slate-50 hover:border-slate-300 transition-colors cursor-pointer"
+              className="relative flex h-24 items-center justify-center rounded-lg border-2 border-dashed theme-border theme-bg-secondary hover:theme-border transition-colors cursor-pointer"
               onDrop={(e) => {
                 e.preventDefault();
                 const files = e.dataTransfer.files;
@@ -77,25 +77,25 @@ export function FileUpload() {
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
               />
               <div className="text-center">
-                <p className="text-sm font-medium text-slate-400">
+                <p className="text-sm font-medium theme-text-muted">
                   Drag & Drop Files
                 </p>
-                <p className="text-xs text-slate-400">or click to browse</p>
+                <p className="text-xs theme-text-muted">or click to browse</p>
               </div>
             </div>
 
             <div className="mt-4">
-              <p className="text-xs font-medium text-slate-600 mb-1">
+              <p className="text-xs font-medium theme-text-secondary mb-1">
                 Supported Formats:
               </p>
               <div className="flex flex-wrap gap-2">
-                <span className="flex items-center gap-1 rounded-full bg-slate-100 px-2 py-1 text-xs text-slate-600">
+                <span className="flex items-center gap-1 rounded-full theme-bg-tertiary px-2 py-1 text-xs theme-text-secondary">
                   <DocumentIcon className="h-3 w-3" /> PDF
                 </span>
-                <span className="flex items-center gap-1 rounded-full bg-slate-100 px-2 py-1 text-xs text-slate-600">
+                <span className="flex items-center gap-1 rounded-full theme-bg-tertiary px-2 py-1 text-xs theme-text-secondary">
                   <BookOpenIcon className="h-3 w-3" /> EPUB
                 </span>
-                <span className="flex items-center gap-1 rounded-full bg-slate-100 px-2 py-1 text-xs text-slate-600">
+                <span className="flex items-center gap-1 rounded-full theme-bg-tertiary px-2 py-1 text-xs theme-text-secondary">
                   <PlayIcon className="h-3 w-3" /> Audio
                 </span>
               </div>

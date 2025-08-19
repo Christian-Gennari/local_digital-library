@@ -33,7 +33,7 @@ export function ConfirmationModal({
         aria-label="Close"
       />
       {/* Sheet (mobile) / Dialog (desktop) */}
-      <div className="absolute inset-x-0 bottom-0 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-xl bg-white md:w-full md:max-w-sm shadow-2xl">
+      <div className="absolute inset-x-0 bottom-0 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-xl theme-bg-primary md:w-full md:max-w-sm shadow-2xl">
         {/* Grabber (mobile only) */}
         <div className="md:hidden pt-2">
           <div className="mx-auto h-1.5 w-12 rounded-full bg-slate-200" />
@@ -42,24 +42,24 @@ export function ConfirmationModal({
         <div className="relative p-6">
           <button
             onClick={onCancel}
-            className="absolute right-4 top-4 text-slate-400 hover:text-slate-600"
+            className="absolute right-4 top-4 theme-text-muted hover:theme-text-secondary"
           >
             <XMarkIcon className="h-5 w-5" />
           </button>
 
           <h3
             className={`text-lg font-semibold ${
-              isDestructive ? "text-red-700" : "text-slate-900"
+              isDestructive ? "text-red-700" : "theme-text-primary"
             }`}
           >
             {title}
           </h3>
-          <p className="mt-2 text-sm text-slate-600">{message}</p>
+          <p className="mt-2 text-sm theme-text-secondary">{message}</p>
 
           <div className="mt-6 flex justify-end gap-3">
             <button
               onClick={onCancel}
-              className="rounded-md px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 cursor-pointer"
+              className="rounded-md px-4 py-2 text-sm font-medium theme-text-secondary hover:theme-bg-tertiary cursor-pointer"
             >
               {cancelText}
             </button>
