@@ -14,6 +14,7 @@ import { Book } from "../types";
 import { useCollectionsStore } from "../collectionsStore";
 import { getIdentifier } from "../utils/metadataHelpers";
 import BookCover from "./BookCover";
+import { ProgressBar } from "./ProgressBar";
 
 import {
   PencilSquareIcon,
@@ -24,7 +25,7 @@ import {
   TrashIcon,
   EllipsisVerticalIcon,
 } from "@heroicons/react/24/outline";
-import { StarIcon } from "@heroicons/react/24/solid";
+import { StarIcon, CheckCircleIcon } from "@heroicons/react/24/solid";
 import { Squares2X2Icon, Bars3Icon } from "@heroicons/react/24/outline";
 
 interface BookListProps {
@@ -313,17 +314,14 @@ const BookGridItem = memo<BookGridItemProps>(
               </span>
             </div>
 
-            {/* Progress bar */}
-            {(book.metadata.readingProgress ?? 0) > 0 && (
-              <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/10">
-                <div
-                  className="h-full bg-emerald-500 transition-all duration-300"
-                  style={{
-                    width: `${book.metadata.readingProgress}%`,
-                  }}
-                />
-              </div>
-            )}
+            {/* Progress bar - this now handles both progress AND finished state */}
+            <ProgressBar
+              progress={book.metadata.readingProgress ?? 0}
+              variant="minimal"
+              size="xs"
+              hideWhenZero={true}
+              className="absolute bottom-0 left-0 right-0"
+            />
           </div>
           <div className="space-y-1">
             <h3 className="line-clamp-2 font-sans text-sm md:text-base font-medium leading-tight theme-text-primary transition-colors duration-200 md:group-hover\:theme-text-primary">

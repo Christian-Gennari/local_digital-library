@@ -7,6 +7,7 @@ import React, {
   forwardRef,
   useImperativeHandle,
 } from "react";
+import { ProgressBar } from "../../ProgressBar";
 import { useStore } from "../../../store";
 import { useReading } from "../../ReadingContext";
 import { useNotesStore } from "../../../notesStore";
@@ -1057,16 +1058,13 @@ const EpubReader = forwardRef<EpubReaderRef, EpubReaderProps>(
                 </div>
 
                 {/* Progress (right) */}
-                <div className="flex items-center justify-end gap-2">
-                  <div className="w-24 md:w-28 h-2 theme-bg-tertiary rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-emerald-500 transition-all duration-300"
-                      style={{ width: `${progressPercent}%` }}
-                    />
-                  </div>
-                  <span className="text-sm theme-text-secondary font-medium tabular-nums">
-                    {progressPercent}%
-                  </span>
+                <div className="flex items-center justify-end">
+                  <ProgressBar
+                    progress={progressPercent}
+                    variant="reader"
+                    size="md"
+                    className="w-24 md:w-28"
+                  />
                 </div>
               </div>
             </div>

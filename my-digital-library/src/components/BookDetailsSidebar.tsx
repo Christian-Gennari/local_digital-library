@@ -6,6 +6,8 @@ import { BookMetadataEditor } from "./BookMetadataEditor";
 import { ConfirmationModal } from "./ConfirmationModal";
 import { Book } from "../types";
 import { getAllIdentifiers, formatDuration } from "../utils/metadataHelpers";
+import { ProgressBar, resetBookProgress } from "./ProgressBar";
+
 import {
   PencilSquareIcon,
   BookOpenIcon,
@@ -32,7 +34,7 @@ import {
 import { getCoverImageSrc } from "../utils/coverUtils";
 
 export function BookDetailsSidebar() {
-  const { selectedBook, openBook, removeBook } = useStore();
+  const { selectedBook, openBook, removeBook, updateBookMetadata } = useStore();
   const [showReferenceGenerator, setShowReferenceGenerator] = useState(false);
   const [coverSrc, setCoverSrc] = useState<string | null>(null);
   const [isEditingMetadata, setIsEditingMetadata] = useState(false);
@@ -67,6 +69,11 @@ export function BookDetailsSidebar() {
 
     const coverUrl = await getCoverImageSrc(selectedBook);
     setCoverSrc(coverUrl);
+  };
+
+  const handleResetProgress = async () => {
+    if (!selectedBook) return;
+    await resetBookProgress(selectedBook.id, updateBookMetadata);
   };
 
   const getIconForFormat = (format: string) => {
@@ -257,20 +264,17 @@ export function BookDetailsSidebar() {
           </div>
         </div>
         {/* Reading Progress */}
-        {(selectedBook.metadata.readingProgress ?? 0) > 0 && (
-          <div className="mt-3">
-            <div className="flex justify-between text-xs sm:text-sm theme-text-secondary mb-1">
-              <span>Reading Progress</span>
-              <span>{selectedBook.metadata.readingProgress}%</span>
-            </div>
-            <div className="w-full theme-bg-tertiary rounded-full h-2">
-              <div
-                className="bg-emerald-500 h-2 rounded-full transition-all duration-300"
-                style={{ width: `${selectedBook.metadata.readingProgress}%` }}
-              />
-            </div>
-          </div>
-        )}
+        <ProgressBar
+          progress={selectedBook.metadata.readingProgress ?? 0}
+          variant="detailed"
+          size="md"
+          showStatusLabels={true}
+          allowReset={true}
+          onReset={handleResetProgress}
+          bookTitle={selectedBook.metadata.title}
+          className="mt-3"
+          hideWhenZero={false}
+        />
 
         {/* User Rating */}
         {selectedBook.metadata.userRating && (

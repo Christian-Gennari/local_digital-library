@@ -21,6 +21,7 @@ import {
   Bars3Icon,
 } from "@heroicons/react/24/outline";
 import { TTSPlayer } from "../../TTSPlayer";
+import { ProgressBar } from "../../ProgressBar";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
@@ -517,21 +518,20 @@ const PdfReader = forwardRef<PdfReaderRef, PdfReaderProps>(
                 </div>
 
                 {/* Progress */}
-                <div className="flex items-center justify-end gap-2">
+                <div className="flex items-center justify-end">
                   {numPages > 0 && (
-                    <>
-                      <div className="w-24 md:w-28 h-2 theme-bg-tertiary rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-emerald-500 transition-all duration-300"
-                          style={{
-                            width: `${(currentPage / numPages) * 100}%`,
-                          }}
-                        />
-                      </div>
-                      <span className="text-sm theme-text-secondary font-medium tabular-nums">
-                        {Math.round((currentPage / numPages) * 100)}%
-                      </span>
-                    </>
+                    <div className="flex items-center justify-end gap-2">
+                      <ProgressBar
+                        progress={
+                          numPages > 0
+                            ? Math.round((currentPage / numPages) * 100)
+                            : 0
+                        }
+                        variant="reader"
+                        size="md"
+                        className="w-24 md:w-28"
+                      />
+                    </div>
                   )}
                 </div>
               </div>

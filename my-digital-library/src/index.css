@@ -10,6 +10,66 @@
 
   /* Colors */
   --color-primary: oklch(0.84 0.18 117.33);
+
+  /* Add animation durations and timing functions for ProgressBar.tsx */
+  --animate-shimmer: shimmer 2s linear infinite;
+  --animate-spin-slow: spin 3s linear infinite;
+}
+
+/* Define keyframes after @theme */
+@keyframes shimmer {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+/* Optional: Slower spin for reset button */
+@keyframes spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Utility classes for animations */
+@layer utilities {
+  .animate-shimmer {
+    animation: var(--animate-shimmer);
+  }
+
+  .animate-spin-slow {
+    animation: var(--animate-spin-slow);
+  }
+}
+
+/* Optional: If you want to add custom progress bar colors */
+@layer components {
+  .progress-not-started {
+    @apply bg-gray-400;
+  }
+
+  .progress-in-progress {
+    @apply bg-emerald-500;
+  }
+
+  .progress-finished {
+    @apply bg-emerald-600;
+  }
+
+  /* Progress bar shimmer overlay specific styles */
+  .progress-shimmer {
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.2),
+      transparent
+    );
+  }
 }
 
 /* Theme CSS Variables */
