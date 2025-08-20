@@ -77,7 +77,7 @@ const TOCItem = memo(
             className={`toc_link flex-1 text-left px-2 py-1 rounded-lg text-sm transition-colors cursor-pointer ${
               isCurrent
                 ? "bg-amber-50 text-amber-900 border border-amber-200"
-                : "hover\:theme-bg-secondary theme-text-primary border border-transparent"
+                : "hover:theme-bg-secondary theme-text-primary border border-transparent"
             } w-full`}
             style={{ paddingLeft: `${8 + (item.level - 1) * 12}px` }}
           >
@@ -132,11 +132,11 @@ const TableOfContents = memo(
 
         <div
           className={`fixed left-0 z-50 theme-bg-primary border-r theme-border shadow-xl ${
-            isMobile ? "w-full top-0 h-[100vh]" : "w-80"
+            isMobile ? "w-full top-0 h-[100dvh]" : "w-80"
           }`}
           style={
             !isMobile
-              ? { top: "76px", height: "calc(100vh - 73px)" }
+              ? { top: "76px", height: "calc(100dvh - 73px)" }
               : undefined
           }
           role="dialog"

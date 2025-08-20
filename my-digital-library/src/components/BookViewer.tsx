@@ -165,7 +165,7 @@ function BookViewerContent() {
   return (
     <div
       ref={viewerRef}
-      className={`h-screen flex flex-col theme-bg-primary ${
+      className={`h-[100dvh] flex flex-col theme-bg-primary ${
         isFullscreen ? "fixed inset-0 z-50" : ""
       }`}
     >

@@ -96,7 +96,7 @@ export function LibraryLayout() {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden relative theme-bg-primary">
+    <div className="flex h-[100dvh] overflow-hidden relative theme-bg-primary">
       {/* LEFT SIDEBAR (desktop rail) */}
       <div className="hidden md:block border-r theme-border theme-bg-primary md:w-95">
         <CollectionsSidebar
