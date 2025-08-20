@@ -167,7 +167,7 @@ export function LibraryLayout() {
         <main
           className="flex-1 overflow-auto"
           style={{
-            paddingBottom: isMobile ? "64px" : 0, // Height of navbar + safe area
+            paddingBottom: isMobile ? "48px" : 0, // Height of navbar + safe area
           }}
         >
           <BookList
@@ -186,11 +186,9 @@ export function LibraryLayout() {
       {isMobile && (
         <nav
           className="fixed bottom-0 left-0 right-0 z-40 border-t theme-border theme-bg-primary"
-          style={{
-            paddingBottom: "env(safe-area-inset-bottom)",
-          }}
+          style={{}}
         >
-          <div className="flex items-center h-16">
+          <div className="flex items-center h-12">
             {/* Collections Tab */}
             <button
               onClick={() => {
@@ -208,7 +206,7 @@ export function LibraryLayout() {
                 <div className="absolute top-0 left-0 right-0 h-0.5 bg-current" />
               )}
               <RectangleStackIcon
-                className={`h-6 w-6 ${
+                className={`h-4 w-4 ${
                   leftOpen ? "scale-110" : ""
                 } transition-transform`}
               />
@@ -238,7 +236,7 @@ export function LibraryLayout() {
                 <div className="absolute top-0 left-0 right-0 h-0.5 bg-current" />
               )}
               <BookOpenIcon
-                className={`h-6 w-6 ${
+                className={`h-4 w-4 ${
                   !leftOpen && !rightOpen ? "scale-110" : ""
                 } transition-transform`}
               />
@@ -273,7 +271,7 @@ export function LibraryLayout() {
                 <div className="absolute top-0 left-0 right-0 h-0.5 bg-current" />
               )}
               <InformationCircleIcon
-                className={`h-6 w-6 ${
+                className={`h-4 w-4 ${
                   rightOpen && selectedBook ? "scale-110" : ""
                 } transition-transform`}
               />
