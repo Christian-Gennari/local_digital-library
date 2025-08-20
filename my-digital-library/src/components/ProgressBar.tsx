@@ -49,7 +49,7 @@ interface ConfirmResetDialogProps {
   bookTitle?: string;
 }
 
-// Confirmation Dialog Component
+// Updated Confirmation Dialog Component with proper theming
 const ConfirmResetDialog: React.FC<ConfirmResetDialogProps> = ({
   isOpen,
   onConfirm,
@@ -60,15 +60,15 @@ const ConfirmResetDialog: React.FC<ConfirmResetDialogProps> = ({
 
   return (
     <div className="fixed inset-0 z-50">
-      {/* Backdrop */}
+      {/* Backdrop - using theme-aware opacity */}
       <button
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm"
         onClick={onCancel}
         aria-label="Close"
       />
 
-      {/* Dialog */}
-      <div className="absolute inset-x-0 bottom-0 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-xl theme-bg-primary w-full md:max-w-md shadow-2xl">
+      {/* Dialog - fully theme-aware */}
+      <div className="absolute inset-x-0 bottom-0 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-xl theme-bg-primary border theme-border w-full md:max-w-md shadow-2xl">
         {/* Mobile grabber */}
         <div className="md:hidden pt-2">
           <div className="mx-auto h-1.5 w-12 rounded-full theme-bg-tertiary" />
@@ -77,13 +77,16 @@ const ConfirmResetDialog: React.FC<ConfirmResetDialogProps> = ({
         <div className="p-6">
           <div className="flex items-start space-x-4">
             <div className="flex-shrink-0">
-              <ArrowPathIcon className="h-6 w-6 text-amber-500" />
+              {/* Icon with theme-aware warning color */}
+              <div className="p-2 rounded-full theme-bg-tertiary">
+                <ArrowPathIcon className="h-6 w-6 text-orange-600 dark:text-orange-500" />
+              </div>
             </div>
             <div className="flex-1">
               <h3 className="text-lg font-semibold theme-text-primary">
                 Reset Reading Progress?
               </h3>
-              <p className="mt-2 text-sm theme-text-secondary">
+              <p className="mt-2 text-sm theme-text-secondary leading-relaxed">
                 Are you sure you want to reset your progress for "{bookTitle}"?
                 You'll start from the beginning next time you open this book.
               </p>
@@ -93,13 +96,13 @@ const ConfirmResetDialog: React.FC<ConfirmResetDialogProps> = ({
           <div className="mt-6 flex justify-end gap-3">
             <button
               onClick={onCancel}
-              className="rounded-md px-4 py-2 text-sm font-medium theme-text-secondary hover:theme-bg-tertiary transition-colors cursor-pointer"
+              className="rounded-md px-4 py-2 text-sm font-medium theme-text-secondary theme-bg-secondary hover:theme-bg-tertiary border theme-border transition-colors cursor-pointer"
             >
               Cancel
             </button>
             <button
               onClick={onConfirm}
-              className="rounded-md px-4 py-2 text-sm font-semibold text-white bg-amber-600 hover:bg-amber-500 transition-colors cursor-pointer"
+              className="rounded-md px-4 py-2 text-sm font-semibold text-white bg-orange-600 hover:bg-orange-700 dark:bg-orange-500 dark:hover:bg-orange-600 transition-colors cursor-pointer shadow-sm"
             >
               Yes, Reset Progress
             </button>
