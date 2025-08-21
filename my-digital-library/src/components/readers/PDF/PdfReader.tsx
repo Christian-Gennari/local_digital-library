@@ -13,6 +13,7 @@ import { useReading } from "../../ReadingContext";
 import { useStore } from "../../../store";
 import { PdfHighlighting } from "./PdfHighlighting";
 import TableOfContents, { TocItem } from "./ToCForPdfReader";
+import { PDFSearchService } from "../../../services/PDFSearchService";
 import {
   PlusIcon,
   MinusIcon,
@@ -22,6 +23,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { TTSPlayer } from "../../TTSPlayer";
 import { ProgressBar } from "../../ProgressBar";
+import { ReaderSearchBar } from "../shared/ReaderSearchBar";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
@@ -51,6 +53,8 @@ const PdfReader = forwardRef<PdfReaderRef, PdfReaderProps>(
       setShowTTS,
       isTocOpen: tocOpenProp, // Add this
       setIsTocOpen: setTocOpenProp, // Add this
+      showSearch = false, // Add this
+      setShowSearch, // Add this
     },
     ref
   ) => {
@@ -72,8 +76,15 @@ const PdfReader = forwardRef<PdfReaderRef, PdfReaderProps>(
     const setIsTocOpen = setTocOpenProp || setLocalTocOpen;
     const [openChapters, setOpenChapters] = useState<Set<string>>(new Set());
     const [currentChapterId, setCurrentChapterId] = useState<string>("");
-
     const [pdfDocument, setPdfDocument] = useState<any>(null);
+
+    // Search functionality
+    const [searchService, setSearchService] = useState<PDFSearchService | null>(
+      null
+    );
+    const [searchMatches, setSearchMatches] = useState(0);
+    const [currentMatch, setCurrentMatch] = useState(0);
+    const [searchReady, setSearchReady] = useState(false);
 
     // Get Page Size
     const [pageSize, setPageSize] = useState({ width: 595, height: 842 }); // default A4
@@ -88,6 +99,31 @@ const PdfReader = forwardRef<PdfReaderRef, PdfReaderProps>(
       Math.max(min, Math.min(max, n));
 
     const isMobile = containerWidth > 0 && containerWidth < 768;
+
+    // Initialize search service when PDF document is loaded
+    useEffect(() => {
+      if (pdfDocument && containerRef.current) {
+        const service = new PDFSearchService(
+          pdfDocument,
+          containerRef,
+          (page: number) => setCurrentPage(page)
+        );
+        setSearchService(service);
+        setSearchReady(true);
+        console.log("PDF search service initialized");
+      }
+
+      return () => {
+        searchService?.clear();
+      };
+    }, [pdfDocument]);
+
+    // Update search service when container ref changes
+    useEffect(() => {
+      if (searchService && containerRef.current) {
+        searchService.updateContainerRef(containerRef);
+      }
+    }, [searchService, containerRef.current]);
 
     // Observe container width changes
     useEffect(() => {
@@ -166,6 +202,46 @@ const PdfReader = forwardRef<PdfReaderRef, PdfReaderProps>(
       },
       [goToPage, isMobile]
     );
+
+    // Search handler functions
+    const handleSearch = async (query: string) => {
+      if (!searchService || !searchReady) {
+        console.warn("Search service not ready yet");
+        return;
+      }
+
+      const matches = await searchService.search(query);
+      setSearchMatches(matches.length);
+
+      if (matches.length > 0) {
+        await searchService.navigateToMatch(0);
+        setCurrentMatch(1);
+      } else {
+        setCurrentMatch(0);
+      }
+    };
+
+    const handleNext = () => {
+      if (!searchService || searchMatches === 0) return;
+      searchService.next();
+      setCurrentMatch((prev) => (prev % searchMatches) + 1);
+    };
+
+    const handlePrevious = () => {
+      if (!searchService || searchMatches === 0) return;
+      searchService.previous();
+      setCurrentMatch((prev) => {
+        const next = prev - 1;
+        return next <= 0 ? searchMatches : next;
+      });
+    };
+
+    const handleCloseSearch = () => {
+      setShowSearch?.(false);
+      searchService?.clear();
+      setSearchMatches(0);
+      setCurrentMatch(0);
+    };
 
     // Add swipe gesture support
     useEffect(() => {
@@ -438,8 +514,30 @@ const PdfReader = forwardRef<PdfReaderRef, PdfReaderProps>(
       return () => window.removeEventListener("keydown", onKeyDown);
     }, [goPrev, goNext, zoomIn, zoomOut]);
 
+    useEffect(() => {
+      return () => {
+        if (progressSaveTimeoutRef.current) {
+          // Change from progressTimeoutRef to progressSaveTimeoutRef
+          clearTimeout(progressSaveTimeoutRef.current);
+        }
+        // Clean up search service
+        searchService?.destroy();
+      };
+    }, [searchService]);
+
     return (
       <div className="flex h-full theme-bg-secondary relative">
+        {/* Search Bar */}
+        <ReaderSearchBar
+          isVisible={showSearch}
+          isReady={searchReady}
+          onSearch={handleSearch}
+          onNext={handleNext}
+          onPrevious={handlePrevious}
+          onClose={handleCloseSearch}
+          currentMatch={currentMatch}
+          totalMatches={searchMatches}
+        />
         {/* ToC FAB on desktop; on mobile it sits bottom-right by CSS below */}
         {!isTocOpen && tableOfContents.length > 0 && (
           <button
@@ -537,21 +635,26 @@ const PdfReader = forwardRef<PdfReaderRef, PdfReaderProps>(
                   }
                   className={isMobile && scale > 1 ? "" : "flex justify-center"}
                 >
-                  <Page
-                    pageNumber={currentPage}
-                    scale={scale}
-                    renderAnnotationLayer
-                    renderTextLayer
-                    loading={
-                      <div
-                        style={{
-                          width: `${pageSize.width * scale}px`,
-                          height: `${pageSize.height * scale}px`,
-                          // Removed boxShadow
-                        }}
-                      />
-                    }
-                  />
+                  {/* Wrapper div for the page with positioning and data attribute */}
+                  <div
+                    className="relative inline-block"
+                    data-page-number={currentPage}
+                  >
+                    <Page
+                      pageNumber={currentPage}
+                      scale={scale}
+                      renderAnnotationLayer
+                      renderTextLayer
+                      loading={
+                        <div
+                          style={{
+                            width: `${pageSize.width * scale}px`,
+                            height: `${pageSize.height * scale}px`,
+                          }}
+                        />
+                      }
+                    />
+                  </div>
                 </Document>
 
                 <PdfHighlighting
