@@ -216,7 +216,11 @@ function BookViewerContent() {
                 {/* Fullscreen Button */}
                 <button
                   onClick={toggleFullscreen}
-                  className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium theme-bg-tertiary theme-text-primary hover\:theme-bg-tertiary transition-colors cursor-pointer"
+                  className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors cursor-pointer ${
+                    isFullscreen
+                      ? "theme-btn-primary"
+                      : "theme-bg-tertiary theme-text-primary hover:theme-bg-tertiary"
+                  }`}
                   title="Toggle Fullscreen"
                 >
                   {isFullscreen ? (

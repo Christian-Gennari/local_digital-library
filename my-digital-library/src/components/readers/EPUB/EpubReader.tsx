@@ -22,7 +22,6 @@ import {
   LocalTTSStorage,
 } from "../../../services/SentenceIndexer";
 import { useThemeStore } from "../../../stores/themeStore";
-import { defaultThemes } from "../../../config/themes";
 import {
   generateTocItems,
   matchSectionToToc,
@@ -77,6 +76,9 @@ const EpubReader = forwardRef<EpubReaderRef, EpubReaderProps>(
     const containerRef = useRef<HTMLDivElement>(null);
     const viewerShellRef = useRef<HTMLDivElement>(null);
     const viewerRef = useRef<HTMLDivElement>(null);
+    const swipeEnabledDocs = new WeakSet<Document>();
+    const goToNextRef = useRef<() => void>(() => {});
+    const goToPreviousRef = useRef<() => void>(() => {});
 
     const [book, setBook] = useState<any>(null);
     const [rendition, setRendition] = useState<any>(null);
@@ -105,10 +107,6 @@ const EpubReader = forwardRef<EpubReaderRef, EpubReaderProps>(
     const [sentenceIndexer, setSentenceIndexer] =
       useState<SentenceIndexer | null>(null);
     const [searchReady, setSearchReady] = useState(false);
-
-    // Touch swipe (mobile)
-    const touchStartX = useRef<number | null>(null);
-    const touchEndX = useRef<number | null>(null);
 
     const {
       setCurrentReference,
@@ -411,6 +409,12 @@ const EpubReader = forwardRef<EpubReaderRef, EpubReaderProps>(
       );
       if (btn && !btn.disabled) btn.click();
     }, []);
+
+    useEffect(() => {
+      goToNextRef.current = () => rendition?.next?.();
+      goToPreviousRef.current = () => rendition?.prev?.();
+    }, [rendition]);
+
     useEffect(() => {
       clickByActionRef.current = clickByAction;
     }, [clickByAction]);
@@ -493,6 +497,52 @@ const EpubReader = forwardRef<EpubReaderRef, EpubReaderProps>(
           doc.addEventListener("keydown", handleKeyDown);
         } catch {}
       };
+
+      const addSwipeListener = (view: any) => {
+        try {
+          const doc: Document | undefined =
+            view?.document || view?.contents?.document;
+          if (!doc || swipeEnabledDocs.has(doc)) return;
+
+          swipeEnabledDocs.add(doc);
+
+          let startX: number | null = null;
+
+          const handleTouchStart = (e: TouchEvent) => {
+            startX = e.touches[0]?.clientX || null;
+          };
+
+          const handleTouchEnd = (e: TouchEvent) => {
+            if (!startX) return;
+
+            const endX = e.changedTouches[0]?.clientX;
+            if (!endX) return;
+
+            const deltaX = startX - endX;
+
+            if (
+              Math.abs(deltaX) > 80 &&
+              !doc.getSelection()?.toString().trim()
+            ) {
+              if (deltaX > 0) {
+                goToNextRef.current();
+              } else {
+                goToPreviousRef.current();
+              }
+            }
+
+            startX = null;
+          };
+
+          doc.addEventListener("touchstart", handleTouchStart, {
+            passive: true,
+          });
+          doc.addEventListener("touchend", handleTouchEnd, { passive: true });
+        } catch (error) {
+          console.warn("Failed to add swipe listener:", error);
+        }
+      };
+
       const removeIframeKeyListener = (view: any) => {
         try {
           const doc: Document | undefined =
@@ -531,6 +581,8 @@ const EpubReader = forwardRef<EpubReaderRef, EpubReaderProps>(
 
       const onRendered = (_section: any, view: any) => {
         addIframeKeyListener(view);
+        addSwipeListener(view); // Add this line
+
         try {
           rendition.themes.select("reader-layout");
         } catch {}
@@ -811,23 +863,6 @@ const EpubReader = forwardRef<EpubReaderRef, EpubReaderProps>(
       setCurrentMatch(0);
     };
 
-    // Touch swipe handlers (mobile)
-    const onTouchStart = (e: React.TouchEvent) => {
-      touchEndX.current = null;
-      touchStartX.current = e.touches[0]?.clientX ?? null;
-    };
-    const onTouchMove = (e: React.TouchEvent) => {
-      touchEndX.current = e.touches[0]?.clientX ?? null;
-    };
-    const onTouchEnd = () => {
-      if (touchStartX.current == null || touchEndX.current == null) return;
-      const delta = touchStartX.current - touchEndX.current;
-      const threshold = 60;
-      if (Math.abs(delta) < threshold) return;
-      if (delta > 0) clickByActionRef.current("next");
-      else clickByActionRef.current("prev");
-    };
-
     const progressPercent =
       totalChapters > 0
         ? Math.round(
@@ -919,9 +954,6 @@ const EpubReader = forwardRef<EpubReaderRef, EpubReaderProps>(
                   TOOLBAR_MOBILE_HEIGHT + 16
                 }px, env(safe-area-inset-bottom))`,
               }}
-              onTouchStart={onTouchStart}
-              onTouchMove={onTouchMove}
-              onTouchEnd={onTouchEnd}
             >
               {isLoading && (
                 <div className="absolute inset-0 flex items-center justify-center theme-bg-secondary z-20">

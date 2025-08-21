@@ -75,6 +75,9 @@ const PdfReader = forwardRef<PdfReaderRef, PdfReaderProps>(
 
     const [pdfDocument, setPdfDocument] = useState<any>(null);
 
+    // Get Page Size
+    const [pageSize, setPageSize] = useState({ width: 595, height: 842 }); // default A4
+
     // Layout measurement for responsive fit-to-width on mobile
     const containerRef = useRef<HTMLDivElement>(null);
     const [containerWidth, setContainerWidth] = useState(0);
@@ -164,6 +167,59 @@ const PdfReader = forwardRef<PdfReaderRef, PdfReaderProps>(
       [goToPage, isMobile]
     );
 
+    // Add swipe gesture support
+    useEffect(() => {
+      const container = containerRef.current;
+      if (!container) return;
+
+      let startX: number | null = null;
+      let startY: number | null = null;
+
+      const handleTouchStart = (e: TouchEvent) => {
+        startX = e.touches[0]?.clientX || null;
+        startY = e.touches[0]?.clientY || null;
+      };
+
+      const handleTouchEnd = (e: TouchEvent) => {
+        if (!startX || !startY) return;
+
+        const endX = e.changedTouches[0]?.clientX;
+        const endY = e.changedTouches[0]?.clientY;
+        if (!endX || !endY) return;
+
+        const deltaX = startX - endX;
+        const deltaY = startY - endY;
+
+        // Only trigger if horizontal swipe is dominant and significant
+        if (
+          Math.abs(deltaX) > 50 && // Lower threshold for better responsiveness
+          Math.abs(deltaX) > Math.abs(deltaY) && // Horizontal swipe dominant
+          !window.getSelection()?.toString().trim() // No text selected
+        ) {
+          if (deltaX > 0) {
+            // Swipe left - go to next page
+            goNext();
+          } else {
+            // Swipe right - go to previous page
+            goPrev();
+          }
+        }
+
+        startX = null;
+        startY = null;
+      };
+
+      container.addEventListener("touchstart", handleTouchStart, {
+        passive: true,
+      });
+      container.addEventListener("touchend", handleTouchEnd, { passive: true });
+
+      return () => {
+        container.removeEventListener("touchstart", handleTouchStart);
+        container.removeEventListener("touchend", handleTouchEnd);
+      };
+    }, [goNext, goPrev]);
+
     const handleTocToggle = useCallback((chapterId: string) => {
       setOpenChapters((prev) => {
         const next = new Set(prev);
@@ -212,10 +268,18 @@ const PdfReader = forwardRef<PdfReaderRef, PdfReaderProps>(
         setPdfDocument(pdf);
         setNumPages(pdf.numPages);
 
+        // Get actual page dimensions
+        const firstPage = await pdf.getPage(1);
+        const viewport = firstPage.getViewport({ scale: 1 });
+        setPageSize({
+          width: viewport.width,
+          height: viewport.height,
+        });
+
         // Set initial scale to fit width on mobile
         if (containerWidth > 0 && containerWidth < 768) {
           const targetWidth = Math.min(containerWidth - 24, 560);
-          setScale(targetWidth / 595); // 595 is typical PDF page width
+          setScale(targetWidth / viewport.width); // ← USE ACTUAL WIDTH HERE
         }
 
         const initialPage = currentBook.metadata.lastReadPosition || 1;
@@ -439,7 +503,37 @@ const PdfReader = forwardRef<PdfReaderRef, PdfReaderProps>(
                   file={pdfUrl}
                   onLoadSuccess={onDocumentLoadSuccess}
                   loading={
-                    <div className="p-8 text-center">Loading PDF...</div>
+                    <div className="flex items-center justify-center min-h-[400px] w-full">
+                      <div className="text-center p-6 rounded-xl shadow-lg max-w-md mx-4">
+                        <div className="mb-3 flex h-14 w-14 items-center justify-center mx-auto rounded-full theme-bg-tertiary">
+                          <svg
+                            className="h-7 w-7 theme-text-secondary animate-spin"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                          >
+                            <circle
+                              className="opacity-25"
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="currentColor"
+                              strokeWidth="4"
+                            ></circle>
+                            <path
+                              className="opacity-75"
+                              fill="currentColor"
+                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                            ></path>
+                          </svg>
+                        </div>
+                        <h2 className="text-lg font-sans font-semibold theme-text-primary mb-1">
+                          Loading PDF…
+                        </h2>
+                        <p className="text-sm font-serif theme-text-secondary">
+                          Preparing your document
+                        </p>
+                      </div>
+                    </div>
                   }
                   className={isMobile && scale > 1 ? "" : "flex justify-center"}
                 >
@@ -448,6 +542,15 @@ const PdfReader = forwardRef<PdfReaderRef, PdfReaderProps>(
                     scale={scale}
                     renderAnnotationLayer
                     renderTextLayer
+                    loading={
+                      <div
+                        style={{
+                          width: `${pageSize.width * scale}px`,
+                          height: `${pageSize.height * scale}px`,
+                          // Removed boxShadow
+                        }}
+                      />
+                    }
                   />
                 </Document>
 

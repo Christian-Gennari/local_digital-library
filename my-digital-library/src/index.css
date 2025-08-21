@@ -215,38 +215,55 @@
   transition: var(--theme-transition);
 }
 
-/* HOVER UTILITIES - Critical for fixing your hover issues */
-.hover\:theme-bg-secondary:hover {
-  background-color: var(--theme-bg-secondary);
-}
+/* HOVER UTILITIES - Only on devices with precise pointers (mice/trackpads) */
+@media (hover: hover) and (pointer: fine) {
+  .hover\:theme-bg-primary:hover {
+    background-color: var(--theme-bg-primary);
+  }
 
-.hover\:theme-bg-tertiary:hover {
-  background-color: var(--theme-bg-tertiary);
-}
+  .hover\:theme-bg-secondary:hover {
+    background-color: var(--theme-bg-secondary);
+  }
 
-.hover\:theme-text-primary:hover {
-  color: var(--theme-text-primary);
-}
+  .hover\:theme-bg-tertiary:hover {
+    background-color: var(--theme-bg-tertiary);
+  }
 
-.hover\:theme-text-secondary:hover {
-  color: var(--theme-text-secondary);
-}
+  .hover\:theme-text-primary:hover {
+    color: var(--theme-text-primary);
+  }
 
-.hover\:theme-border-hover:hover {
-  border-color: var(--theme-border-hover);
-}
+  .hover\:theme-text-secondary:hover {
+    color: var(--theme-text-secondary);
+  }
 
-/* Group hover utilities */
-.group:hover .group-hover\:theme-text-primary {
-  color: var(--theme-text-primary);
-}
+  .hover\:theme-border-hover:hover {
+    border-color: var(--theme-border-hover);
+  }
 
-.group:hover .group-hover\:theme-text-muted {
-  color: var(--theme-text-muted);
-}
+  .theme-btn-primary:hover {
+    background-color: var(--theme-button-primary-hover);
+  }
 
-.group:hover .group-hover\:theme-bg-secondary {
-  background-color: var(--theme-bg-secondary);
+  .theme-btn-danger:hover {
+    background-color: var(--theme-button-danger-hover);
+  }
+
+  .theme-btn-secondary:hover {
+    background-color: var(--theme-hover);
+  }
+
+  .group:hover .group-hover\:theme-text-primary {
+    color: var(--theme-text-primary);
+  }
+
+  .group:hover .group-hover\:theme-text-muted {
+    color: var(--theme-text-muted);
+  }
+
+  .group:hover .group-hover\:theme-bg-secondary {
+    background-color: var(--theme-bg-secondary);
+  }
 }
 
 /* Active state utilities */
@@ -254,25 +271,17 @@
   background-color: var(--theme-bg-tertiary);
 }
 
-/* Theme-aware buttons */
+/* Theme-aware buttons - BASE STYLES ONLY */
 .theme-btn-primary {
   background-color: var(--theme-button-primary);
   color: white;
   transition: var(--theme-transition);
 }
 
-.theme-btn-primary:hover {
-  background-color: var(--theme-button-primary-hover);
-}
-
 .theme-btn-danger {
   background-color: var(--theme-button-danger);
   color: white;
   transition: var(--theme-transition);
-}
-
-.theme-btn-danger:hover {
-  background-color: var(--theme-button-danger-hover);
 }
 
 .theme-btn-secondary {
@@ -281,70 +290,10 @@
   transition: var(--theme-transition);
 }
 
-.theme-btn-secondary:hover {
-  background-color: var(--theme-hover);
-}
-
 /* View toggle selected state */
 .view-toggle-active {
   background-color: var(--theme-button-primary);
   color: white;
-}
-
-/* View toggle active state */
-.view-toggle-active {
-  background-color: var(--theme-button-primary);
-  color: white;
-}
-
-/* Theme button classes */
-.theme-btn-primary {
-  background-color: var(--theme-button-primary);
-  color: white;
-  transition: var(--theme-transition);
-}
-
-.theme-btn-primary:hover {
-  background-color: var(--theme-button-primary-hover);
-}
-
-.theme-btn-danger {
-  background-color: var(--theme-button-danger);
-  color: white;
-  transition: var(--theme-transition);
-}
-
-.theme-btn-danger:hover {
-  background-color: var(--theme-button-danger-hover);
-}
-
-/* Hover utilities with escape */
-.hover\:theme-bg-primary:hover {
-  background-color: var(--theme-bg-primary);
-}
-
-.hover\:theme-bg-secondary:hover {
-  background-color: var(--theme-bg-secondary);
-}
-
-.hover\:theme-bg-tertiary:hover {
-  background-color: var(--theme-bg-tertiary);
-}
-
-.hover\:theme-text-primary:hover {
-  color: var(--theme-text-primary);
-}
-
-.hover\:theme-text-secondary:hover {
-  color: var(--theme-text-secondary);
-}
-
-.hover\:theme-border-hover:hover {
-  border-color: var(--theme-border-hover);
-}
-
-.active\:theme-bg-tertiary:active {
-  background-color: var(--theme-bg-tertiary);
 }
 
 .placeholder\:theme-text-muted::placeholder {
@@ -363,6 +312,17 @@
 
 .react-pdf__Page__annotations {
   user-select: none;
+}
+
+/* Remove PDF page borders and shadows */
+.react-pdf__Page__canvas {
+  box-shadow: none !important;
+  border: none !important;
+}
+
+.react-pdf__Page {
+  box-shadow: none !important;
+  border: none !important;
 }
 
 @utility hide-scrollbar {

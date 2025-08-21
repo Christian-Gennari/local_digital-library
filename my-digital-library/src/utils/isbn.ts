@@ -165,8 +165,11 @@ export const fetchBookDataFromISBN = async (
 
       if (googleData.items && googleData.items[0]) {
         const imageLinks = googleData.items[0].volumeInfo.imageLinks;
-        coverUrl = imageLinks?.thumbnail || imageLinks?.smallThumbnail || null; // Supplement the Zotero data with additional fields from Google Books
-
+        coverUrl = imageLinks?.thumbnail || imageLinks?.smallThumbnail || null;
+        // Ensure Google Books URLs use HTTPS
+        if (coverUrl && coverUrl.startsWith("http://")) {
+          coverUrl = coverUrl.replace("http://", "https://");
+        }
         if (data && data[0]) {
           const googleBook = googleData.items[0].volumeInfo;
           const book = data[0];

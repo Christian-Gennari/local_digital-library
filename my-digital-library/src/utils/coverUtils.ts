@@ -24,7 +24,14 @@ export const getCoverImageSrc = async (book: Book): Promise<string | null> => {
   }
 
   // Fallback to online URL if no cover file
-  return book.metadata.coverUrl || null;
+  let url = book.metadata.coverUrl || null;
+
+  // Force HTTPS for external URLs
+  if (url && url.startsWith("http://")) {
+    url = url.replace("http://", "https://");
+  }
+
+  return url;
 };
 
 /**

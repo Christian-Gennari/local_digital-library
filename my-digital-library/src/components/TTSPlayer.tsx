@@ -359,12 +359,7 @@ export function TTSPlayer({
   return (
     <div className={`space-y-1 ${className}`}>
       {/* Compact pill toolbar */}
-      <div
-        className={[
-          "inline-flex items-center gap-1 rounded-xl border theme-border theme-bg-primary/80",
-          "backdrop-blur px-2 py-1 shadow-sm",
-        ].join(" ")}
-      >
+      <div className="inline-flex items-center gap-1 rounded-xl border theme-border theme-bg-primary px-2 py-1 shadow-sm">
         {/* Close integrated into the group (left edge) */}
         {onClose && (
           <button
@@ -372,8 +367,8 @@ export function TTSPlayer({
             title="Close"
             aria-label="Close TTS"
             className={[
-              "p-1 rounded-lg hover\:theme-bg-tertiary focus:outline-none focus:ring-1 focus:ring-slate-300",
-              "theme-text-secondary hover\:theme-text-primary",
+              "p-1 rounded-lg hover:theme-bg-tertiary focus:outline-none focus:ring-1 focus:ring-slate-300",
+              "theme-text-secondary hover:theme-text-primary",
             ].join(" ")}
           >
             <XMarkIcon className="h-4 w-4" />
@@ -400,7 +395,7 @@ export function TTSPlayer({
           disabled={isLoading || (!canPlay && !isPlaying)}
           title={isPlaying ? "Pause" : isPaused ? "Resume" : "Play"}
           className={[
-            "p-1 rounded-lg hover\:theme-bg-tertiary disabled:opacity-50",
+            "p-1 rounded-lg hover:theme-bg-tertiary disabled:opacity-50",
             "focus:outline-none focus:ring-1 focus:ring-slate-300",
           ].join(" ")}
         >
@@ -419,7 +414,7 @@ export function TTSPlayer({
           disabled={!isPlaying && !isPaused}
           title="Stop"
           className={[
-            "p-1 rounded-lg hover\:theme-bg-tertiary disabled:opacity-50",
+            "p-1 rounded-lg hover:theme-bg-tertiary disabled:opacity-50",
             "focus:outline-none focus:ring-1 focus:ring-slate-300",
           ].join(" ")}
         >
@@ -466,7 +461,7 @@ export function TTSPlayer({
           title={`Speed: ${rate}× (click to change)`}
           className={[
             "ml-1 px-2 py-1 text-[11px] border theme-border rounded-lg",
-            "theme-bg-primary hover\:theme-bg-secondary",
+            "theme-bg-primary hover:theme-bg-secondary",
             "focus:outline-none focus:ring-1 focus:ring-slate-300",
           ].join(" ")}
         >

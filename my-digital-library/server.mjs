@@ -3,10 +3,14 @@ import express from "express";
 import cors from "cors";
 import path from "path";
 import fs from "fs/promises";
+import fsSync from "fs"; // Add this for synchronous operations
 import { fileURLToPath } from "url";
 import multer from "multer";
 import { readdir } from "fs/promises";
 import ttsService from "./src/services/ttsService.mjs";
+import https from "https";
+import http from "http";
+import os from "os";
 
 // --- ESM __dirname/__filename ---
 const __filename = fileURLToPath(import.meta.url);
@@ -558,11 +562,62 @@ app.get(/^(?!\/(?:api|files)\/).*/, (_req, res) => {
   res.sendFile(path.join(__dirname, "dist", "index.html"));
 });
 
+// ---------- Tailscale HTTPS Certification ----------
+// Auto-detect hostname
+const machineName = os.hostname().toLowerCase();
+let hostname;
+
+if (machineName.includes("desktop")) {
+  hostname = "stationary-pc-home.tail87a215.ts.net";
+} else {
+  hostname = "nostos-server.tail87a215.ts.net";
+}
+
+// Rest of your HTTPS setup using the detected hostname
+console.log(`🔐 Using certificates for: ${hostname}`);
+
 const port = process.env.PORT || 8080;
-app.listen(port, () => {
-  console.log(`📚 server :${port}`);
-  console.log(`📂 root   ${LIBRARY_ROOT}`);
-});
+
+// Tailscale certificate configuration
+const tailscaleCertPath = `${process.env.LOCALAPPDATA}/Tailscale/certs`;
+// REMOVED the duplicate hostname declaration - using the auto-detected one from above
+
+const hasTailscaleCerts =
+  tailscaleCertPath &&
+  fsSync.existsSync(`${tailscaleCertPath}/${hostname}.crt`) &&
+  fsSync.existsSync(`${tailscaleCertPath}/${hostname}.key`);
+
+if (hasTailscaleCerts) {
+  // HTTPS with Tailscale certificates
+  const httpsOptions = {
+    key: fsSync.readFileSync(`${tailscaleCertPath}/${hostname}.key`),
+    cert: fsSync.readFileSync(`${tailscaleCertPath}/${hostname}.crt`),
+  };
+
+  https.createServer(httpsOptions, app).listen(443, () => {
+    console.log(`🔐 HTTPS server running (Tailscale certificates)`);
+    console.log(`🌐 Access at: https://${hostname}`);
+    console.log(`📂 Library root: ${LIBRARY_ROOT}`);
+  });
+
+  // Optional: HTTP to HTTPS redirect
+  http
+    .createServer((req, res) => {
+      res.writeHead(301, { Location: `https://${req.headers.host}${req.url}` });
+      res.end();
+    })
+    .listen(80);
+} else {
+  // Fallback to HTTP if no Tailscale certs
+  app.listen(port, () => {
+    console.log(`📚 HTTP server running on port ${port}`);
+    console.log(`📂 Library root: ${LIBRARY_ROOT}`);
+    console.log(
+      `⚠️  No Tailscale certificates found at ${tailscaleCertPath}/${hostname}.crt`
+    );
+    console.log(`💡 Generate certificate with: tailscale cert ${hostname}`);
+  });
+}
 
 // ---------- TTS ENDPOINTS (OpenAI-Compatible Kokoro) ----------
 

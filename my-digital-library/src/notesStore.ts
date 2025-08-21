@@ -45,7 +45,7 @@ interface NotesStore {
   }) => Promise<void>;
 }
 
-const generateNoteId = () => crypto.randomUUID();
+const generateNoteId = () => crypto.randomUUID(); //crypto only works with HTTPS
 
 // ---------- Remote helpers (Express API) ----------
 const loadNotesRemote = async (bookId: string): Promise<BookNote[]> => {
