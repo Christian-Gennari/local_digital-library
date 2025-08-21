@@ -63,7 +63,27 @@ export function ReaderSearchBar({
           {typeof loadingProgress === "number" ? ` ${loadingProgress}%` : ""}
         </span>
       )}
-
+      {isReady && totalMatches > 0 && (
+        <>
+          <span className="text-sm theme-text-secondary">
+            {currentMatch}/{totalMatches}
+          </span>
+          <button
+            onClick={onPrevious}
+            className="p-1 hover\:theme-bg-secondary rounded"
+            title="Previous match (Shift+Enter)"
+          >
+            ↑
+          </button>
+          <button
+            onClick={onNext}
+            className="p-1 hover\:theme-bg-secondary rounded"
+            title="Next match (Enter)"
+          >
+            ↓
+          </button>
+        </>
+      )}
       <button
         onClick={onClose}
         className="p-1 hover\:theme-bg-secondary rounded"
