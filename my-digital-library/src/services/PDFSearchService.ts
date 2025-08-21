@@ -1,55 +1,79 @@
 // src/services/PDFSearchService.ts
-import { pdfjs } from "react-pdf";
+import type { RefObject } from "react";
+import type {
+  PDFDocumentProxy,
+  TextContent,
+  TextItem,
+} from "pdfjs-dist/types/src/display/api";
 
 export interface PDFSearchMatch {
   text: string;
-  pageNumber: number;
+  pageNumber: number; // 1-based
   pageIndex: number; // 0-based
   excerpt: string;
-  matchIndex: number; // Index within the page
-  charIndex: number; // Character position in page text
-  textItems: TextItemMapping[]; // Store the text items that make up this match
+  matchIndex: number; // global index across doc (filled after search)
+  charIndex: number; // index in reconstructed page text
+  length: number;
+  // mapping used for fallback when DOM mapping fails
+  itemSpan: {
+    startItem: number;
+    endItem: number;
+    startOffset: number;
+    endOffset: number;
+  };
+  // NEW: the N-th match within this page (for robust DOM mapping)
+  occurrenceInPage: number;
 }
 
-interface TextItemMapping {
-  itemIndex: number;
-  startChar: number; // Start character position within the item
-  endChar: number; // End character position within the item
-}
-
-interface PDFTextItem {
-  str: string;
-  dir: string;
-  transform: number[];
-  width: number;
-  height: number;
-  fontName: string;
-}
+type ItemMapping = {
+  itemIndex: number; // index in original TextContent.items
+  startInFull: number; // start char pos in fullText
+  lengthInFull: number; // contributed length
+  startInItem: number; // start offset in item.str (usually 0)
+  usedChars: number; // number of chars used from item.str
+};
 
 export class PDFSearchService {
+  // ---- Search state ----
   private matches: PDFSearchMatch[] = [];
   private currentMatchIndex = 0;
   private currentQuery = "";
-  private highlightElements: HTMLElement[] = [];
-  private pdfDocument: any;
-  private containerRef: React.RefObject<HTMLDivElement | null>;
+
+  // ---- External handles ----
+  private pdfDocument: PDFDocumentProxy | null = null;
+  private containerRef: RefObject<HTMLDivElement | null>;
   private onPageChange?: (page: number) => void;
-  private pageTextContentCache: Map<number, any> = new Map();
+
+  // ---- Caching ----
+  private pageTextContentCache = new Map<number, TextContent>();
+  private isFullyCached = false;
+  private cachingProgress = 0;
+  private onCachingProgress?: (progress: number) => void;
+  private onCachingComplete?: () => void;
+
+  // ---- Highlight overlays we add (per navigation) ----
+  private overlayEls: HTMLElement[] = [];
 
   constructor(
-    pdfDocument: any,
-    containerRef: React.RefObject<HTMLDivElement | null>,
-    onPageChange?: (page: number) => void
+    pdfDocument: PDFDocumentProxy | null,
+    containerRef: RefObject<HTMLDivElement | null>,
+    onPageChange?: (page: number) => void,
+    onCachingProgress?: (progress: number) => void,
+    onCachingComplete?: () => void
   ) {
     this.pdfDocument = pdfDocument;
     this.containerRef = containerRef;
     this.onPageChange = onPageChange;
+    this.onCachingProgress = onCachingProgress;
+    this.onCachingComplete = onCachingComplete;
   }
 
-  /**
-   * Main search method
-   */
+  // ----------------------
+  // Public API
+  // ----------------------
+
   async search(query: string): Promise<PDFSearchMatch[]> {
+    if (!this.pdfDocument) return [];
     if (!query || query.trim().length < 2) {
       this.clear();
       return [];
@@ -58,19 +82,17 @@ export class PDFSearchService {
     this.currentQuery = query;
     this.clearHighlights();
     this.matches = [];
-    this.pageTextContentCache.clear();
 
     const numPages = this.pdfDocument.numPages;
 
-    // Search through all pages
     for (let pageNum = 1; pageNum <= numPages; pageNum++) {
-      const pageMatches = await this.searchInPageUsingPDFjs(pageNum, query);
+      const pageMatches = await this.searchInPage(pageNum, query);
       this.matches.push(...pageMatches);
     }
 
+    this.matches.forEach((m, i) => (m.matchIndex = i));
     this.currentMatchIndex = 0;
 
-    // Navigate to first match if found
     if (this.matches.length > 0) {
       await this.navigateToMatch(0);
     }
@@ -78,703 +100,736 @@ export class PDFSearchService {
     return this.matches;
   }
 
-  /**
-   * Search in a page using PDF.js text content with proper text reconstruction
-   */
-  private async searchInPageUsingPDFjs(
-    pageNumber: number,
-    query: string
-  ): Promise<PDFSearchMatch[]> {
-    try {
-      const page = await this.pdfDocument.getPage(pageNumber);
-      const textContent = await page.getTextContent();
-
-      // Cache the text content for later use
-      this.pageTextContentCache.set(pageNumber, textContent);
-
-      // Extract and process text items
-      const items = textContent.items as PDFTextItem[];
-
-      // Group text items by their Y position (same line)
-      const lines = this.groupTextItemsByLine(items);
-
-      // Build searchable text from grouped lines (pass original items for index mapping)
-      const { fullText, itemMappings } = this.buildSearchableText(lines, items);
-
-      // Search for matches in the reconstructed text
-      const matches = this.findMatchesInText(
-        fullText,
-        query,
-        pageNumber,
-        itemMappings
-      );
-
-      return matches;
-    } catch (error) {
-      console.warn(`Failed to search page ${pageNumber}:`, error);
-      return [];
-    }
-  }
-
-  /**
-   * Group text items by their Y position to reconstruct lines
-   */
-  private groupTextItemsByLine(items: PDFTextItem[]): PDFTextItem[][] {
-    if (items.length === 0) return [];
-
-    // Sort items by Y position (transform[5]) then X position (transform[4])
-    const sortedItems = [...items].sort((a, b) => {
-      const yDiff = b.transform[5] - a.transform[5]; // Y coordinate (inverted)
-      if (Math.abs(yDiff) > 2) return yDiff; // Tolerance for same line
-      return a.transform[4] - b.transform[4]; // X coordinate
-    });
-
-    // Group items into lines based on Y position
-    const lines: PDFTextItem[][] = [];
-    let currentLine: PDFTextItem[] = [];
-    let currentY = sortedItems[0]?.transform[5];
-
-    for (const item of sortedItems) {
-      const itemY = item.transform[5];
-
-      // Check if this item is on the same line (within tolerance)
-      if (Math.abs(itemY - currentY) <= 2) {
-        currentLine.push(item);
-      } else {
-        // Start a new line
-        if (currentLine.length > 0) {
-          lines.push(currentLine);
-        }
-        currentLine = [item];
-        currentY = itemY;
-      }
-    }
-
-    // Add the last line
-    if (currentLine.length > 0) {
-      lines.push(currentLine);
-    }
-
-    return lines;
-  }
-
-  /**
-   * Build searchable text from grouped lines with proper spacing
-   */
-  private buildSearchableText(
-    lines: PDFTextItem[][],
-    originalItems?: PDFTextItem[]
-  ): {
-    fullText: string;
-    itemMappings: {
-      itemIndex: number;
-      startPos: number;
-      endPos: number;
-      text: string;
-    }[];
-  } {
-    let fullText = "";
-    const itemMappings: {
-      itemIndex: number;
-      startPos: number;
-      endPos: number;
-      text: string;
-    }[] = [];
-
-    // Create a map to find original index of each item
-    const itemToOriginalIndex = new Map<PDFTextItem, number>();
-
-    if (originalItems) {
-      originalItems.forEach((item, index) => {
-        itemToOriginalIndex.set(item, index);
-      });
-    }
-
-    let sequentialIndex = 0;
-
-    for (let lineIdx = 0; lineIdx < lines.length; lineIdx++) {
-      const line = lines[lineIdx];
-
-      for (let i = 0; i < line.length; i++) {
-        const item = line[i];
-        const startPos = fullText.length;
-
-        // Add the item text
-        fullText += item.str;
-
-        // Get the original index of this item, or use sequential index
-        const originalIndex = originalItems
-          ? itemToOriginalIndex.get(item) ?? sequentialIndex
-          : sequentialIndex;
-
-        // Store mapping with original index
-        itemMappings.push({
-          itemIndex: originalIndex,
-          startPos,
-          endPos: fullText.length,
-          text: item.str,
-        });
-
-        sequentialIndex++;
-
-        // Add space between words if needed
-        if (i < line.length - 1) {
-          const nextItem = line[i + 1];
-          const currentX = item.transform[4];
-          const currentWidth = item.width;
-          const nextX = nextItem.transform[4];
-
-          // Check if there's a gap between items (likely a space)
-          const gap = nextX - (currentX + currentWidth);
-          if (gap > 2) {
-            // Threshold for space detection
-            fullText += " ";
-          }
-        }
-      }
-
-      // Add line break between lines
-      if (lineIdx < lines.length - 1) {
-        fullText += " ";
-      }
-    }
-
-    return { fullText, itemMappings };
-  }
-
-  /**
-   * Find matches in the reconstructed text
-   */
-  private findMatchesInText(
-    fullText: string,
-    query: string,
-    pageNumber: number,
-    itemMappings: {
-      itemIndex: number;
-      startPos: number;
-      endPos: number;
-      text: string;
-    }[]
-  ): PDFSearchMatch[] {
-    const matches: PDFSearchMatch[] = [];
-    const queryLower = query.toLowerCase();
-    const fullTextLower = fullText.toLowerCase();
-
-    let searchPos = 0;
-    let matchIndex = 0;
-
-    while ((searchPos = fullTextLower.indexOf(queryLower, searchPos)) !== -1) {
-      const matchEnd = searchPos + queryLower.length;
-
-      // Find which text items contain this match
-      const textItems: TextItemMapping[] = [];
-
-      for (const mapping of itemMappings) {
-        // Check if this item overlaps with the match
-        if (mapping.endPos > searchPos && mapping.startPos < matchEnd) {
-          const itemStartChar = Math.max(0, searchPos - mapping.startPos);
-          const itemEndChar = Math.min(
-            mapping.text.length,
-            matchEnd - mapping.startPos
-          );
-
-          if (itemEndChar > itemStartChar) {
-            textItems.push({
-              itemIndex: mapping.itemIndex,
-              startChar: itemStartChar,
-              endChar: itemEndChar,
-            });
-          }
-        }
-      }
-
-      // Extract excerpt
-      const excerpt = this.extractExcerpt(fullText, searchPos, query.length);
-
-      matches.push({
-        text: query,
-        pageNumber,
-        pageIndex: pageNumber - 1,
-        excerpt,
-        matchIndex: matchIndex++,
-        charIndex: searchPos,
-        textItems,
-      });
-
-      searchPos += queryLower.length;
-    }
-
-    return matches;
-  }
-
-  /**
-   * Extract text excerpt around match
-   */
-  private extractExcerpt(
-    text: string,
-    matchStart: number,
-    matchLength: number
-  ): string {
-    const contextLength = 40;
-    const start = Math.max(0, matchStart - contextLength);
-    const end = Math.min(text.length, matchStart + matchLength + contextLength);
-
-    let excerpt = text.substring(start, end);
-
-    if (start > 0) excerpt = "..." + excerpt;
-    if (end < text.length) excerpt = excerpt + "...";
-
-    return excerpt.replace(/\s+/g, " ").trim();
-  }
-
-  /**
-   * Navigate to a specific match
-   */
   async navigateToMatch(index: number): Promise<void> {
+    if (!this.matches.length || !this.pdfDocument) return;
     if (index < 0 || index >= this.matches.length) return;
 
     this.currentMatchIndex = index;
     const match = this.matches[index];
 
-    // Navigate to page if needed
-    const currentPage = this.getCurrentPageNumber();
-    if (this.onPageChange && match.pageNumber !== currentPage) {
-      this.onPageChange(match.pageNumber);
-      await new Promise((resolve) => setTimeout(resolve, 200));
-    }
+    // navigate page
+    this.onPageChange?.(match.pageNumber);
+    await this.scrollPageIntoView(match.pageNumber);
 
-    // Wait for page to render
-    await this.waitForPageRender(match.pageNumber);
+    // re-rendered text layer needs a beat
+    await new Promise((r) => setTimeout(r, 30));
 
-    // Clear and create new highlights
+    // clear any previous overlays
     this.clearHighlights();
-    await new Promise((resolve) => setTimeout(resolve, 50));
 
-    // Highlight using PDF.js text content mapping
-    await this.highlightMatchUsingTextContent(match);
-
-    // Scroll to match
-    this.scrollToMatch(match);
-  }
-
-  /**
-   * Highlight a match using PDF.js text content information
-   */
-  private async highlightMatchUsingTextContent(
-    match: PDFSearchMatch
-  ): Promise<void> {
-    if (!this.containerRef.current) return;
-
-    const pageElement = this.containerRef.current.querySelector(
-      `[data-page-number="${match.pageNumber}"]`
+    // try DOM-accurate range based on the N-th occurrence on this page
+    const range = this.findDomRangeForOccurrence(
+      match.pageNumber,
+      this.currentQuery,
+      match.occurrenceInPage
     );
 
-    if (!pageElement) return;
-
-    const textLayer = pageElement.querySelector(
-      ".react-pdf__Page__textContent"
-    );
-    if (!textLayer) return;
-
-    // Get the cached text content for this page
-    const textContent = this.pageTextContentCache.get(match.pageNumber);
-    if (!textContent) return;
-
-    const textSpans = Array.from(textLayer.querySelectorAll("span"));
-    const pdfTextItems = textContent.items as PDFTextItem[];
-
-    // Filter out empty text items (PDF.js doesn't create spans for them)
-    const nonEmptyItems = pdfTextItems.filter((item) => item.str.trim() !== "");
-
-    // Create a mapping between PDF text items and DOM spans
-    const spanMapping = this.mapTextItemsToSpans(
-      pdfTextItems,
-      textSpans,
-      nonEmptyItems
-    );
-
-    // Use the mapping to highlight the correct spans
-    for (const textItem of match.textItems) {
-      const spanIndices = spanMapping.get(textItem.itemIndex);
-
-      if (spanIndices && spanIndices.length > 0) {
-        // Use the first matching span (usually there's only one)
-        const spanIndex = spanIndices[0];
-        if (spanIndex < textSpans.length) {
-          const span = textSpans[spanIndex] as HTMLElement;
-
-          // Create highlight for this portion of the match
-          const highlight = this.createHighlightForTextItem(
-            span,
-            textItem.startChar,
-            textItem.endChar - textItem.startChar,
-            pageElement as HTMLElement
-          );
-
-          if (highlight) {
-            this.highlightElements.push(highlight);
-            pageElement.appendChild(highlight);
-          }
-        }
-      }
+    if (range) {
+      this.drawRangeOverlays(match.pageNumber, range);
+      this.scrollRangeIntoView(range);
+      return;
     }
+
+    // Fallback: approximate span-based overlay
+    this.applySpanFallback(match);
   }
 
-  /**
-   * Map PDF text items to DOM spans based on text content
-   */
-  private mapTextItemsToSpans(
-    pdfTextItems: PDFTextItem[],
-    domSpans: Element[],
-    nonEmptyItems?: PDFTextItem[]
-  ): Map<number, number[]> {
-    const mapping = new Map<number, number[]>();
-
-    // Use provided non-empty items or filter them
-    const filteredItems =
-      nonEmptyItems || pdfTextItems.filter((item) => item.str.trim() !== "");
-
-    // If the number of non-empty items matches the number of spans,
-    // there's likely a direct correspondence
-    const directMapping = filteredItems.length === domSpans.length;
-
-    if (directMapping) {
-      console.debug(
-        `Direct mapping: ${filteredItems.length} non-empty items to ${domSpans.length} spans`
-      );
-
-      // Map each non-empty item to its corresponding span
-      for (let i = 0; i < filteredItems.length; i++) {
-        const item = filteredItems[i];
-        const originalIndex = pdfTextItems.indexOf(item);
-
-        // Verify text matches as a sanity check
-        const spanText = (domSpans[i].textContent || "").trim();
-        const itemText = item.str.trim();
-
-        if (spanText === itemText) {
-          mapping.set(originalIndex, [i]);
-        } else {
-          // Still map it but log the mismatch
-          console.debug(
-            `Text mismatch at position ${i}: PDF="${itemText}" DOM="${spanText}"`
-          );
-          mapping.set(originalIndex, [i]);
-        }
-      }
-    } else {
-      // Fall back to content-based matching
-      console.debug(
-        `Content matching: ${pdfTextItems.length} items (${filteredItems.length} non-empty) to ${domSpans.length} spans`
-      );
-
-      const usedSpans = new Set<number>();
-
-      // First pass: exact matches for non-empty items
-      for (const item of filteredItems) {
-        const originalIndex = pdfTextItems.indexOf(item);
-        const itemText = item.str.trim();
-
-        for (let spanIdx = 0; spanIdx < domSpans.length; spanIdx++) {
-          if (usedSpans.has(spanIdx)) continue;
-
-          const spanText = (domSpans[spanIdx].textContent || "").trim();
-
-          if (spanText === itemText) {
-            mapping.set(originalIndex, [spanIdx]);
-            usedSpans.add(spanIdx);
-            break;
-          }
-        }
-      }
-
-      // Second pass: position-based fallback for unmapped items
-      const unmappedItems = filteredItems.filter(
-        (item) => !mapping.has(pdfTextItems.indexOf(item))
-      );
-
-      const unusedSpans = Array.from(
-        { length: domSpans.length },
-        (_, i) => i
-      ).filter((i) => !usedSpans.has(i));
-
-      // Map remaining items to remaining spans by position
-      for (
-        let i = 0;
-        i < Math.min(unmappedItems.length, unusedSpans.length);
-        i++
-      ) {
-        const item = unmappedItems[i];
-        const originalIndex = pdfTextItems.indexOf(item);
-        const spanIdx = unusedSpans[i];
-
-        console.debug(
-          `Position fallback: mapping item ${originalIndex} "${item.str}" to span ${spanIdx}`
-        );
-        mapping.set(originalIndex, [spanIdx]);
-      }
-    }
-
-    return mapping;
-  }
-
-  /**
-   * Create highlight element for a text item
-   */
-  private createHighlightForTextItem(
-    span: HTMLElement,
-    charOffset: number,
-    length: number,
-    pageElement: HTMLElement
-  ): HTMLElement | null {
-    const text = span.textContent || "";
-
-    // If highlighting the entire span
-    if (charOffset === 0 && length >= text.length) {
-      return this.createFullSpanHighlight(span, pageElement);
-    }
-
-    // For partial highlights, try to use Range API
-    const textNode = span.firstChild as Text;
-    if (!textNode || textNode.nodeType !== Node.TEXT_NODE) {
-      return this.createFullSpanHighlight(span, pageElement);
-    }
-
-    try {
-      const range = document.createRange();
-      const startOffset = Math.min(charOffset, textNode.length);
-      const endOffset = Math.min(charOffset + length, textNode.length);
-
-      range.setStart(textNode, startOffset);
-      range.setEnd(textNode, endOffset);
-
-      const rect = range.getBoundingClientRect();
-      const pageRect = pageElement.getBoundingClientRect();
-
-      const highlight = document.createElement("div");
-      highlight.className = "search-highlight search-highlight-current";
-      highlight.style.cssText = `
-        position: absolute;
-        left: ${rect.left - pageRect.left}px;
-        top: ${rect.top - pageRect.top}px;
-        width: ${rect.width}px;
-        height: ${rect.height}px;
-        background-color: rgba(255, 235, 59, 0.4);
-        pointer-events: none;
-        mix-blend-mode: multiply;
-        z-index: 1;
-      `;
-
-      return highlight;
-    } catch (error) {
-      console.warn("Error creating partial highlight:", error);
-      return this.createFullSpanHighlight(span, pageElement);
-    }
-  }
-
-  /**
-   * Create highlight for entire span
-   */
-  private createFullSpanHighlight(
-    span: HTMLElement,
-    pageElement: HTMLElement
-  ): HTMLElement {
-    const spanRect = span.getBoundingClientRect();
-    const pageRect = pageElement.getBoundingClientRect();
-
-    const highlight = document.createElement("div");
-    highlight.className = "search-highlight search-highlight-current";
-    highlight.style.cssText = `
-      position: absolute;
-      left: ${spanRect.left - pageRect.left}px;
-      top: ${spanRect.top - pageRect.top}px;
-      width: ${spanRect.width}px;
-      height: ${spanRect.height}px;
-      background-color: rgba(255, 235, 59, 0.4);
-      pointer-events: none;
-      mix-blend-mode: multiply;
-      z-index: 1;
-    `;
-
-    return highlight;
-  }
-
-  /**
-   * Navigate to next match
-   */
   next(): void {
     if (!this.matches.length) return;
-    const nextIndex = (this.currentMatchIndex + 1) % this.matches.length;
-    void this.navigateToMatch(nextIndex);
+    void this.navigateToMatch(
+      (this.currentMatchIndex + 1) % this.matches.length
+    );
   }
 
-  /**
-   * Navigate to previous match
-   */
   previous(): void {
     if (!this.matches.length) return;
-    const prevIndex =
+    const i =
       (this.currentMatchIndex - 1 + this.matches.length) % this.matches.length;
-    void this.navigateToMatch(prevIndex);
+    void this.navigateToMatch(i);
   }
 
-  /**
-   * Get current match number (1-based)
-   */
   getCurrentMatch(): number {
     return this.matches.length ? this.currentMatchIndex + 1 : 0;
   }
 
-  /**
-   * Get total number of matches
-   */
   getTotalMatches(): number {
     return this.matches.length;
   }
 
-  /**
-   * Clear search
-   */
-  clear(): void {
+  updatePdfDocument(pdfDocument: PDFDocumentProxy | null): void {
+    this.pdfDocument = pdfDocument;
+    this.clear(true);
+    this.isFullyCached = false;
+    this.cachingProgress = 0;
+  }
+
+  updateContainerRef(ref: RefObject<HTMLDivElement | null>): void {
+    this.containerRef = ref;
+  }
+
+  destroy(): void {
+    this.clear(true);
+    this.pdfDocument = null;
+    this.onPageChange = undefined;
+    this.onCachingProgress = undefined;
+    this.onCachingComplete = undefined;
+  }
+
+  clear(clearCache = false): void {
     this.clearHighlights();
     this.matches = [];
     this.currentMatchIndex = 0;
     this.currentQuery = "";
-    this.pageTextContentCache.clear();
+    if (clearCache) {
+      this.pageTextContentCache.clear();
+      this.isFullyCached = false;
+      this.cachingProgress = 0;
+    }
   }
 
-  /**
-   * Scroll to match
-   */
-  private scrollToMatch(match: PDFSearchMatch): void {
-    if (!this.containerRef.current) return;
+  // ----------------------
+  // Caching
+  // ----------------------
 
-    setTimeout(() => {
-      const currentHighlight = this.containerRef.current?.querySelector(
-        ".search-highlight-current"
-      );
+  async cacheAllPages(): Promise<void> {
+    if (!this.pdfDocument) return;
+    if (this.isFullyCached) return;
 
-      if (currentHighlight) {
-        currentHighlight.scrollIntoView({
-          behavior: "smooth",
-          block: "center",
-          inline: "center",
-        });
-      } else {
-        const pageElement = this.containerRef.current?.querySelector(
-          `[data-page-number="${match.pageNumber}"]`
-        );
-        if (pageElement) {
-          pageElement.scrollIntoView({
-            behavior: "smooth",
-            block: "start",
-          });
+    const numPages = this.pdfDocument.numPages;
+    this.cachingProgress = 0;
+
+    for (let pageNum = 1; pageNum <= numPages; pageNum++) {
+      if (!this.pageTextContentCache.has(pageNum)) {
+        try {
+          const page = await this.pdfDocument.getPage(pageNum);
+          const tc = await page.getTextContent();
+          this.pageTextContentCache.set(pageNum, tc);
+        } catch (err) {
+          console.warn(`Failed to cache page ${pageNum}:`, err);
         }
       }
-    }, 150);
+      this.cachingProgress = Math.round((pageNum / numPages) * 100);
+      this.onCachingProgress?.(this.cachingProgress);
+    }
+
+    this.isFullyCached = true;
+    this.onCachingComplete?.();
   }
 
-  /**
-   * Clear all highlights
-   */
-  private clearHighlights(): void {
-    this.highlightElements.forEach((el) => el.remove());
-    this.highlightElements = [];
+  isCached(): boolean {
+    return this.isFullyCached;
   }
 
+  getCachingProgress(): number {
+    return this.cachingProgress;
+  }
+
+  // ----------------------
+  // Page search
+  // ----------------------
+
+  private async searchInPage(
+    pageNumber: number,
+    query: string
+  ): Promise<PDFSearchMatch[]> {
+    if (!this.pdfDocument) return [];
+
+    let textContent = this.pageTextContentCache.get(pageNumber);
+    if (!textContent) {
+      try {
+        const page = await this.pdfDocument.getPage(pageNumber);
+        textContent = await page.getTextContent();
+        this.pageTextContentCache.set(pageNumber, textContent);
+      } catch (e) {
+        console.warn(`Failed to get text for page ${pageNumber}:`, e);
+        return [];
+      }
+    }
+
+    const items = textContent.items.filter(
+      (it): it is TextItem => (it as any).str !== undefined
+    ) as TextItem[];
+
+    const { fullText, mappings } = this.buildSearchableText(items);
+
+    const qLower = query.toLowerCase();
+    const textLower = fullText.toLowerCase();
+
+    const pageIndex = pageNumber - 1;
+    const matches: PDFSearchMatch[] = [];
+
+    let idx = 0;
+    let occurrenceInPage = 0;
+    const MAX_MATCHES_PER_PAGE = 1000;
+
+    while (idx < textLower.length) {
+      const found = textLower.indexOf(qLower, idx);
+      if (found === -1) break;
+
+      const span = this.mapCharWindowToItems(found, query.length, mappings);
+      const excerpt = this.makeExcerpt(fullText, found, query.length);
+
+      matches.push({
+        text: query,
+        pageNumber,
+        pageIndex,
+        excerpt,
+        matchIndex: -1,
+        charIndex: found,
+        length: query.length,
+        itemSpan: span,
+        occurrenceInPage,
+      });
+
+      occurrenceInPage++;
+      if (matches.length >= MAX_MATCHES_PER_PAGE) break;
+      idx = found + query.length;
+    }
+
+    return matches;
+  }
+
+  // ----------------------
+  // Text reconstruction (counts)
+  // ----------------------
+
   /**
-   * Wait for page to render
+   * Build a page string close to what the user *reads*:
+   * - sort items visually
+   * - add a **space** between lines (not a newline) to avoid losing cross-line matches
+   * - add a space between items if there is a visible gap
    */
-  private async waitForPageRender(pageNumber: number): Promise<void> {
-    return new Promise((resolve) => {
-      let attempts = 0;
-      const maxAttempts = 60;
+  private buildSearchableText(items: TextItem[]): {
+    fullText: string;
+    mappings: ItemMapping[];
+  } {
+    if (!items.length) return { fullText: "", mappings: [] };
 
-      const checkInterval = setInterval(() => {
-        attempts++;
-
-        if (!this.containerRef.current || attempts >= maxAttempts) {
-          clearInterval(checkInterval);
-          resolve();
-          return;
-        }
-
-        const pageElement = this.containerRef.current.querySelector(
-          `[data-page-number="${pageNumber}"]`
-        );
-
-        if (pageElement) {
-          const textLayer = pageElement.querySelector(
-            ".react-pdf__Page__textContent"
-          );
-
-          if (textLayer && textLayer.children.length > 0) {
-            // Verify text spans match our cached content
-            const textContent = this.pageTextContentCache.get(pageNumber);
-            const expectedSpans = textContent?.items?.length || 0;
-            const actualSpans = textLayer.children.length;
-
-            // Wait until we have all expected spans
-            if (actualSpans >= expectedSpans) {
-              clearInterval(checkInterval);
-              setTimeout(resolve, 100);
-            }
-          }
-        }
-      }, 50);
+    const sorted = [...items].sort((a, b) => {
+      const ya = (a.transform as any)[5] as number;
+      const yb = (b.transform as any)[5] as number;
+      if (Math.abs(yb - ya) > 2) return yb - ya; // top->bottom
+      const xa = (a.transform as any)[4] as number;
+      const xb = (b.transform as any)[4] as number;
+      return xa - xb; // left->right
     });
-  }
 
-  /**
-   * Get current page number
-   */
-  private getCurrentPageNumber(): number {
-    if (!this.containerRef.current) return 0;
+    // bucket by y with tolerance
+    const lines: number[][] = [];
+    const ys: number[] = [];
+    const Y_TOL = 2.5;
+    sorted.forEach((it, i) => {
+      const y = (it.transform as any)[5] as number;
+      let lineIdx = -1;
+      for (let li = 0; li < ys.length; li++) {
+        if (Math.abs(ys[li] - y) <= Y_TOL) {
+          lineIdx = li;
+          break;
+        }
+      }
+      if (lineIdx === -1) {
+        ys.push(y);
+        lines.push([i]);
+      } else {
+        lines[lineIdx].push(i);
+      }
+    });
 
-    const currentPageElement =
-      this.containerRef.current.querySelector("[data-page-number]");
-    if (currentPageElement) {
-      return parseInt(
-        currentPageElement.getAttribute("data-page-number") || "0"
-      );
+    let fullText = "";
+    const mappings: ItemMapping[] = [];
+    const GAP_FACTOR = 0.45;
+
+    for (let li = 0; li < lines.length; li++) {
+      const indices = lines[li].sort((ia, ib) => {
+        const xa = (sorted[ia].transform as any)[4] as number;
+        const xb = (sorted[ib].transform as any)[4] as number;
+        return xa - xb;
+      });
+
+      for (let k = 0; k < indices.length; k++) {
+        const item = sorted[indices[k]];
+        const prev = k > 0 ? sorted[indices[k - 1]] : null;
+
+        const x = (item.transform as any)[4] as number;
+        const px = prev ? ((prev.transform as any)[4] as number) : x;
+        const avgCharWidth = this.approximateCharWidth(prev);
+        const gap = x - px;
+
+        if (prev && avgCharWidth > 0 && gap > avgCharWidth * GAP_FACTOR) {
+          fullText += " ";
+          mappings.push({
+            itemIndex: -1,
+            startInFull: fullText.length - 1,
+            lengthInFull: 1,
+            startInItem: 0,
+            usedChars: 0,
+          });
+        }
+
+        const clean = (item.str || "").replace(/\s+/g, " ");
+        const startInFull = fullText.length;
+        fullText += clean;
+
+        const originalIndex = items.indexOf(item);
+        mappings.push({
+          itemIndex: originalIndex,
+          startInFull,
+          lengthInFull: clean.length,
+          startInItem: 0,
+          usedChars: clean.length,
+        });
+      }
+
+      // **space** between lines to allow cross-line matches
+      fullText += " ";
+      mappings.push({
+        itemIndex: -1,
+        startInFull: fullText.length - 1,
+        lengthInFull: 1,
+        startInItem: 0,
+        usedChars: 0,
+      });
     }
 
-    return 0;
+    return { fullText, mappings };
   }
 
-  /**
-   * Update container reference
-   */
-  updateContainerRef(
-    containerRef: React.RefObject<HTMLDivElement | null>
-  ): void {
-    this.containerRef = containerRef;
+  private approximateCharWidth(item: TextItem | null): number {
+    if (!item) return 0;
+    const scaleX = (item.transform as any)[0] as number;
+    const skewX = (item.transform as any)[1] as number;
+    const fontSize = Math.hypot(scaleX, skewX);
+    return Math.max(0, fontSize * 0.5);
   }
 
-  /**
-   * Update PDF document
-   */
-  updatePdfDocument(pdfDocument: any): void {
-    this.pdfDocument = pdfDocument;
-    this.clear();
+  private mapCharWindowToItems(
+    start: number,
+    length: number,
+    mappings: ItemMapping[]
+  ): {
+    startItem: number;
+    endItem: number;
+    startOffset: number;
+    endOffset: number;
+  } {
+    const end = start + length;
+
+    let startMapIdx = -1;
+    for (let i = 0; i < mappings.length; i++) {
+      const m = mappings[i];
+      if (m.itemIndex < 0 || m.lengthInFull === 0) continue;
+      if (start >= m.startInFull && start < m.startInFull + m.lengthInFull) {
+        startMapIdx = i;
+        break;
+      }
+    }
+
+    let endMapIdx = -1;
+    for (let i = mappings.length - 1; i >= 0; i--) {
+      const m = mappings[i];
+      if (m.itemIndex < 0 || m.lengthInFull === 0) continue;
+      if (
+        end - 1 >= m.startInFull &&
+        end - 1 < m.startInFull + m.lengthInFull
+      ) {
+        endMapIdx = i;
+        break;
+      }
+    }
+
+    if (startMapIdx === -1 || endMapIdx === -1) {
+      return { startItem: -1, endItem: -1, startOffset: 0, endOffset: 0 };
+    }
+
+    const mStart = mappings[startMapIdx];
+    const mEnd = mappings[endMapIdx];
+
+    const startOffset = start - mStart.startInFull + mStart.startInItem;
+    const endOffset = end - 1 - mEnd.startInFull + 1 + mEnd.startInItem;
+
+    return {
+      startItem: mStart.itemIndex,
+      endItem: mEnd.itemIndex,
+      startOffset: Math.max(0, startOffset),
+      endOffset: Math.max(0, endOffset),
+    };
   }
 
-  /**
-   * Refresh highlights
-   */
-  refreshHighlights(): void {
-    if (this.matches.length > 0 && this.currentMatchIndex >= 0) {
-      this.clearHighlights();
-      void this.highlightMatchUsingTextContent(
-        this.matches[this.currentMatchIndex]
-      );
+  // ----------------------
+  // DOM-accurate highlighting
+  // ----------------------
+
+  /** Find the DOM Range for the N-th occurrence of `query` on a page. */
+  private findDomRangeForOccurrence(
+    pageNumber: number,
+    query: string,
+    occurrenceInPage: number
+  ): Range | null {
+    const textLayer = this.getTextLayer(pageNumber);
+    if (!textLayer) return null;
+
+    // Collect spans and order them visually (top→bottom, then left→right).
+    const spans = Array.from(
+      textLayer.querySelectorAll("span")
+    ) as HTMLSpanElement[];
+    if (!spans.length) return null;
+
+    type SpanInfo = {
+      el: HTMLSpanElement;
+      top: number;
+      left: number;
+      text: string;
+    };
+    const infos: SpanInfo[] = spans.map((el) => {
+      const rect = el.getBoundingClientRect();
+      return { el, top: rect.top, left: rect.left, text: el.textContent ?? "" };
+    });
+
+    const Y_TOL = 2; // px tolerance to consider "same line"
+    const X_GAP_FACTOR = 0.45; // big intra-line gap → insert space
+
+    infos.sort((a, b) => {
+      if (Math.abs(a.top - b.top) > Y_TOL) return a.top - b.top; // top→bottom
+      return a.left - b.left; // left→right
+    });
+
+    // Build DOM-visible text with synthetic spaces at line breaks and big gaps.
+    type Atom =
+      | { type: "text"; spanIndex: number; startInSpan: number; length: number }
+      | { type: "space" };
+
+    const atoms: Atom[] = [];
+    const domPieces: string[] = [];
+
+    let prevTop = Number.NaN;
+    let prevRight = Number.NaN;
+
+    for (let i = 0; i < infos.length; i++) {
+      const s = infos[i];
+      const text = s.text;
+      if (!text) continue;
+
+      const rect = s.el.getBoundingClientRect();
+      const isNewLine = isNaN(prevTop) || Math.abs(s.top - prevTop) > Y_TOL;
+
+      if (isNewLine) {
+        // Insert a space between visual lines to keep cross-line queries intact (e.g., "my⏎parents").
+        if (domPieces.length > 0 && domPieces[domPieces.length - 1] !== " ") {
+          domPieces.push(" ");
+          atoms.push({ type: "space" });
+        }
+      } else {
+        // Same line: if there's a big horizontal gap, synthesize a space.
+        const gap = s.left - prevRight;
+        const approxCharWidth = rect.width / Math.max(1, text.length);
+        if (gap > approxCharWidth * (1 + X_GAP_FACTOR)) {
+          domPieces.push(" ");
+          atoms.push({ type: "space" });
+        }
+      }
+
+      domPieces.push(text);
+      atoms.push({
+        type: "text",
+        spanIndex: i,
+        startInSpan: 0,
+        length: text.length,
+      });
+
+      prevTop = s.top;
+      prevRight = rect.right;
+    }
+
+    const domText = domPieces.join("");
+    const qLower = query.toLowerCase();
+    const domLower = domText.toLowerCase();
+
+    // Find N-th occurrence in synthesized DOM text.
+    let foundIdx = -1;
+    let seen = 0;
+    let pos = 0;
+    while (pos < domLower.length) {
+      const j = domLower.indexOf(qLower, pos);
+      if (j === -1) break;
+      if (seen === occurrenceInPage) {
+        foundIdx = j;
+        break;
+      }
+      seen++;
+      pos = j + qLower.length;
+    }
+    if (foundIdx === -1) return null;
+
+    const start = foundIdx;
+    const end = foundIdx + query.length;
+
+    // Directional locators so we never anchor the range on a synthetic space.
+    const locateStart = (
+      charPos: number
+    ): { node: Text; offset: number } | null => {
+      let cursor = 0;
+      for (let a = 0; a < atoms.length; a++) {
+        const atom = atoms[a];
+        if (atom.type === "space") {
+          if (charPos === cursor) {
+            // START on synthetic space → snap FORWARD to next real glyph.
+            for (let b = a + 1; b < atoms.length; b++) {
+              const nxt = atoms[b];
+              if (nxt.type === "text" && nxt.length > 0) {
+                const spanNode = infos[nxt.spanIndex].el.firstChild;
+                if (spanNode && spanNode.nodeType === Node.TEXT_NODE) {
+                  return { node: spanNode as Text, offset: 0 };
+                }
+              }
+            }
+            // Fallback: snap to end of previous text atom.
+            for (let b = a - 1; b >= 0; b--) {
+              const prv = atoms[b];
+              if (prv.type === "text" && prv.length > 0) {
+                const spanNode = infos[prv.spanIndex].el.firstChild;
+                if (spanNode && spanNode.nodeType === Node.TEXT_NODE) {
+                  const tn = spanNode as Text;
+                  return { node: tn, offset: tn.data.length };
+                }
+              }
+            }
+            return null;
+          }
+          cursor += 1;
+          continue;
+        }
+        const startInDom = cursor;
+        const endInDom = cursor + atom.length;
+        if (charPos >= startInDom && charPos < endInDom) {
+          const span = infos[atom.spanIndex].el;
+          const tn = span.firstChild as Text | null;
+          if (!tn || tn.nodeType !== Node.TEXT_NODE) return null;
+          const offsetInSpan = atom.startInSpan + (charPos - startInDom);
+          return { node: tn, offset: offsetInSpan };
+        }
+        cursor = endInDom;
+      }
+      return null;
+    };
+
+    const locateEnd = (
+      charPos: number
+    ): { node: Text; offset: number } | null => {
+      let cursor = 0;
+      for (let a = 0; a < atoms.length; a++) {
+        const atom = atoms[a];
+        if (atom.type === "space") {
+          if (charPos === cursor) {
+            // END on synthetic space → snap BACKWARD to previous real glyph.
+            for (let b = a - 1; b >= 0; b--) {
+              const prv = atoms[b];
+              if (prv.type === "text" && prv.length > 0) {
+                const spanNode = infos[prv.spanIndex].el.firstChild;
+                if (spanNode && spanNode.nodeType === Node.TEXT_NODE) {
+                  const tn = spanNode as Text;
+                  return { node: tn, offset: Math.max(0, tn.data.length - 1) };
+                }
+              }
+            }
+            // Fallback: snap to start of next text atom.
+            for (let b = a + 1; b < atoms.length; b++) {
+              const nxt = atoms[b];
+              if (nxt.type === "text" && nxt.length > 0) {
+                const spanNode = infos[nxt.spanIndex].el.firstChild;
+                if (spanNode && spanNode.nodeType === Node.TEXT_NODE) {
+                  return { node: spanNode as Text, offset: 0 };
+                }
+              }
+            }
+            return null;
+          }
+          cursor += 1;
+          continue;
+        }
+        const startInDom = cursor;
+        const endInDom = cursor + atom.length;
+        if (charPos >= startInDom && charPos < endInDom) {
+          const span = infos[atom.spanIndex].el;
+          const tn = span.firstChild as Text | null;
+          if (!tn || tn.nodeType !== Node.TEXT_NODE) return null;
+          const offsetInSpan = atom.startInSpan + (charPos - startInDom);
+          return { node: tn, offset: offsetInSpan };
+        }
+        cursor = endInDom;
+      }
+      return null;
+    };
+
+    const startLoc = locateStart(start);
+    const endLoc = locateEnd(end - 1);
+    if (!startLoc || !endLoc) return null;
+
+    const range = document.createRange();
+    range.setStart(startLoc.node, startLoc.offset);
+    range.setEnd(endLoc.node, endLoc.offset + 1);
+    return range;
+  }
+
+  private drawRangeOverlays(pageNumber: number, range: Range): void {
+    const pageRoot = this.getPageRoot(pageNumber);
+    if (!pageRoot) return;
+
+    const pageRect = pageRoot.getBoundingClientRect();
+    const rects = Array.from(range.getClientRects());
+
+    // Tolerances to drop phantom boxes
+    const MIN_W = 1.5; // px
+    const MIN_H = 1.5; // px
+    const AREA_MIN = 3.0; // px^2
+    const PAD = 1.0; // px tolerance for containment
+
+    for (const r of rects) {
+      const w = r.width;
+      const h = r.height;
+      const area = w * h;
+
+      // Skip zero/tiny rects (the source of the artifact)
+      if (w < MIN_W || h < MIN_H || area < AREA_MIN) continue;
+
+      // Skip rects that are clearly outside the pageRoot (extra safety)
+      const insideHoriz =
+        r.left >= pageRect.left - PAD && r.right <= pageRect.right + PAD;
+      const insideVert =
+        r.top >= pageRect.top - PAD && r.bottom <= pageRect.bottom + PAD;
+      if (!(insideHoriz && insideVert)) continue;
+
+      const box = document.createElement("div");
+      box.style.position = "absolute";
+      box.style.left = `${r.left - pageRect.left}px`;
+      box.style.top = `${r.top - pageRect.top}px`;
+      box.style.width = `${w}px`;
+      box.style.height = `${h}px`;
+      box.style.pointerEvents = "none";
+      box.style.background = "rgba(250, 204, 21, 0.32)"; // amber-ish
+      box.style.outline = "2px solid rgba(234, 179, 8, 0.55)";
+      box.style.borderRadius = "3px";
+      box.style.zIndex = "10";
+      pageRoot.appendChild(box);
+      this.overlayEls.push(box);
     }
   }
 
-  /**
-   * Destroy service
-   */
-  destroy(): void {
-    this.clear();
+  private scrollRangeIntoView(range: Range) {
+    try {
+      const rect = range.getBoundingClientRect();
+      if (rect && rect.width >= 1 && rect.height >= 1) {
+        const anchor = document.elementFromPoint(
+          rect.left + rect.width / 2,
+          rect.top + rect.height / 2
+        );
+        (anchor as HTMLElement | null)?.scrollIntoView({
+          block: "center",
+          inline: "nearest",
+          behavior: "smooth",
+        });
+      }
+    } catch {}
+  }
+
+  /** Fallback (coarse): select full contributing spans between start/end items. */
+  private applySpanFallback(match: PDFSearchMatch): void {
+    const textLayer = this.getTextLayer(match.pageNumber);
+    if (!textLayer) return;
+
+    const spans = Array.from(
+      textLayer.querySelectorAll("span")
+    ) as HTMLSpanElement[];
+    if (!spans.length) return;
+
+    const s = Math.max(0, Math.min(spans.length - 1, match.itemSpan.startItem));
+    const e = Math.max(0, Math.min(spans.length - 1, match.itemSpan.endItem));
+
+    for (let i = s; i <= e; i++) {
+      const span = spans[i];
+      const rect = span.getBoundingClientRect();
+      const pageRoot = this.getPageRoot(match.pageNumber);
+      if (!pageRoot) break;
+      const pageRect = pageRoot.getBoundingClientRect();
+
+      const box = document.createElement("div");
+      box.style.position = "absolute";
+      box.style.left = `${rect.left - pageRect.left}px`;
+      box.style.top = `${rect.top - pageRect.top}px`;
+      box.style.width = `${rect.width}px`;
+      box.style.height = `${rect.height}px`;
+      box.style.pointerEvents = "none";
+      box.style.background = "rgba(250, 204, 21, 0.22)";
+      box.style.outline = "1px solid rgba(234, 179, 8, 0.45)";
+      box.style.borderRadius = "3px";
+      box.style.zIndex = "10";
+      pageRoot.appendChild(box);
+      this.overlayEls.push(box);
+    }
+  }
+
+  private clearHighlights(): void {
+    for (const el of this.overlayEls) {
+      el.remove();
+    }
+    this.overlayEls = [];
+  }
+
+  // ----------------------
+  // DOM helpers (React-PDF)
+  // ----------------------
+
+  private getPageRoot(pageNumber: number): HTMLElement | null {
+    const root = this.containerRef?.current;
+    if (!root) return null;
+
+    let page = root.querySelector<HTMLElement>(
+      `.react-pdf__Page[data-page-number="${pageNumber}"]`
+    );
+    if (page) return page;
+
+    const all = root.querySelectorAll<HTMLElement>(".react-pdf__Page");
+    if (all && all.length >= pageNumber) {
+      return all[pageNumber - 1];
+    }
+    return null;
+  }
+
+  private getTextLayer(pageNumber: number): HTMLElement | null {
+    const pageRoot = this.getPageRoot(pageNumber);
+    if (!pageRoot) return null;
+
+    let textLayer = pageRoot.querySelector<HTMLElement>(
+      ".react-pdf__Page__textContent"
+    );
+    if (textLayer) return textLayer;
+
+    textLayer = pageRoot.querySelector<HTMLElement>(".textLayer");
+    return textLayer || null;
+  }
+
+  private async scrollPageIntoView(pageNumber: number): Promise<void> {
+    const root = this.getPageRoot(pageNumber);
+    if (!root) return;
+    root.scrollIntoView({
+      block: "center",
+      inline: "nearest",
+      behavior: "smooth",
+    });
+    await new Promise((r) => setTimeout(r, 60));
+  }
+
+  // ----------------------
+  // Utilities
+  // ----------------------
+
+  private makeExcerpt(
+    text: string,
+    idx: number,
+    len: number,
+    radius = 50
+  ): string {
+    const start = Math.max(0, idx - radius);
+    const end = Math.min(text.length, idx + len + radius);
+    return text.slice(start, end).replace(/\s+/g, " ").trim();
   }
 }

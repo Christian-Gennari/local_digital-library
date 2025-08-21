@@ -86,6 +86,9 @@ const PdfReader = forwardRef<PdfReaderRef, PdfReaderProps>(
     const [currentMatch, setCurrentMatch] = useState(0);
     const [searchReady, setSearchReady] = useState(false);
 
+    // ⭐ NEW: optional local progress if you later want to display it
+    const [cacheProgress, setCacheProgress] = useState(0); // 0..100
+
     // Get Page Size
     const [pageSize, setPageSize] = useState({ width: 595, height: 842 }); // default A4
 
@@ -103,19 +106,28 @@ const PdfReader = forwardRef<PdfReaderRef, PdfReaderProps>(
     // Initialize search service when PDF document is loaded
     useEffect(() => {
       if (pdfDocument && containerRef.current) {
+        // ⭐ NEW: create with progress + complete callbacks; start caching
         const service = new PDFSearchService(
           pdfDocument,
           containerRef,
-          (page: number) => setCurrentPage(page)
+          (page: number) => setCurrentPage(page),
+          (p: number) =>
+            setCacheProgress(Math.max(0, Math.min(100, Math.round(p)))), // onCachingProgress
+          () => setSearchReady(true) // onCachingComplete -> enable search
         );
         setSearchService(service);
-        setSearchReady(true);
-        console.log("PDF search service initialized");
+
+        // Until caching completes, keep the bar disabled
+        setSearchReady(false);
+        setCacheProgress(0);
+        void service.cacheAllPages(); // warm the text index
+        console.log("PDF search service initialized (caching started)");
       }
 
       return () => {
         searchService?.clear();
       };
+      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [pdfDocument]);
 
     // Update search service when container ref changes

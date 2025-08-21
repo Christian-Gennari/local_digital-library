@@ -10,7 +10,10 @@ interface ReaderSearchBarProps {
   currentMatch: number;
   totalMatches: number;
   isVisible: boolean;
-  isReady?: boolean; // Add this
+  isReady?: boolean; // existing
+  // NEW (optional, safe defaults)
+  loadingLabel?: string; // e.g., "Caching"
+  loadingProgress?: number; // 0..100
 }
 
 export function ReaderSearchBar({
@@ -21,7 +24,9 @@ export function ReaderSearchBar({
   currentMatch,
   totalMatches,
   isVisible,
-  isReady = true, // Default to true
+  isReady = true,
+  loadingLabel = "Loading",
+  loadingProgress,
 }: ReaderSearchBarProps) {
   const [query, setQuery] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -32,15 +37,13 @@ export function ReaderSearchBar({
 
   const handleSearch = (value: string) => {
     setQuery(value);
-    if (isReady) {
-      onSearch(value);
-    }
+    if (isReady) onSearch(value);
   };
 
   return isVisible ? (
     <div
       className="absolute top-4 right-4 z-50 flex items-center gap-2 
-                    theme-bg-primary/95 backdrop-blur-sm rounded-lg shadow-lg p-2"
+                 theme-bg-primary/95 backdrop-blur-sm rounded-lg shadow-lg p-2"
     >
       <MagnifyingGlassIcon className="w-5 h-5 theme-text-secondary" />
       <input
@@ -48,7 +51,7 @@ export function ReaderSearchBar({
         type="text"
         value={query}
         onChange={(e) => handleSearch(e.target.value)}
-        placeholder={isReady ? "Search in book..." : "Loading search..."}
+        placeholder={isReady ? "Search in book..." : `${loadingLabel}…`}
         disabled={!isReady}
         className={`w-48 px-2 py-1 outline-none bg-transparent ${
           !isReady ? "opacity-50 cursor-not-allowed" : ""
@@ -56,7 +59,8 @@ export function ReaderSearchBar({
       />
       {!isReady && (
         <span className="text-xs theme-text-secondary animate-pulse">
-          Loading...
+          {loadingLabel}
+          {typeof loadingProgress === "number" ? ` ${loadingProgress}%` : ""}
         </span>
       )}
       {isReady && totalMatches > 0 && (
