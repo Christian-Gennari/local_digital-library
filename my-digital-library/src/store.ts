@@ -157,17 +157,21 @@ export const useStore = create<Store>((set, get) => ({
     set({ pendingBook: file, showMetadataModal: true });
   },
 
-  // Remote mode upload
-  savePendingBookWithMetadata: async (metadata, coverFile) => {
+  savePendingBookWithMetadata: async (
+    metadata: BookMetadata,
+    coverFile?: File
+  ) => {
     const { pendingBook } = get();
     if (!pendingBook) return;
 
     set({ isLoading: true });
     try {
+      // Step 1: Upload the book WITHOUT the cover
       const resp = await RemoteFS.uploadBook(pendingBook, metadata, {
-        mode: "auto-number", // server will auto-number on conflict
-        coverFile,
+        mode: "auto-number",
+        // Don't include coverFile here - it's not handled by this endpoint
       });
+
       const newBook: Book = {
         id: resp.book.id,
         folderName: resp.book.folderName,
@@ -177,6 +181,23 @@ export const useStore = create<Store>((set, get) => ({
         metadata:
           resp.book.metadata || createDefaultMetadata(resp.book.fileName),
       };
+
+      // Step 2: If we have a cover file, upload it separately
+      if (coverFile) {
+        try {
+          const coverResp = await RemoteFS.uploadCover(newBook.id, coverFile);
+          // Update the metadata with the cover file info
+          newBook.metadata.coverFile = coverResp.coverFile;
+          newBook.metadata.coverUrl = undefined;
+
+          // Save the updated metadata back to the server
+          await RemoteFS.saveMetadata(newBook.id, newBook.metadata);
+        } catch (coverError) {
+          console.error("Failed to upload cover:", coverError);
+          // Book is still saved, just without cover
+        }
+      }
+
       set((s) => ({
         books: [newBook, ...s.books],
         pendingBook: null,
@@ -184,7 +205,7 @@ export const useStore = create<Store>((set, get) => ({
         isLoading: false,
       }));
     } catch (e) {
-      console.error("Failed to save (remote):", e);
+      console.error("Failed to save book:", e);
       set({ isLoading: false });
       alert("Failed to save book");
     }

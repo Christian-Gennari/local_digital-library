@@ -107,6 +107,9 @@ export class PDFSearchService {
   }
 
   async navigateToMatch(index: number): Promise<void> {
+    // Clear previous overlays and (re)draw
+    this.clearHighlights();
+
     if (!this.matches.length || !this.pdfDocument) return;
     if (index < 0 || index >= this.matches.length) return;
 
@@ -135,9 +138,6 @@ export class PDFSearchService {
 
     // tiny settle time helps when React reflows the text layer
     await new Promise((r) => setTimeout(r, 16));
-
-    // Clear previous overlays and (re)draw
-    this.clearHighlights();
 
     const range = this.findDomRangeForOccurrence(
       match.pageNumber,

@@ -1,5 +1,5 @@
-// src/components/ConfirmationModal.tsx
-import { XMarkIcon } from "@heroicons/react/24/outline";
+// ConfirmationModal.tsx
+import { createPortal } from "react-dom";
 
 interface ConfirmationModalProps {
   isOpen: boolean;
@@ -24,51 +24,40 @@ export function ConfirmationModal({
 }: ConfirmationModalProps) {
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-50">
-      {/* Backdrop */}
-      <button
-        className="absolute inset-0 bg-black/50"
+  // Create the modal content
+  const modalContent = (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* Backdrop - semi-transparent background */}
+      <div
+        className="absolute inset-0 bg-black/20 dark:bg-black/40"
         onClick={onCancel}
-        aria-label="Close"
       />
-      {/* Sheet (mobile) / Dialog (desktop) */}
-      <div className="absolute inset-x-0 bottom-0 md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-xl theme-bg-primary md:w-full md:max-w-sm shadow-2xl">
-        {/* Grabber (mobile only) */}
-        <div className="md:hidden pt-2">
-          <div className="mx-auto h-1.5 w-12 rounded-full theme-bg-tertiary" />
-        </div>
 
-        <div className="relative p-6">
-          <button
-            onClick={onCancel}
-            className="absolute right-4 top-4 theme-text-muted hover\:theme-text-secondary"
-          >
-            <XMarkIcon className="h-5 w-5" />
-          </button>
-
-          <h3
-            className={`text-lg font-semibold ${
-              isDestructive ? "text-red-700" : "theme-text-primary"
-            }`}
-          >
+      {/* Modal dialog box */}
+      <div className="relative w-full max-w-md theme-bg-primary rounded-lg shadow-xl border theme-border">
+        <div className="p-6">
+          {/* Modal Title */}
+          <h3 className="text-lg font-semibold theme-text-primary mb-4">
             {title}
           </h3>
-          <p className="mt-2 text-sm theme-text-secondary">{message}</p>
 
-          <div className="mt-6 flex justify-end gap-3">
+          {/* Modal Message */}
+          <p className="theme-text-secondary mb-6">{message}</p>
+
+          {/* Action Buttons */}
+          <div className="flex gap-3 justify-end">
             <button
               onClick={onCancel}
-              className="rounded-md px-4 py-2 text-sm font-medium theme-text-secondary hover\:theme-bg-tertiary cursor-pointer"
+              className="px-4 py-2 theme-bg-secondary theme-text-secondary hover:theme-bg-tertiary rounded-lg transition-colors cursor-pointer"
             >
               {cancelText}
             </button>
             <button
               onClick={onConfirm}
-              className={`rounded-md px-4 py-2 text-sm font-semibold text-white cursor-pointer ${
+              className={`px-4 py-2 rounded-lg transition-colors cursor-pointer font-medium ${
                 isDestructive
-                  ? "bg-red-600 hover:bg-red-500"
-                  : "theme-btn-primary hover:theme-btn-primary"
+                  ? "bg-red-600 text-white hover:bg-red-700"
+                  : "theme-btn-primary"
               }`}
             >
               {confirmText}
@@ -78,4 +67,7 @@ export function ConfirmationModal({
       </div>
     </div>
   );
+
+  // Render the modal outside of the parent component using a portal
+  return createPortal(modalContent, document.body);
 }

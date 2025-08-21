@@ -268,7 +268,7 @@ export function BookMetadataEntry({ fileName, onSave, onSkip }: Props) {
         </div>
 
         {/* Header */}
-        <div className="px-6 py-4 border-b theme-border flex items-center justify-between sticky top-0 theme-bg-primary z-10">
+        <div className="rounded-lg px-6 py-4 border-b theme-border flex items-center justify-between sticky top-0 theme-bg-primary z-10">
           <div>
             <h2
               id="entry-title"
@@ -323,7 +323,7 @@ export function BookMetadataEntry({ fileName, onSave, onSkip }: Props) {
                 className={`py-3 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors cursor-pointer ${
                   activeTab === "basic"
                     ? "border-slate-600 theme-text-primary"
-                    : "border-transparent theme-text-secondary hover\:theme-text-secondary hover:theme-border"
+                    : "border-transparent theme-text-secondary hover:theme-text-secondary hover:theme-border"
                 }`}
               >
                 Basic Info
@@ -333,7 +333,7 @@ export function BookMetadataEntry({ fileName, onSave, onSkip }: Props) {
                 className={`py-3 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors cursor-pointer ${
                   activeTab === "identifiers"
                     ? "border-slate-600 theme-text-primary"
-                    : "border-transparent theme-text-secondary hover\:theme-text-secondary hover:theme-border"
+                    : "border-transparent theme-text-secondary hover:theme-text-secondary hover:theme-border"
                 }`}
               >
                 Identifiers
@@ -343,7 +343,7 @@ export function BookMetadataEntry({ fileName, onSave, onSkip }: Props) {
                 className={`py-3 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors cursor-pointer ${
                   activeTab === "publication"
                     ? "border-slate-600 theme-text-primary"
-                    : "border-transparent theme-text-secondary hover\:theme-text-secondary hover:theme-border"
+                    : "border-transparent theme-text-secondary hover:theme-text-secondary hover:theme-border"
                 }`}
               >
                 Publication
@@ -353,7 +353,7 @@ export function BookMetadataEntry({ fileName, onSave, onSkip }: Props) {
                 className={`py-3 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors cursor-pointer ${
                   activeTab === "digital"
                     ? "border-slate-600 theme-text-primary"
-                    : "border-transparent theme-text-secondary hover\:theme-text-secondary hover:theme-border"
+                    : "border-transparent theme-text-secondary hover:theme-text-secondary hover:theme-border"
                 }`}
               >
                 {itemType === "audiobook" ? "Media Details" : "Digital/Series"}
@@ -363,7 +363,7 @@ export function BookMetadataEntry({ fileName, onSave, onSkip }: Props) {
                 className={`py-3 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors cursor-pointer ${
                   activeTab === "user"
                     ? "border-slate-600 theme-text-primary"
-                    : "border-transparent theme-text-secondary hover\:theme-text-secondary hover:theme-border"
+                    : "border-transparent theme-text-secondary hover:theme-text-secondary hover:theme-border"
                 }`}
               >
                 Personal
@@ -1140,7 +1140,7 @@ export function BookMetadataEntry({ fileName, onSave, onSkip }: Props) {
         </div>
 
         {/* Footer */}
-        <div className="px-4 md:px-6 py-4 border-t theme-border flex justify-between items-center gap-3 bottom-0 theme-bg-primary">
+        <div className="rounded-lg px-4 md:px-6 py-4 border-t theme-border flex justify-between items-center gap-3 bottom-0 theme-bg-primary">
           <button
             onClick={onSkip}
             className="px-6 py-2 theme-text-secondary hover\:theme-text-primary font-medium rounded-lg transition-colors cursor-pointer"

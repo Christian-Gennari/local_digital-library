@@ -1,5 +1,6 @@
 // src/components/ReferenceGenerator.tsx
 import { useState, useRef, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { Book } from "../types";
 import { generateCitation } from "../utils/isbn";
 import { getIdentifier } from "../utils/metadataHelpers";
@@ -140,11 +141,11 @@ export function ReferenceGenerator({ book, onClose }: Props) {
     return () => document.removeEventListener("keydown", onKey);
   }, [onKey]);
 
-  return (
-    <div className="fixed inset-0 z-50">
-      {/* Backdrop */}
+  const modalContent = (
+    <div className="fixed inset-0 z-50 ">
+      {/* Backdrop - no blur, just fade */}
       <button
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/20 dark:bg-black/40"
         onClick={onClose}
         aria-label="Close"
       />
@@ -155,7 +156,7 @@ export function ReferenceGenerator({ book, onClose }: Props) {
         role="dialog"
         aria-modal="true"
         aria-labelledby="refgen-title"
-        className="absolute inset-x-0 bottom-0 md:inset-auto md:top-1/2 md:left-1/2 w-full md:max-w-4xl md:-translate-x-1/2 md:-translate-y-1/2 theme-bg-primary shadow-2xl md:rounded-xl pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] max-h-[95vh] flex flex-col"
+        className="absolute inset-x-0 bottom-0 md:inset-auto md:top-1/2 md:left-1/2 w-full md:max-w-4xl md:-translate-x-1/2 md:-translate-y-1/2 theme-bg-primary shadow-2xl md:rounded-xl rounded-t-xl pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] max-h-[90vh] md:max-h-[95vh] flex flex-col"
       >
         {/* Grabber (mobile) */}
         <div className="md:hidden pt-2">
@@ -163,7 +164,7 @@ export function ReferenceGenerator({ book, onClose }: Props) {
         </div>
 
         {/* Header */}
-        <div className="px-6 py-4 border-b theme-border flex items-center justify-between sticky top-0 theme-bg-primary z-10">
+        <div className="px-6 py-4 border-b theme-border flex items-center justify-between sticky top-0 theme-bg-primary rounded-lg z-10">
           <div className="flex items-center gap-3 min-w-0">
             <AcademicCapIcon className="h-7 w-7 theme-text-secondary flex-shrink-0" />
             <div className="min-w-0">
@@ -289,7 +290,7 @@ export function ReferenceGenerator({ book, onClose }: Props) {
                 • Book titles should be italicized in your final document.
               </li>
               <li>
-                • Always verify the citation matches your institution’s
+                • Always verify the citation matches your institution's
                 requirements.
               </li>
               <li>• Include page numbers when citing specific passages.</li>
@@ -301,7 +302,7 @@ export function ReferenceGenerator({ book, onClose }: Props) {
                 !book.metadata.url &&
                 !getIdentifier(book.metadata, "doi") && (
                   <li>
-                    • Consider adding the medium of publication (e.g., “Print”).
+                    • Consider adding the medium of publication (e.g., "Print").
                   </li>
                 )}
             </ul>
@@ -309,7 +310,7 @@ export function ReferenceGenerator({ book, onClose }: Props) {
         </div>
 
         {/* Footer */}
-        <div className="px-4 md:px-6 py-4 border-t theme-border flex flex-col-reverse sm:flex-row sm:items-center gap-3 sm:justify-end sticky bottom-0 theme-bg-primary">
+        <div className=" rounded-lg px-4 md:px-6 py-4 border-t theme-border flex flex-col-reverse sm:flex-row sm:items-center gap-3 sm:justify-end theme-bg-primary">
           <button
             onClick={onClose}
             className="px-6 py-2 theme-text-secondary hover\:theme-text-primary font-medium rounded-lg transition-colors cursor-pointer"
@@ -327,4 +328,7 @@ export function ReferenceGenerator({ book, onClose }: Props) {
       </div>
     </div>
   );
+
+  // Render with portal
+  return createPortal(modalContent, document.body);
 }

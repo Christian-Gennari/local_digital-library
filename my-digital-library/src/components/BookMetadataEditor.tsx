@@ -7,6 +7,8 @@ import { cleanISBN, fetchBookDataFromISBN } from "../utils/isbn";
 import { fetchArticleDataFromDOI } from "../utils/doi";
 import CoverPreview from "./CoverPreview";
 import { TagInput } from "./CategoriesInput";
+import { createPortal } from "react-dom";
+
 import {
   getFieldVisibility,
   getIdentifier,
@@ -271,11 +273,11 @@ export function BookMetadataEditor({ book, onClose }: Props) {
     return () => document.removeEventListener("keydown", onKey);
   }, [onKey]);
 
-  return (
+  const modalContent = (
     <div className="fixed inset-0 z-50">
-      {/* Backdrop */}
+      {/* Backdrop - no blur, just fade */}
       <button
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/60" // Remove backdrop-blur-sm
         onClick={onClose}
         aria-label="Close"
       />
@@ -286,7 +288,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
         role="dialog"
         aria-modal="true"
         aria-labelledby="edit-title"
-        className="absolute inset-x-0 bottom-0 md:inset-auto md:top-1/2 md:left-1/2 w-full md:max-w-4xl md:-translate-x-1/2 md:-translate-y-1/2 theme-bg-primary shadow-2xl md:rounded-xl pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] max-h-[95vh] flex flex-col"
+        className="absolute inset-x-0 bottom-0 md:inset-auto md:top-1/2 md:left-1/2 w-full md:max-w-4xl md:-translate-x-1/2 md:-translate-y-1/2 theme-bg-primary shadow-2xl md:rounded-xl rounded-t-xl pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] max-h-[90vh] md:max-h-[95vh] flex flex-col"
       >
         {/* Grabber (mobile) */}
         <div className="md:hidden pt-2">
@@ -294,7 +296,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
         </div>
 
         {/* Header */}
-        <div className="px-6 py-4 border-b theme-border flex items-center justify-between sticky top-0 theme-bg-primary z-10">
+        <div className=" rounded-lg px-6 py-4 border-b theme-border flex items-center justify-between sticky top-0 theme-bg-primary z-10">
           <div className="flex items-center gap-2 min-w-0">
             <h2
               id="edit-title"
@@ -1227,7 +1229,7 @@ export function BookMetadataEditor({ book, onClose }: Props) {
         </div>
 
         {/* Footer */}
-        <div className="px-4 md:px-6 py-4 border-t theme-border flex flex-col-reverse sm:flex-row sm:items-center gap-3 sm:justify-end theme-bg-primary flex-shrink-0">
+        <div className="rounded-lg px-4 md:px-6 py-4 border-t theme-border flex flex-col-reverse sm:flex-row sm:items-center gap-3 sm:justify-end theme-bg-primary flex-shrink-0">
           <button
             onClick={onClose}
             className="px-6 py-2 theme-text-secondary hover\:theme-text-primary font-medium rounded-lg transition-colors cursor-pointer"
@@ -1245,4 +1247,5 @@ export function BookMetadataEditor({ book, onClose }: Props) {
       </div>
     </div>
   );
+  return createPortal(modalContent, document.body);
 }
