@@ -54,6 +54,12 @@ export class PDFSearchService {
   // ---- Highlight overlays we add (per navigation) ----
   private overlayEls: HTMLElement[] = [];
 
+  // Scroll
+  private enableAutoScroll = false; // set to false to disable all auto-scroll
+  setAutoScroll(enabled: boolean) {
+    this.enableAutoScroll = enabled;
+  }
+
   constructor(
     pdfDocument: PDFDocumentProxy | null,
     containerRef: RefObject<HTMLDivElement | null>,
@@ -107,17 +113,32 @@ export class PDFSearchService {
     this.currentMatchIndex = index;
     const match = this.matches[index];
 
-    // navigate page
+    // Flip state and ensure page visible
     this.onPageChange?.(match.pageNumber);
-    await this.scrollPageIntoView(match.pageNumber);
 
-    // re-rendered text layer needs a beat
-    await new Promise((r) => setTimeout(r, 30));
+    // Wait until the page element exists in the DOM
+    await this.waitFor(() => !!this.getPageRoot(match.pageNumber), 300, 10);
 
-    // clear any previous overlays
+    if (this.enableAutoScroll) {
+      await this.scrollPageIntoView(match.pageNumber, /*center*/ true);
+    }
+
+    // Ensure the text layer is mounted and has spans before mapping the DOM range
+    await this.waitFor(
+      () => {
+        const tl = this.getTextLayer(match.pageNumber);
+        return !!(tl && tl.querySelector("span"));
+      },
+      60,
+      20
+    );
+
+    // tiny settle time helps when React reflows the text layer
+    await new Promise((r) => setTimeout(r, 16));
+
+    // Clear previous overlays and (re)draw
     this.clearHighlights();
 
-    // try DOM-accurate range based on the N-th occurrence on this page
     const range = this.findDomRangeForOccurrence(
       match.pageNumber,
       this.currentQuery,
@@ -126,12 +147,24 @@ export class PDFSearchService {
 
     if (range) {
       this.drawRangeOverlays(match.pageNumber, range);
-      this.scrollRangeIntoView(range);
+      if (this.enableAutoScroll) {
+        await this.scrollRangeIntoView(match.pageNumber, range);
+      }
       return;
     }
 
-    // Fallback: approximate span-based overlay
+    // Fallback if range mapping failed
     this.applySpanFallback(match);
+    if (this.enableAutoScroll) {
+      // Center first fallback box if any
+      const pageRoot = this.getPageRoot(match.pageNumber);
+      if (pageRoot) {
+        const firstBox = this.overlayEls[0] as HTMLElement | undefined;
+        if (firstBox) {
+          await this.centerChildInScrollContainer(firstBox);
+        }
+      }
+    }
   }
 
   next(): void {
@@ -677,21 +710,18 @@ export class PDFSearchService {
     const pageRect = pageRoot.getBoundingClientRect();
     const rects = Array.from(range.getClientRects());
 
-    // Tolerances to drop phantom boxes
-    const MIN_W = 1.5; // px
-    const MIN_H = 1.5; // px
-    const AREA_MIN = 3.0; // px^2
-    const PAD = 1.0; // px tolerance for containment
+    // Filter out phantom/tiny rects (prevents the tiny artifact you saw)
+    const MIN_W = 1.5,
+      MIN_H = 1.5,
+      AREA_MIN = 3.0,
+      PAD = 1.0;
 
     for (const r of rects) {
-      const w = r.width;
-      const h = r.height;
-      const area = w * h;
-
-      // Skip zero/tiny rects (the source of the artifact)
+      const w = r.width,
+        h = r.height,
+        area = w * h;
       if (w < MIN_W || h < MIN_H || area < AREA_MIN) continue;
 
-      // Skip rects that are clearly outside the pageRoot (extra safety)
       const insideHoriz =
         r.left >= pageRect.left - PAD && r.right <= pageRect.right + PAD;
       const insideVert =
@@ -699,36 +729,53 @@ export class PDFSearchService {
       if (!(insideHoriz && insideVert)) continue;
 
       const box = document.createElement("div");
+      box.className = "search-highlight"; // <-- use your search CSS
+      box.setAttribute("aria-hidden", "true");
+
+      // Only geometry is inline; visual style comes from CSS
       box.style.position = "absolute";
       box.style.left = `${r.left - pageRect.left}px`;
       box.style.top = `${r.top - pageRect.top}px`;
       box.style.width = `${w}px`;
       box.style.height = `${h}px`;
-      box.style.pointerEvents = "none";
-      box.style.background = "rgba(250, 204, 21, 0.32)"; // amber-ish
-      box.style.outline = "2px solid rgba(234, 179, 8, 0.55)";
-      box.style.borderRadius = "3px";
-      box.style.zIndex = "10";
+
       pageRoot.appendChild(box);
       this.overlayEls.push(box);
     }
   }
 
-  private scrollRangeIntoView(range: Range) {
-    try {
-      const rect = range.getBoundingClientRect();
-      if (rect && rect.width >= 1 && rect.height >= 1) {
-        const anchor = document.elementFromPoint(
-          rect.left + rect.width / 2,
-          rect.top + rect.height / 2
-        );
-        (anchor as HTMLElement | null)?.scrollIntoView({
-          block: "center",
-          inline: "nearest",
-          behavior: "smooth",
-        });
+  private async scrollRangeIntoView(
+    pageNumber: number,
+    range: Range
+  ): Promise<void> {
+    const container = this.containerRef?.current;
+    const pageRoot = this.getPageRoot(pageNumber);
+    if (!container || !pageRoot) return;
+
+    // Try up to a few times in case the text layer reflows next frame
+    for (let attempt = 0; attempt < 4; attempt++) {
+      const rects = Array.from(range.getClientRects()).filter(
+        (r) => r.width > 1.5 && r.height > 1.5
+      );
+      if (rects.length) {
+        // Use the first non-tiny rect
+        const r0 = rects[0];
+        const pageRect = pageRoot.getBoundingClientRect();
+        const cRect = container.getBoundingClientRect();
+
+        // Center the rect inside the scroll container
+        const absTopInContainer = container.scrollTop + (r0.top - cRect.top);
+        const targetTop =
+          absTopInContainer - (container.clientHeight - r0.height) / 2;
+
+        this.animateScroll(container, targetTop, 200);
+        return;
       }
-    } catch {}
+      await new Promise((r) => setTimeout(r, 16)); // wait one frame and retry
+    }
+
+    // Fallback: center the page if we couldn't get rects
+    await this.scrollPageIntoView(pageNumber, true);
   }
 
   /** Fallback (coarse): select full contributing spans between start/end items. */
@@ -744,24 +791,25 @@ export class PDFSearchService {
     const s = Math.max(0, Math.min(spans.length - 1, match.itemSpan.startItem));
     const e = Math.max(0, Math.min(spans.length - 1, match.itemSpan.endItem));
 
+    const pageRoot = this.getPageRoot(match.pageNumber);
+    if (!pageRoot) return;
+    const pageRect = pageRoot.getBoundingClientRect();
+
     for (let i = s; i <= e; i++) {
-      const span = spans[i];
-      const rect = span.getBoundingClientRect();
-      const pageRoot = this.getPageRoot(match.pageNumber);
-      if (!pageRoot) break;
-      const pageRect = pageRoot.getBoundingClientRect();
+      const rect = spans[i].getBoundingClientRect();
+      // Skip tiny/phantom rects
+      if (rect.width < 1.5 || rect.height < 1.5) continue;
 
       const box = document.createElement("div");
+      box.className = "search-highlight"; // <-- use your search CSS
+      box.setAttribute("aria-hidden", "true");
+
       box.style.position = "absolute";
       box.style.left = `${rect.left - pageRect.left}px`;
       box.style.top = `${rect.top - pageRect.top}px`;
       box.style.width = `${rect.width}px`;
       box.style.height = `${rect.height}px`;
-      box.style.pointerEvents = "none";
-      box.style.background = "rgba(250, 204, 21, 0.22)";
-      box.style.outline = "1px solid rgba(234, 179, 8, 0.45)";
-      box.style.borderRadius = "3px";
-      box.style.zIndex = "10";
+
       pageRoot.appendChild(box);
       this.overlayEls.push(box);
     }
@@ -807,15 +855,26 @@ export class PDFSearchService {
     return textLayer || null;
   }
 
-  private async scrollPageIntoView(pageNumber: number): Promise<void> {
-    const root = this.getPageRoot(pageNumber);
-    if (!root) return;
-    root.scrollIntoView({
-      block: "center",
-      inline: "nearest",
-      behavior: "smooth",
-    });
-    await new Promise((r) => setTimeout(r, 60));
+  private async scrollPageIntoView(
+    pageNumber: number,
+    center = true
+  ): Promise<void> {
+    const container = this.containerRef?.current;
+    const pageRoot = this.getPageRoot(pageNumber);
+    if (!container || !pageRoot) return;
+
+    const cRect = container.getBoundingClientRect();
+    const pRect = pageRoot.getBoundingClientRect();
+
+    // Compute where to scroll so the page is centered (or at least fully visible)
+    const targetTop =
+      container.scrollTop +
+      (pRect.top - cRect.top) -
+      (center ? (container.clientHeight - pRect.height) / 2 : 0);
+
+    this.animateScroll(container, targetTop, 200);
+    // Give layout a tiny moment
+    await new Promise((r) => setTimeout(r, 30));
   }
 
   // ----------------------
@@ -831,5 +890,57 @@ export class PDFSearchService {
     const start = Math.max(0, idx - radius);
     const end = Math.min(text.length, idx + len + radius);
     return text.slice(start, end).replace(/\s+/g, " ").trim();
+  }
+
+  /** Wait until predicate() is true, polling every `intervalMs`, up to `maxTries`. */
+  private async waitFor(
+    predicate: () => boolean,
+    intervalMs = 50,
+    maxTries = 20
+  ): Promise<void> {
+    for (let i = 0; i < maxTries; i++) {
+      if (predicate()) return;
+      await new Promise((r) => setTimeout(r, intervalMs));
+    }
+  }
+
+  /** Smoothly scroll the container to a targetTop (with clamp). */
+  private animateScroll(
+    container: HTMLElement,
+    targetTop: number,
+    durationMs = 200
+  ) {
+    const startTop = container.scrollTop;
+    const maxTop = container.scrollHeight - container.clientHeight;
+    const finalTop = Math.max(0, Math.min(maxTop, targetTop));
+
+    if (durationMs <= 0) {
+      container.scrollTop = finalTop;
+      return;
+    }
+
+    const start = performance.now();
+    const step = () => {
+      const t = (performance.now() - start) / durationMs;
+      const k = t >= 1 ? 1 : t < 0 ? 0 : t;
+      container.scrollTop =
+        startTop + (finalTop - startTop) * (0.5 - 0.5 * Math.cos(Math.PI * k)); // cosine ease
+      if (k < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
+
+  /** Center a child element inside the scroll container. */
+  private async centerChildInScrollContainer(el: HTMLElement): Promise<void> {
+    const container = this.containerRef?.current;
+    if (!container) return;
+    const cRect = container.getBoundingClientRect();
+    const eRect = el.getBoundingClientRect();
+    const targetTop =
+      container.scrollTop +
+      (eRect.top - cRect.top) -
+      (container.clientHeight - eRect.height) / 2;
+    this.animateScroll(container, targetTop, 200);
+    await new Promise((r) => setTimeout(r, 30));
   }
 }

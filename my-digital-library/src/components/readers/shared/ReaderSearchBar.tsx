@@ -43,7 +43,7 @@ export function ReaderSearchBar({
   return isVisible ? (
     <div
       className="absolute top-4 right-4 z-50 flex items-center gap-2 
-                 theme-bg-primary/95 backdrop-blur-sm rounded-lg shadow-lg p-2"
+                 theme-bg-primary rounded-lg shadow-lg p-2"
     >
       <MagnifyingGlassIcon className="w-5 h-5 theme-text-secondary" />
       <input
@@ -63,27 +63,7 @@ export function ReaderSearchBar({
           {typeof loadingProgress === "number" ? ` ${loadingProgress}%` : ""}
         </span>
       )}
-      {isReady && totalMatches > 0 && (
-        <>
-          <span className="text-sm theme-text-secondary">
-            {currentMatch}/{totalMatches}
-          </span>
-          <button
-            onClick={onPrevious}
-            className="p-1 hover\:theme-bg-secondary rounded"
-            title="Previous match (Shift+Enter)"
-          >
-            ↑
-          </button>
-          <button
-            onClick={onNext}
-            className="p-1 hover\:theme-bg-secondary rounded"
-            title="Next match (Enter)"
-          >
-            ↓
-          </button>
-        </>
-      )}
+
       <button
         onClick={onClose}
         className="p-1 hover\:theme-bg-secondary rounded"
