@@ -12,6 +12,82 @@ import https from "https";
 import http from "http";
 import os from "os";
 
+// ============= OPDS Helper Functions =============
+
+/**
+ * Get MIME type for book files
+ */
+function getMimeType(filename) {
+  const ext = filename.toLowerCase().split(".").pop();
+  const mimeTypes = {
+    pdf: "application/pdf",
+    epub: "application/epub+zip",
+    mobi: "application/x-mobipocket-ebook",
+    azw3: "application/vnd.amazon.ebook",
+    fb2: "application/x-fictionbook+xml",
+    txt: "text/plain",
+  };
+  return mimeTypes[ext] || "application/octet-stream";
+}
+
+/**
+ * Escape special characters for XML
+ */
+function escapeXml(text) {
+  if (!text) return "";
+  return String(text)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
+/**
+ * Check if a book should be shown in OPDS (filter out audiobooks)
+ */
+function shouldShowInOPDS(book) {
+  // Filter by format
+  if (book.format === "audio") return false;
+
+  // Filter by itemType
+  if (book.metadata?.itemType === "audiobook") return false;
+
+  // Filter by file extension as safety check
+  const audioExtensions = [
+    ".m4b",
+    ".m4a",
+    ".mp3",
+    ".aac",
+    ".ogg",
+    ".wma",
+    ".flac",
+  ];
+  if (
+    book.fileName &&
+    audioExtensions.some((ext) => book.fileName.toLowerCase().endsWith(ext))
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * Format date for OPDS (ISO 8601)
+ */
+function formatDate(date) {
+  if (!date) return new Date().toISOString();
+  if (date instanceof Date) return date.toISOString();
+  try {
+    return new Date(date).toISOString();
+  } catch {
+    return new Date().toISOString();
+  }
+}
+
+// ============= END - OPDS Helper Functions - END =============
+
 // --- ESM __dirname/__filename ---
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -553,12 +629,199 @@ app.delete("/api/books/:id", async (req, res) => {
 // Serve files (PDF/EPUB/audio/cover)
 app.use("/files", express.static(LIBRARY_ROOT, { fallthrough: false }));
 
+// ============= OPDS Authentication =============
+const OPDS_USERNAME = process.env.OPDS_USERNAME || "kobo";
+const OPDS_PASSWORD = process.env.OPDS_PASSWORD || "changeme123";
+
+// Basic auth middleware for OPDS
+const opdsAuth = (req, res, next) => {
+  const auth = req.headers.authorization;
+
+  if (!auth || !auth.startsWith("Basic ")) {
+    res.set("WWW-Authenticate", 'Basic realm="OPDS Catalog"');
+    return res.status(401).send("Authentication required");
+  }
+
+  const credentials = Buffer.from(auth.split(" ")[1], "base64").toString();
+  const [username, password] = credentials.split(":");
+
+  if (username === OPDS_USERNAME && password === OPDS_PASSWORD) {
+    next();
+  } else {
+    res.set("WWW-Authenticate", 'Basic realm="OPDS Catalog"');
+    res.status(401).send("Invalid credentials");
+  }
+};
+
+// ============= OPDS Routes (Protected with Auth) =============
+// Root OPDS catalog
+app.get("/opds", opdsAuth, async (req, res) => {
+  try {
+    const baseUrl = `${req.protocol}://${req.get("host")}`;
+
+    res.type("application/atom+xml; charset=utf-8");
+    res.send(`<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" 
+      xmlns:opds="http://opds-spec.org/2010/catalog">
+  <id>root</id>
+  <title>My Digital Library</title>
+  <updated>${new Date().toISOString()}</updated>
+  <author>
+    <name>My Digital Library</name>
+  </author>
+  
+  <link rel="self" 
+        href="${baseUrl}/opds" 
+        type="application/atom+xml;profile=opds-catalog"/>
+  <link rel="start" 
+        href="${baseUrl}/opds" 
+        type="application/atom+xml;profile=opds-catalog"/>
+  
+  <entry>
+    <title>All Books</title>
+    <id>all</id>
+    <updated>${new Date().toISOString()}</updated>
+    <content type="text">Browse all books in your library</content>
+    <link rel="subsection" 
+          href="${baseUrl}/opds/all" 
+          type="application/atom+xml;profile=opds-catalog"/>
+  </entry>
+  
+  <entry>
+    <title>Recently Added</title>
+    <id>recent</id>
+    <updated>${new Date().toISOString()}</updated>
+    <content type="text">Books added in the last 30 days</content>
+    <link rel="subsection" 
+          href="${baseUrl}/opds/recent" 
+          type="application/atom+xml;profile=opds-catalog"/>
+  </entry>
+</feed>`);
+  } catch (error) {
+    console.error("OPDS root error:", error);
+    res.status(500).send("Error generating OPDS catalog");
+  }
+});
+
+// All books OPDS feed
+app.get("/opds/all", opdsAuth, async (req, res) => {
+  try {
+    const baseUrl = `${req.protocol}://${req.get("host")}`;
+
+    // Get all books using your existing function
+    const allBooks = await listBooks();
+
+    // Filter out audiobooks
+    const books = allBooks.filter((book) => shouldShowInOPDS(book));
+
+    // Generate OPDS feed
+    const feed = `<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" 
+      xmlns:opds="http://opds-spec.org/2010/catalog"
+      xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <id>all-books</id>
+  <title>All Books</title>
+  <updated>${new Date().toISOString()}</updated>
+  <author>
+    <name>My Digital Library</name>
+  </author>
+  <link rel="self" 
+        href="${baseUrl}/opds/all" 
+        type="application/atom+xml;profile=opds-catalog"/>
+  <link rel="up" 
+        href="${baseUrl}/opds" 
+        type="application/atom+xml;profile=opds-catalog"/>
+  
+  ${books
+    .map((book) => {
+      const m = book.metadata || {};
+      const mimeType = getMimeType(book.fileName);
+
+      // Determine cover file - look for any cover.* file
+      const coverFile = m.coverFile || "book.cover.jpg";
+
+      return `<entry>
+    <id>${escapeXml(book.id)}</id>
+    <title>${escapeXml(
+      m.title || book.fileName.replace(/\.[^/.]+$/, "")
+    )}</title>
+    ${
+      m.author
+        ? `<author><name>${escapeXml(m.author)}</name></author>`
+        : "<author><name>Unknown Author</name></author>"
+    }
+    <updated>${formatDate(m.dateAdded)}</updated>
+    ${m.language ? `<dc:language>${escapeXml(m.language)}</dc:language>` : ""}
+    ${
+      m.publisher
+        ? `<dc:publisher>${escapeXml(m.publisher)}</dc:publisher>`
+        : ""
+    }
+    ${
+      m.publishedDate
+        ? `<dc:issued>${escapeXml(m.publishedDate)}</dc:issued>`
+        : ""
+    }
+    ${
+      m.description
+        ? `<summary>${escapeXml(m.description)}</summary>`
+        : "<summary>No description available</summary>"
+    }
+    
+    <!-- Categories/Tags -->
+    ${
+      m.categories && Array.isArray(m.categories)
+        ? m.categories
+            .map(
+              (cat) =>
+                `<category term="${escapeXml(cat)}" label="${escapeXml(cat)}"/>`
+            )
+            .join("\n    ")
+        : ""
+    }
+    
+    <!-- Download link -->
+    <link rel="http://opds-spec.org/acquisition" 
+          href="${baseUrl}/files/${encodeURIComponent(
+        book.folderName
+      )}/${encodeURIComponent(book.fileName)}"
+          type="${mimeType}"
+          title="Download"/>
+    
+    <!-- Cover image if exists -->
+    ${
+      m.coverFile
+        ? `<link rel="http://opds-spec.org/image" 
+             href="${baseUrl}/files/${encodeURIComponent(
+            book.folderName
+          )}/${encodeURIComponent(coverFile)}"
+             type="image/jpeg"/>
+      <link rel="http://opds-spec.org/image/thumbnail" 
+             href="${baseUrl}/files/${encodeURIComponent(
+            book.folderName
+          )}/${encodeURIComponent(coverFile)}"
+             type="image/jpeg"/>`
+        : ""
+    }
+  </entry>`;
+    })
+    .join("\n")}
+</feed>`;
+
+    res.type("application/atom+xml; charset=utf-8");
+    res.send(feed);
+  } catch (error) {
+    console.error("OPDS all books error:", error);
+    res.status(500).send("Error generating OPDS feed");
+  }
+});
+
 // ---------- Serve built frontend (Vite build in ./dist) ----------
 app.use(express.static(path.join(__dirname, "dist")));
 
 // SPA fallback using a REGEX (works with Express 5 + path-to-regexp@6)
 // This serves index.html for anything NOT starting with /api or /files
-app.get(/^(?!\/(?:api|files)\/).*/, (_req, res) => {
+app.get(/^(?!\/(?:api|files|opds)\/).*/, (_req, res) => {
   res.sendFile(path.join(__dirname, "dist", "index.html"));
 });
 
