@@ -733,30 +733,6 @@ httpServer.listen(port, () => {
   console.log(`📖 OPDS catalog at: http://localhost:${port}/opds`);
 });
 
-// Optionally start HTTPS server if certificates exist
-const certPath = process.env.CERT_PATH || "./certs";
-const keyFile = `${certPath}/server.key`;
-const certFile = `${certPath}/server.crt`;
-
-if (fsSync.existsSync(keyFile) && fsSync.existsSync(certFile)) {
-  // Use fsSync here
-  const httpsOptions = {
-    key: fsSync.readFileSync(keyFile), // Use fsSync here too
-    cert: fsSync.readFileSync(certFile), // And here
-  };
-
-  const httpsServer = https.createServer(httpsOptions, app);
-  httpsServer.listen(httpsPort, () => {
-    console.log(`🔐 HTTPS server running on port ${httpsPort}`);
-    console.log(`🔒 HTTPS access at: https://localhost:${httpsPort}`);
-  });
-} else {
-  console.log(`ℹ️  No HTTPS certificates found at ${certPath}`);
-  console.log(
-    `💡 To enable HTTPS, place server.key and server.crt in ${certPath}`
-  );
-}
-
 console.log(`📂 Library root: ${LIBRARY_ROOT}`);
 
 // ---------- TTS ENDPOINTS (OpenAI-Compatible Kokoro) ----------
