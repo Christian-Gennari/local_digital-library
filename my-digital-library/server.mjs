@@ -840,23 +840,23 @@ if (hasTailscaleCerts) {
     console.log(`📂 Library root: ${LIBRARY_ROOT}`);
   });
 
-  // Optional: HTTP to HTTPS redirect
-  http
-    .createServer((req, res) => {
-      res.writeHead(301, { Location: `https://${req.headers.host}${req.url}` });
-      res.end();
-    })
-    .listen(80);
-} else {
-  // Fallback to HTTP if no Tailscale certs
-  app.listen(port, () => {
-    console.log(`📚 HTTP server running on port ${port}`);
-    console.log(`📂 Library root: ${LIBRARY_ROOT}`);
-    console.log(
-      `⚠️  No Tailscale certificates found at ${tailscaleCertPath}/${hostname}.crt`
-    );
-    console.log(`💡 Generate certificate with: tailscale cert ${hostname}`);
-  });
+  //   // Optional: HTTP to HTTPS redirect
+  //   http
+  //     .createServer((req, res) => {
+  //       res.writeHead(301, { Location: `https://${req.headers.host}${req.url}` });
+  //       res.end();
+  //     })
+  //     .listen(80);
+  // } else {
+  //   // Fallback to HTTP if no Tailscale certs
+  //   app.listen(port, () => {
+  //     console.log(`📚 HTTP server running on port ${port}`);
+  //     console.log(`📂 Library root: ${LIBRARY_ROOT}`);
+  //     console.log(
+  //       `⚠️  No Tailscale certificates found at ${tailscaleCertPath}/${hostname}.crt`
+  //     );
+  //     console.log(`💡 Generate certificate with: tailscale cert ${hostname}`);
+  //   });
 }
 
 // ---------- TTS ENDPOINTS (OpenAI-Compatible Kokoro) ----------
