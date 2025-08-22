@@ -655,7 +655,7 @@ const opdsAuth = (req, res, next) => {
 
 // ============= OPDS Routes (Protected with Auth) =============
 // Root OPDS catalog
-app.get("/opds", opdsAuth, async (req, res) => {
+app.get("/opds", async (req, res) => {
   try {
     const baseUrl = `${req.protocol}://${req.get("host")}`;
 
@@ -704,7 +704,7 @@ app.get("/opds", opdsAuth, async (req, res) => {
 });
 
 // All books OPDS feed
-app.get("/opds/all", opdsAuth, async (req, res) => {
+app.get("/opds/all", async (req, res) => {
   try {
     const baseUrl = `${req.protocol}://${req.get("host")}`;
 
@@ -827,27 +827,16 @@ app.get(/^(?!\/(?:api|files|opds)\/).*/, (_req, res) => {
 
 // ---------- Tailscale HTTPS Certification ----------
 
-// Check if we should use HTTP for Funnel
-const USE_FUNNEL = process.env.USE_FUNNEL === "true";
+// Auto-detect hostname
+const machineName = os.hostname().toLowerCase();
+let hostname;
 
-if (USE_FUNNEL) {
-  // Run HTTP only for Tailscale Funnel
-  console.log("🚇 Running in Funnel mode (HTTP only)");
-  app.listen(8080, () => {
-    console.log(`📚 HTTP server for Funnel on port 8080`);
-    console.log(`📂 Library root: ${LIBRARY_ROOT}`);
-    console.log(`🔗 Configure Funnel: tailscale funnel 8080`);
-  });
+if (machineName.includes("desktop")) {
+  hostname = "stationary-pc-home.tail87a215.ts.net";
 } else {
-  // Your existing HTTPS code
-  const machineName = os.hostname().toLowerCase();
-
-  if (machineName.includes("desktop")) {
-    hostname = "stationary-pc-home.tail87a215.ts.net";
-  } else {
-    hostname = "nostos-server.tail87a215.ts.net";
-  }
+  hostname = "nostos-server.tail87a215.ts.net";
 }
+
 // Rest of your HTTPS setup using the detected hostname
 console.log(`🔐 Using certificates for: ${hostname}`);
 
