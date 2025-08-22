@@ -629,30 +629,6 @@ app.delete("/api/books/:id", async (req, res) => {
 // Serve files (PDF/EPUB/audio/cover)
 app.use("/files", express.static(LIBRARY_ROOT, { fallthrough: false }));
 
-// ============= OPDS Authentication =============
-const OPDS_USERNAME = process.env.OPDS_USERNAME || "kobo";
-const OPDS_PASSWORD = process.env.OPDS_PASSWORD || "changeme123";
-
-// Basic auth middleware for OPDS
-const opdsAuth = (req, res, next) => {
-  const auth = req.headers.authorization;
-
-  if (!auth || !auth.startsWith("Basic ")) {
-    res.set("WWW-Authenticate", 'Basic realm="OPDS Catalog"');
-    return res.status(401).send("Authentication required");
-  }
-
-  const credentials = Buffer.from(auth.split(" ")[1], "base64").toString();
-  const [username, password] = credentials.split(":");
-
-  if (username === OPDS_USERNAME && password === OPDS_PASSWORD) {
-    next();
-  } else {
-    res.set("WWW-Authenticate", 'Basic realm="OPDS Catalog"');
-    res.status(401).send("Invalid credentials");
-  }
-};
-
 // ============= OPDS Routes (Protected with Auth) =============
 // Root OPDS catalog
 app.get("/opds", async (req, res) => {
