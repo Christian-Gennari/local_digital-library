@@ -45,8 +45,39 @@ interface NotesStore {
   }) => Promise<void>;
 }
 
-const generateNoteId = () => crypto.randomUUID(); //crypto only works with HTTPS
+const generateNoteId = (): string => {
+  // UUID v4 template: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
+  // where x is any hexadecimal digit and y is one of 8, 9, A, or B
 
+  const timestamp = Date.now();
+  const random = Math.random();
+  const random2 = Math.random();
+
+  // Generate random hexadecimal segments
+  const hex = (value: number, length: number): string => {
+    return Math.floor(value * Math.pow(16, length))
+      .toString(16)
+      .padStart(length, "0");
+  };
+
+  // Combine multiple sources of randomness for better entropy
+  const r1 = (random * 0xffffffff) | 0;
+  const r2 = (random2 * 0xffffffff) | 0;
+  const r3 = ((timestamp & 0xfffffff) * random) | 0;
+  const r4 = ((timestamp & 0xfffffff) * random2) | 0;
+
+  // Build UUID segments
+  const segment1 = hex(r1, 8);
+  const segment2 = hex(r2 & 0xffff, 4);
+  const segment3 = "4" + hex((r2 >> 16) & 0x0fff, 3); // Version 4
+  const segment4 = ((r3 & 0x3fff) | 0x8000).toString(16); // Variant 10
+  const segment5 = hex(r4, 8) + hex(Date.now() & 0xffff, 4);
+
+  return `${segment1}-${segment2}-${segment3}-${segment4}-${segment5.substring(
+    0,
+    12
+  )}`;
+};
 // ---------- Remote helpers (Express API) ----------
 const loadNotesRemote = async (bookId: string): Promise<BookNote[]> => {
   const data = await RemoteFS.getNotes(bookId);

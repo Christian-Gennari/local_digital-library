@@ -629,12 +629,18 @@ app.delete("/api/books/:id", async (req, res) => {
 // Serve files (PDF/EPUB/audio/cover)
 app.use("/files", express.static(LIBRARY_ROOT, { fallthrough: false }));
 
-// ============= OPDS Routes (Protected with Auth) =============
+// ============= OPDS Routes =============
+
+// Redirect /opds to /opds/all (for KOReader compatibility)
+app.get("/opds", (req, res) => {
+  res.redirect("/opds/all");
+});
 
 // All books OPDS feed
 app.get("/opds/all", async (req, res) => {
   try {
-    const baseUrl = `${req.protocol}://${req.get("host")}`;
+    // REMOVE THIS LINE - don't use baseUrl anymore
+    // const baseUrl = `${req.protocol}://${req.get("host")}`;
 
     // Get all books using your existing function
     const allBooks = await listBooks();
@@ -642,7 +648,7 @@ app.get("/opds/all", async (req, res) => {
     // Filter out audiobooks
     const books = allBooks.filter((book) => shouldShowInOPDS(book));
 
-    // Generate OPDS feed
+    // Generate OPDS feed with RELATIVE URLs
     const feed = `<?xml version="1.0" encoding="UTF-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom" 
       xmlns:opds="http://opds-spec.org/2010/catalog"
@@ -654,18 +660,13 @@ app.get("/opds/all", async (req, res) => {
     <name>My Digital Library</name>
   </author>
   <link rel="self" 
-        href="${baseUrl}/opds/all" 
-        type="application/atom+xml;profile=opds-catalog"/>
-  <link rel="up" 
-        href="${baseUrl}/opds" 
+        href="/opds/all" 
         type="application/atom+xml;profile=opds-catalog"/>
   
   ${books
     .map((book) => {
       const m = book.metadata || {};
       const mimeType = getMimeType(book.fileName);
-
-      // Determine cover file - look for any cover.* file
       const coverFile = m.coverFile || "book.cover.jpg";
 
       return `<entry>
@@ -679,55 +680,22 @@ app.get("/opds/all", async (req, res) => {
         : "<author><name>Unknown Author</name></author>"
     }
     <updated>${formatDate(m.dateAdded)}</updated>
-    ${m.language ? `<dc:language>${escapeXml(m.language)}</dc:language>` : ""}
-    ${
-      m.publisher
-        ? `<dc:publisher>${escapeXml(m.publisher)}</dc:publisher>`
-        : ""
-    }
-    ${
-      m.publishedDate
-        ? `<dc:issued>${escapeXml(m.publishedDate)}</dc:issued>`
-        : ""
-    }
-    ${
-      m.description
-        ? `<summary>${escapeXml(m.description)}</summary>`
-        : "<summary>No description available</summary>"
-    }
     
-    <!-- Categories/Tags -->
-    ${
-      m.categories && Array.isArray(m.categories)
-        ? m.categories
-            .map(
-              (cat) =>
-                `<category term="${escapeXml(cat)}" label="${escapeXml(cat)}"/>`
-            )
-            .join("\n    ")
-        : ""
-    }
-    
-    <!-- Download link -->
-    <link rel="http://opds-spec.org/acquisition" 
-          href="${baseUrl}/files/${encodeURIComponent(
-        book.folderName
-      )}/${encodeURIComponent(book.fileName)}"
+    <!-- Download link with RELATIVE URL -->
+    <link rel="http://opds-spec.org/acquisition/open-access" 
+          href="/files/${encodeURIComponent(
+            book.folderName
+          )}/${encodeURIComponent(book.fileName)}"
           type="${mimeType}"
           title="Download"/>
     
-    <!-- Cover image if exists -->
+    <!-- Cover image with RELATIVE URL if exists -->
     ${
       m.coverFile
         ? `<link rel="http://opds-spec.org/image" 
-             href="${baseUrl}/files/${encodeURIComponent(
-            book.folderName
-          )}/${encodeURIComponent(coverFile)}"
-             type="image/jpeg"/>
-      <link rel="http://opds-spec.org/image/thumbnail" 
-             href="${baseUrl}/files/${encodeURIComponent(
-            book.folderName
-          )}/${encodeURIComponent(coverFile)}"
+             href="/files/${encodeURIComponent(
+               book.folderName
+             )}/${encodeURIComponent(coverFile)}"
              type="image/jpeg"/>`
         : ""
     }
