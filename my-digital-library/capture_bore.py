@@ -81,7 +81,7 @@ def capture_bore_url():
         match = re.search(r'bore\.pub:(\d{4,5})', full_output)
         if match:
             port = match.group(1)
-            return f"http://bore.pub:{port}/opds/all", process
+            return f"http://bore.pub:{port}/", process
     except:
         pass
     
