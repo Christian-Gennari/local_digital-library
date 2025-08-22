@@ -126,7 +126,7 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
   const [isResetting, setIsResetting] = useState(false);
 
   // Normalize progress to 0-100 range
-  const normalizedProgress = Math.max(0, Math.min(100, progress));
+  const normalizedProgress = Math.round(Math.max(0, Math.min(100, progress)));
   const isNotStarted = normalizedProgress === 0;
   const isFinished = normalizedProgress === 100;
 
