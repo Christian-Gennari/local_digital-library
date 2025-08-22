@@ -66,7 +66,7 @@ def capture_bore_url():
                     elif port_digits and not char.isdigit():
                         # We've finished capturing the port
                         if len(port_digits) >= 4:  # Ports are usually 4-5 digits
-                            url = f"http://bore.pub:{port_digits}/opds/all"
+                            url = f"http://bore.pub:{port_digits}/"
                             print(f"Captured complete port: {port_digits}")
                             return url, process
         except:
