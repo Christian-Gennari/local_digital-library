@@ -826,16 +826,28 @@ app.get(/^(?!\/(?:api|files|opds)\/).*/, (_req, res) => {
 });
 
 // ---------- Tailscale HTTPS Certification ----------
-// Auto-detect hostname
-const machineName = os.hostname().toLowerCase();
-let hostname;
 
-if (machineName.includes("desktop")) {
-  hostname = "stationary-pc-home.tail87a215.ts.net";
+// Check if we should use HTTP for Funnel
+const USE_FUNNEL = process.env.USE_FUNNEL === "true";
+
+if (USE_FUNNEL) {
+  // Run HTTP only for Tailscale Funnel
+  console.log("🚇 Running in Funnel mode (HTTP only)");
+  app.listen(8080, () => {
+    console.log(`📚 HTTP server for Funnel on port 8080`);
+    console.log(`📂 Library root: ${LIBRARY_ROOT}`);
+    console.log(`🔗 Configure Funnel: tailscale funnel 8080`);
+  });
 } else {
-  hostname = "nostos-server.tail87a215.ts.net";
-}
+  // Your existing HTTPS code
+  const machineName = os.hostname().toLowerCase();
 
+  if (machineName.includes("desktop")) {
+    hostname = "stationary-pc-home.tail87a215.ts.net";
+  } else {
+    hostname = "nostos-server.tail87a215.ts.net";
+  }
+}
 // Rest of your HTTPS setup using the detected hostname
 console.log(`🔐 Using certificates for: ${hostname}`);
 
