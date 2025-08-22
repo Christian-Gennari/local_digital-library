@@ -3,7 +3,7 @@ import express from "express";
 import cors from "cors";
 import path from "path";
 import fs from "fs/promises";
-import fsSync from "fs"; // Add this for synchronous operations
+import fsSync from "fs"; // ADD THIS LINE for synchronous operations
 import { fileURLToPath } from "url";
 import multer from "multer";
 import { readdir } from "fs/promises";
@@ -630,54 +630,6 @@ app.delete("/api/books/:id", async (req, res) => {
 app.use("/files", express.static(LIBRARY_ROOT, { fallthrough: false }));
 
 // ============= OPDS Routes (Protected with Auth) =============
-// Root OPDS catalog
-app.get("/opds", async (req, res) => {
-  try {
-    const baseUrl = `${req.protocol}://${req.get("host")}`;
-
-    res.type("application/atom+xml; charset=utf-8");
-    res.send(`<?xml version="1.0" encoding="UTF-8"?>
-<feed xmlns="http://www.w3.org/2005/Atom" 
-      xmlns:opds="http://opds-spec.org/2010/catalog">
-  <id>root</id>
-  <title>My Digital Library</title>
-  <updated>${new Date().toISOString()}</updated>
-  <author>
-    <name>My Digital Library</name>
-  </author>
-  
-  <link rel="self" 
-        href="${baseUrl}/opds" 
-        type="application/atom+xml;profile=opds-catalog"/>
-  <link rel="start" 
-        href="${baseUrl}/opds" 
-        type="application/atom+xml;profile=opds-catalog"/>
-  
-  <entry>
-    <title>All Books</title>
-    <id>all</id>
-    <updated>${new Date().toISOString()}</updated>
-    <content type="text">Browse all books in your library</content>
-    <link rel="subsection" 
-          href="${baseUrl}/opds/all" 
-          type="application/atom+xml;profile=opds-catalog"/>
-  </entry>
-  
-  <entry>
-    <title>Recently Added</title>
-    <id>recent</id>
-    <updated>${new Date().toISOString()}</updated>
-    <content type="text">Books added in the last 30 days</content>
-    <link rel="subsection" 
-          href="${baseUrl}/opds/recent" 
-          type="application/atom+xml;profile=opds-catalog"/>
-  </entry>
-</feed>`);
-  } catch (error) {
-    console.error("OPDS root error:", error);
-    res.status(500).send("Error generating OPDS catalog");
-  }
-});
 
 // All books OPDS feed
 app.get("/opds/all", async (req, res) => {
@@ -801,57 +753,43 @@ app.get(/^(?!\/(?:api|files|opds)\/).*/, (_req, res) => {
   res.sendFile(path.join(__dirname, "dist", "index.html"));
 });
 
-// ---------- Tailscale HTTPS Certification ----------
-
-// Auto-detect hostname
-const machineName = os.hostname().toLowerCase();
-let hostname;
-
-if (machineName.includes("desktop")) {
-  hostname = "stationary-pc-home.tail87a215.ts.net";
-} else {
-  hostname = "nostos-server.tail87a215.ts.net";
-}
-
-// Rest of your HTTPS setup using the detected hostname
-console.log(`🔐 Using certificates for: ${hostname}`);
-
+// ---------- Start Server ----------
 const port = process.env.PORT || 8080;
+const httpsPort = process.env.HTTPS_PORT || 8443;
 
-// Tailscale certificate configuration
-const tailscaleCertPath = `${process.env.LOCALAPPDATA}/Tailscale/certs`;
-// REMOVED the duplicate hostname declaration - using the auto-detected one from above
+// Always start HTTP server
+const httpServer = http.createServer(app);
+httpServer.listen(port, () => {
+  console.log(`📚 HTTP server running on port ${port}`);
+  console.log(`🌐 HTTP access at: http://localhost:${port}`);
+  console.log(`📖 OPDS catalog at: http://localhost:${port}/opds`);
+});
 
-const hasTailscaleCerts =
-  tailscaleCertPath &&
-  fsSync.existsSync(`${tailscaleCertPath}/${hostname}.crt`) &&
-  fsSync.existsSync(`${tailscaleCertPath}/${hostname}.key`);
+// Optionally start HTTPS server if certificates exist
+const certPath = process.env.CERT_PATH || "./certs";
+const keyFile = `${certPath}/server.key`;
+const certFile = `${certPath}/server.crt`;
 
-if (hasTailscaleCerts) {
-  // HTTPS with Tailscale certificates
+if (fsSync.existsSync(keyFile) && fsSync.existsSync(certFile)) {
+  // Use fsSync here
   const httpsOptions = {
-    key: fsSync.readFileSync(`${tailscaleCertPath}/${hostname}.key`),
-    cert: fsSync.readFileSync(`${tailscaleCertPath}/${hostname}.crt`),
+    key: fsSync.readFileSync(keyFile), // Use fsSync here too
+    cert: fsSync.readFileSync(certFile), // And here
   };
 
-  https.createServer(httpsOptions, app).listen(443, () => {
-    console.log(`🔐 HTTPS server running (Tailscale certificates)`);
-    console.log(`🌐 Access at: https://${hostname}`);
-    console.log(`📂 Library root: ${LIBRARY_ROOT}`);
-  });
-
-  // ALSO run HTTP server for compatibility
-  http.createServer(app).listen(80, () => {
-    console.log(`📚 HTTP server also running on port 80`);
-    console.log(`🌐 HTTP access at: http://${hostname}`);
+  const httpsServer = https.createServer(httpsOptions, app);
+  httpsServer.listen(httpsPort, () => {
+    console.log(`🔐 HTTPS server running on port ${httpsPort}`);
+    console.log(`🔒 HTTPS access at: https://localhost:${httpsPort}`);
   });
 } else {
-  // Fallback to HTTP if no Tailscale certs
-  app.listen(port, () => {
-    console.log(`📚 HTTP server running on port ${port}`);
-    console.log(`📂 Library root: ${LIBRARY_ROOT}`);
-  });
+  console.log(`ℹ️  No HTTPS certificates found at ${certPath}`);
+  console.log(
+    `💡 To enable HTTPS, place server.key and server.crt in ${certPath}`
+  );
 }
+
+console.log(`📂 Library root: ${LIBRARY_ROOT}`);
 
 // ---------- TTS ENDPOINTS (OpenAI-Compatible Kokoro) ----------
 
