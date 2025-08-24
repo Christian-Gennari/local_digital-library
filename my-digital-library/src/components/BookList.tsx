@@ -224,12 +224,10 @@ const getIconForFormat = memo((format: string) => {
 
 getIconForFormat.displayName = "GetIconForFormat";
 
-// BookListHeader Component
-const BookListHeader = memo(({ isMobile }: { isMobile: boolean }) => {
-  if (isMobile) return null; // no header in mobile card layout
-
+// BookListHeader Component (desktop only)
+const BookListHeader = memo(() => {
   return (
-    <div className="grid grid-cols-[5fr_3fr_2fr_1fr_1fr] px-3 py-2 border-b theme-border text-xs font-sans font-medium theme-text-secondary uppercase tracking-wide">
+    <div className="hidden md:grid grid-cols-[5fr_3fr_2fr_1fr_1fr] px-3 py-2 border-b theme-border text-xs font-sans font-medium theme-text-secondary uppercase tracking-wide">
       <div>Title</div>
       <div>Author</div>
       <div>Format</div>
@@ -238,9 +236,6 @@ const BookListHeader = memo(({ isMobile }: { isMobile: boolean }) => {
     </div>
   );
 });
-
-BookListHeader.displayName = "BookListHeader";
-
 BookListHeader.displayName = "BookListHeader";
 
 // OPTIMIZATION: Updated props to use stable callbacks
@@ -256,8 +251,27 @@ interface BookListItemProps {
 const BookListItem = memo<BookListItemProps>(
   ({ book, isSelected, onBookClick, onEditBook, onDeleteBook, isMobile }) => {
     const [showActions, setShowActions] = useState(false);
+    const menuRef = useRef<HTMLDivElement | null>(null);
+    const kebabRef = useRef<HTMLButtonElement | null>(null);
 
-    // OPTIMIZATION: Memoized handlers
+    // Close kebab on ANY outside click/tap (document-level)
+    useEffect(() => {
+      if (!showActions) return;
+      const handler = (e: MouseEvent | TouchEvent) => {
+        const t = e.target as Node;
+        if (menuRef.current?.contains(t)) return;
+        if (kebabRef.current?.contains(t)) return;
+        setShowActions(false);
+      };
+      document.addEventListener("mousedown", handler, true);
+      document.addEventListener("touchstart", handler, true);
+      return () => {
+        document.removeEventListener("mousedown", handler, true);
+        document.removeEventListener("touchstart", handler, true);
+      };
+    }, [showActions]);
+
+    // Handlers
     const handleClick = useCallback(() => {
       onBookClick(book.id);
     }, [book.id, onBookClick]);
@@ -285,57 +299,95 @@ const BookListItem = memo<BookListItemProps>(
       setShowActions((prev) => !prev);
     }, []);
 
-    // Mobile: Card layout (visual refresh only)
-    if (isMobile) {
-      return (
-        <div
-          className={`relative p-3 rounded-lg border theme-border shadow-sm transition-colors active\:theme-bg-secondary ${
-            isSelected ? "theme-bg-tertiary" : "theme-bg-primary"
-          }`}
-          onClick={handleClick}
-        >
-          <div className="flex gap-3">
-            {/* Mini cover thumbnail */}
-            <div className="flex-shrink-0 w-12 h-16 rounded-sm overflow-hidden">
-              <BookCover book={book} hideStarOverlay={true} />
-            </div>
+    return (
+      <div
+        className={`group relative grid grid-cols-[1fr_auto_auto_auto] md:grid-cols-[5fr_3fr_2fr_1fr_1fr]
+          items-center cursor-pointer border-b theme-border
+          p-2 md:p-3 transition-colors hover\:theme-bg-secondary
+          ${isSelected ? "theme-bg-tertiary" : "theme-bg-primary"}`}
+        onClick={handleClick}
+      >
+        {/* Title (mobile includes author + star inline for breathing room) */}
+        <div className="min-w-0">
+          <h3 className="font-sans text-sm font-medium leading-tight theme-text-primary truncate">
+            {book.metadata.title}
+            {book.metadata.author && (
+              <span className="md:hidden font-serif text-xs not-italic theme-text-secondary">
+                {" "}
+                <span className="mx-1">·</span>
+                {book.metadata.author}
+              </span>
+            )}
+            {/* Mobile-only favorite inline after title */}
+            {book.metadata.isFavorite && (
+              <StarIcon className="md:hidden inline h-4 w-4 ml-2 align-middle text-yellow-500" />
+            )}
+          </h3>
+        </div>
 
-            {/* Book info */}
-            <div className="flex-1 min-w-0">
-              <h3 className="font-sans text-sm font-medium theme-text-primary line-clamp-2">
-                {book.metadata.title}
-              </h3>
-              {book.metadata.author && (
-                <p className="font-serif text-xs italic theme-text-secondary line-clamp-1 mt-0.5">
-                  {book.metadata.author}
-                </p>
-              )}
-              <div className="mt-2 flex items-center gap-2">
-                <span className="inline-flex items-center rounded-full theme-bg-tertiary px-1.5 py-0.5 font-sans text-[10px] font-medium theme-text-secondary">
-                  {book.format.toUpperCase()}
-                </span>
-                {book.metadata.isFavorite && (
-                  <StarIcon className="h-4 w-4 text-yellow-500" />
-                )}
-              </div>
-            </div>
+        {/* Desktop-only Author column */}
+        <div className="hidden md:block min-w-0">
+          {book.metadata.author && (
+            <p className="line-clamp-1 font-serif text-xs italic theme-text-secondary group-hover\:theme-text-muted">
+              {book.metadata.author}
+            </p>
+          )}
+        </div>
 
-            {/* Actions button for mobile */}
-            <div className="flex-shrink-0">
-              <button
-                onClick={toggleActions}
-                className="p-2 rounded-lg active\:theme-bg-tertiary"
-                aria-label="Open actions"
-                title="Actions"
-              >
-                <EllipsisVerticalIcon className="h-5 w-5 theme-text-secondary" />
-              </button>
-            </div>
+        {/* Format */}
+        <div className="justify-self-start md:justify-self-auto">
+          <span className="inline-flex items-center rounded-full theme-bg-tertiary px-1.5 py-0.5 font-sans text-[10px] font-medium theme-text-secondary">
+            {book.format.toUpperCase()}
+          </span>
+        </div>
+
+        {/* Favorite (desktop only in its own airy column) */}
+        <div className="hidden md:flex justify-center">
+          {book.metadata.isFavorite && (
+            <StarIcon className="h-4 w-4 text-yellow-500" />
+          )}
+        </div>
+
+        {/* Actions */}
+        <div className="flex justify-end items-center gap-1">
+          {/* Desktop: inline buttons on hover */}
+          <div className="hidden md:flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button
+              onClick={handleEdit}
+              className="p-1 rounded hover\:theme-bg-tertiary theme-text-secondary hover\:theme-text-primary"
+              title="Edit book"
+              aria-label="Edit"
+            >
+              <PencilSquareIcon className="h-4 w-4" />
+            </button>
+            <button
+              onClick={handleDelete}
+              className="p-1 rounded hover:bg-red-50 text-red-600"
+              title="Delete book"
+              aria-label="Delete"
+            >
+              <TrashIcon className="h-4 w-4" />
+            </button>
           </div>
 
-          {/* Mobile action menu */}
+          {/* Mobile: kebab opens popover */}
+          <button
+            ref={kebabRef}
+            onClick={toggleActions}
+            className="md:hidden h-8 w-8 inline-flex items-center justify-center rounded hover\:theme-bg-tertiary theme-text-secondary"
+            aria-label="More actions"
+            title="More"
+          >
+            <EllipsisVerticalIcon className="h-5 w-5" />
+          </button>
+
+          {/* Mobile popover menu */}
           {showActions && (
-            <div className="absolute right-3 top-14 z-10 theme-bg-primary rounded-lg shadow-lg border theme-border py-1 min-w-[140px]">
+            <div
+              ref={menuRef}
+              className="absolute right-2 top-10 z-50 md:hidden theme-bg-primary rounded-lg shadow-lg border theme-border py-1 min-w-[160px]"
+              onClick={(e) => e.stopPropagation()}
+            >
               <button
                 onClick={handleEdit}
                 className="flex items-center gap-2 w-full px-4 py-2 text-sm theme-text-primary hover\:theme-bg-secondary"
@@ -353,68 +405,6 @@ const BookListItem = memo<BookListItemProps>(
             </div>
           )}
         </div>
-      );
-    }
-
-    // Desktop: Clean, dense list row with aligned columns
-    return (
-      <div
-        className={`group grid grid-cols-[5fr_3fr_2fr_1fr_1fr] items-center cursor-pointer p-3 border-b theme-border transition-colors hover\:theme-bg-secondary ${
-          isSelected ? "theme-bg-tertiary" : "theme-bg-primary"
-        }`}
-        onClick={handleClick}
-      >
-        {/* Title */}
-        <div>
-          <h3 className="line-clamp-1 font-sans text-sm font-medium leading-tight theme-text-primary transition-colors duration-200 group-hover\:theme-text-primary">
-            {book.metadata.title}
-          </h3>
-        </div>
-
-        {/* Author */}
-        <div>
-          {book.metadata.author && (
-            <p className="line-clamp-1 font-serif text-xs italic theme-text-secondary group-hover\:theme-text-muted">
-              {book.metadata.author}
-            </p>
-          )}
-        </div>
-
-        {/* Format */}
-        <div>
-          <span className="inline-flex items-center rounded-full theme-bg-tertiary px-1.5 py-0.5 font-sans text-[10px] font-medium theme-text-secondary">
-            {book.format.toUpperCase()}
-          </span>
-        </div>
-
-        {/* Favorite */}
-        <div className="flex justify-center">
-          {book.metadata.isFavorite && (
-            <StarIcon className="h-4 w-4 text-yellow-500" />
-          )}
-        </div>
-
-        {/* Actions */}
-        <div className="flex justify-end">
-          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <button
-              onClick={handleEdit}
-              className="p-1 rounded hover\:theme-bg-tertiary theme-text-secondary hover\:theme-text-primary cursor-pointer"
-              title="Edit book"
-              aria-label="Edit"
-            >
-              <PencilSquareIcon className="h-4 w-4" />
-            </button>
-            <button
-              onClick={handleDelete}
-              className="p-1 rounded hover:bg-red-50 text-red-600 cursor-pointer"
-              title="Delete book"
-              aria-label="Delete"
-            >
-              <TrashIcon className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
       </div>
     );
   },
@@ -429,7 +419,6 @@ const BookListItem = memo<BookListItemProps>(
         nextProps.book.metadata.isFavorite &&
       prevProps.book.format === nextProps.book.format &&
       prevProps.isMobile === nextProps.isMobile &&
-      // OPTIMIZATION: Check callback equality (they should be stable now)
       prevProps.onBookClick === nextProps.onBookClick &&
       prevProps.onEditBook === nextProps.onEditBook &&
       prevProps.onDeleteBook === nextProps.onDeleteBook
@@ -957,7 +946,7 @@ export function BookList({
           <>
             {/* List View - Always rendered, hidden when not active */}
             <div style={{ display: viewMode === "list" ? "block" : "none" }}>
-              <BookListHeader isMobile={isMobile} />
+              <BookListHeader />
               {/* CHANGED: Using paginatedBooks instead of filteredBooks */}
               {paginatedBooks.map((book, index) => (
                 <div
