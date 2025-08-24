@@ -122,7 +122,7 @@ const BookListItem = memo<BookListItemProps>(
         >
           <div className="flex gap-3">
             {/* Mini cover thumbnail */}
-            <div className="flex-shrink-0 w-12 h-16 rounded overflow-hidden theme-bg-tertiary">
+            <div className="flex-shrink-0 w-12 h-16">
               <BookCover book={book} hideStarOverlay={true} />
             </div>
 
