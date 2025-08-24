@@ -142,7 +142,7 @@ const TableOfContents = memo(function TableOfContents({
         // Mobile: full-screen drawer under header with safe-area padding
         className="
   fixed z-50 theme-bg-primary theme-border shadow-xl
-  md:left-0 md:top-[76px] md:h-[calc(100dvh-73px)] md:w-80 md:border-r
+  md:left-0 md:h-100dvh md:w-80 md:border-r
   left-0 top-0 h-[100dvh] w-full md:rounded-none
 "
         role="dialog"

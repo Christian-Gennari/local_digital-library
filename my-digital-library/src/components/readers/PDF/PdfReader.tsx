@@ -40,6 +40,9 @@ interface PdfReaderProps {
   setIsTocOpen?: (open: boolean) => void; // Add this
   showSearch?: boolean; // Add this
   setShowSearch?: (show: boolean) => void; // Add this
+  isFullscreen?: boolean; // ADD THIS
+  showUI?: boolean; // ADD THIS
+  setShowUI?: (show: boolean) => void; // ADD THIS
 }
 
 const TOOLBAR_MOBILE_HEIGHT = 64; // px, for safe padding
@@ -55,6 +58,9 @@ const PdfReader = forwardRef<PdfReaderRef, PdfReaderProps>(
       setIsTocOpen: setTocOpenProp, // Add this
       showSearch = false, // Add this
       setShowSearch, // Add this
+      isFullscreen = false, // ADD THIS
+      showUI = true, // ADD THIS
+      setShowUI, // ADD THIS
     },
     ref
   ) => {
@@ -255,7 +261,27 @@ const PdfReader = forwardRef<PdfReaderRef, PdfReaderProps>(
       setCurrentMatch(0);
     };
 
-    // Add swipe gesture support
+    // Simple tap handler for fullscreen UI toggle
+    const handleSimpleTap = useCallback(
+      (e: React.MouseEvent) => {
+        if (!isFullscreen) return;
+
+        // Ignore clicks on buttons, links, etc.
+        const target = e.target as HTMLElement;
+        if (target.closest('button, a, input, [role="button"]')) return;
+
+        // Ignore if text is selected
+        const selection = window.getSelection();
+        if (selection && selection.toString().length > 0) return;
+
+        // Toggle UI visibility
+        setShowUI?.(!showUI);
+      },
+      [isFullscreen, showUI, setShowUI]
+    );
+
+    // Add swipe gesture support [COMMENTED OUT UNTIL I CAN MAKE IT WORK]
+    /*
     useEffect(() => {
       const container = containerRef.current;
       if (!container) return;
@@ -280,7 +306,7 @@ const PdfReader = forwardRef<PdfReaderRef, PdfReaderProps>(
 
         // Only trigger if horizontal swipe is dominant and significant
         if (
-          Math.abs(deltaX) > 50 && // Lower threshold for better responsiveness
+          Math.abs(deltaX) > 200 && // Lower threshold for better responsiveness
           Math.abs(deltaX) > Math.abs(deltaY) && // Horizontal swipe dominant
           !window.getSelection()?.toString().trim() // No text selected
         ) {
@@ -307,6 +333,8 @@ const PdfReader = forwardRef<PdfReaderRef, PdfReaderProps>(
         container.removeEventListener("touchend", handleTouchEnd);
       };
     }, [goNext, goPrev]);
+
+    */
 
     const handleTocToggle = useCallback((chapterId: string) => {
       setOpenChapters((prev) => {
@@ -599,15 +627,13 @@ const PdfReader = forwardRef<PdfReaderRef, PdfReaderProps>(
             {/* Scrollable PDF area */}
             <div
               ref={containerRef}
-              className="flex-1 overflow-auto relative p-3 md:p-4 min-h-0"
-              style={{
-                paddingBottom: `max(${
-                  TOOLBAR_MOBILE_HEIGHT + 16
-                }px, env(safe-area-inset-bottom))`,
-              }}
+              onClick={handleSimpleTap} // ADD THIS
+              className="flex-1 overflow-auto relative min-h-0 flex" // Add 'flex' here
             >
               <div
-                className={isMobile && scale > 1 ? "" : "flex justify-center"}
+                className={`m-auto ${
+                  isMobile && scale > 1 ? "" : "flex justify-center"
+                }`}
               >
                 <Document
                   file={pdfUrl}
@@ -681,79 +707,81 @@ const PdfReader = forwardRef<PdfReaderRef, PdfReaderProps>(
             </div>
 
             {/* Toolbar: sticky on mobile, static on desktop */}
-            <div
-              className="theme-bg-primary border-t theme-border md:static fixed bottom-0 left-0 right-0 z-30"
-              style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
-            >
-              <div className="px-3 py-2 md:px-4 md:py-3 grid grid-cols-3 items-center gap-2">
-                {/* Prev/Next */}
-                <div className="flex items-center gap-2 justify-start">
-                  <button
-                    onClick={goPrev}
-                    disabled={currentPage <= 1}
-                    className={`inline-flex items-center gap-1 px-3 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer ${
-                      currentPage <= 1
-                        ? "theme-bg-tertiary theme-text-muted cursor-not-allowed"
-                        : "theme-btn-primary hover:theme-btn-primary"
-                    }`}
-                  >
-                    <ChevronLeftIcon className="h-4 w-4" />
-                    <span className="hidden xs:inline">Prev</span>
-                  </button>
-                  <button
-                    onClick={goNext}
-                    disabled={currentPage >= numPages}
-                    className={`inline-flex items-center gap-1 px-3 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer ${
-                      currentPage >= numPages
-                        ? "theme-bg-tertiary theme-text-muted cursor-not-allowed"
-                        : "theme-btn-primary hover:theme-btn-primary"
-                    }`}
-                  >
-                    <span className="hidden xs:inline">Next</span>
-                    <ChevronRightIcon className="h-4 w-4" />
-                  </button>
-                </div>
+            {(!isFullscreen || showUI) && (
+              <div
+                className="theme-bg-primary border-t theme-border md:static fixed bottom-0 left-0 right-0 z-30"
+                style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+              >
+                <div className="px-3 py-2 md:px-4 md:py-3 grid grid-cols-3 items-center gap-2">
+                  {/* Prev/Next */}
+                  <div className="flex items-center gap-2 justify-start">
+                    <button
+                      onClick={goPrev}
+                      disabled={currentPage <= 1}
+                      className={`inline-flex items-center gap-1 px-3 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer ${
+                        currentPage <= 1
+                          ? "theme-bg-tertiary theme-text-muted cursor-not-allowed"
+                          : "theme-btn-primary hover:theme-btn-primary"
+                      }`}
+                    >
+                      <ChevronLeftIcon className="h-4 w-4" />
+                      <span className="hidden xs:inline">Prev</span>
+                    </button>
+                    <button
+                      onClick={goNext}
+                      disabled={currentPage >= numPages}
+                      className={`inline-flex items-center gap-1 px-3 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer ${
+                        currentPage >= numPages
+                          ? "theme-bg-tertiary theme-text-muted cursor-not-allowed"
+                          : "theme-btn-primary hover:theme-btn-primary"
+                      }`}
+                    >
+                      <span className="hidden xs:inline">Next</span>
+                      <ChevronRightIcon className="h-4 w-4" />
+                    </button>
+                  </div>
 
-                {/* Zoom */}
-                <div className="flex items-center justify-center gap-3">
-                  <button
-                    aria-label="Zoom out"
-                    onClick={zoomOut}
-                    className="h-8 w-8 grid place-items-center rounded-md border theme-border theme-bg-primary theme-text-primary hover\:theme-bg-secondary active\:theme-bg-tertiary cursor-pointer"
-                  >
-                    <MinusIcon className="h-4 w-4" />
-                  </button>
-                  <span className="tabular-nums text-sm theme-text-primary min-w-[3ch] text-center">
-                    {`${Math.round(scale * 100)}%`}
-                  </span>
-                  <button
-                    aria-label="Zoom in"
-                    onClick={zoomIn}
-                    className="h-8 w-8 grid place-items-center rounded-md border theme-border theme-bg-primary theme-text-primary hover\:theme-bg-secondary active\:theme-bg-tertiary cursor-pointer"
-                  >
-                    <PlusIcon className="h-4 w-4" />
-                  </button>
-                </div>
+                  {/* Zoom */}
+                  <div className="flex items-center justify-center gap-3">
+                    <button
+                      aria-label="Zoom out"
+                      onClick={zoomOut}
+                      className="h-8 w-8 grid place-items-center rounded-md border theme-border theme-bg-primary theme-text-primary hover\:theme-bg-secondary active\:theme-bg-tertiary cursor-pointer"
+                    >
+                      <MinusIcon className="h-4 w-4" />
+                    </button>
+                    <span className="tabular-nums text-sm theme-text-primary min-w-[3ch] text-center">
+                      {`${Math.round(scale * 100)}%`}
+                    </span>
+                    <button
+                      aria-label="Zoom in"
+                      onClick={zoomIn}
+                      className="h-8 w-8 grid place-items-center rounded-md border theme-border theme-bg-primary theme-text-primary hover\:theme-bg-secondary active\:theme-bg-tertiary cursor-pointer"
+                    >
+                      <PlusIcon className="h-4 w-4" />
+                    </button>
+                  </div>
 
-                {/* Progress */}
-                <div className="flex items-center justify-end">
-                  {numPages > 0 && (
-                    <div className="flex items-center justify-end gap-2">
-                      <ProgressBar
-                        progress={
-                          numPages > 0
-                            ? Math.round((currentPage / numPages) * 100)
-                            : 0
-                        }
-                        variant="reader"
-                        size="md"
-                        className="w-24 md:w-28"
-                      />
-                    </div>
-                  )}
+                  {/* Progress */}
+                  <div className="flex items-center justify-end">
+                    {numPages > 0 && (
+                      <div className="flex items-center justify-end gap-2">
+                        <ProgressBar
+                          progress={
+                            numPages > 0
+                              ? Math.round((currentPage / numPages) * 100)
+                              : 0
+                          }
+                          variant="reader"
+                          size="md"
+                          className="w-24 md:w-28"
+                        />
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       </div>

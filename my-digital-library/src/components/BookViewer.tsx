@@ -29,6 +29,7 @@ function BookViewerContent() {
   const [isMobile, setIsMobile] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showUI, setShowUI] = useState(true);
   const [showTTS, setShowTTS] = useState(false);
   const [isTocOpen, setIsTocOpen] = useState(false); // Add this line
 
@@ -86,9 +87,11 @@ function BookViewerContent() {
     if (!document.fullscreenElement) {
       viewerRef.current?.requestFullscreen();
       setIsFullscreen(true);
+      setShowUI(true); // Show UI when entering fullscreen
     } else {
       document.exitFullscreen();
       setIsFullscreen(false);
+      setShowUI(true); // Reset UI when exiting
     }
   };
 
@@ -127,6 +130,9 @@ function BookViewerContent() {
             setIsTocOpen={setIsTocOpen} // Add this
             showSearch={showSearch} // Add this
             setShowSearch={setShowSearch} // Add this
+            isFullscreen={isFullscreen} // ADD THIS
+            showUI={showUI} // ADD THIS
+            setShowUI={setShowUI} // ADD THIS
           />
         );
       case "epub":
@@ -143,6 +149,9 @@ function BookViewerContent() {
             setIsTocOpen={setIsTocOpen} // Add this
             showSearch={showSearch} // Add this
             setShowSearch={setShowSearch} // Add this
+            isFullscreen={isFullscreen} // ADD THIS
+            showUI={showUI} // ADD THIS
+            setShowUI={setShowUI} // ADD THIS
           />
         );
       case "audio":
@@ -170,7 +179,7 @@ function BookViewerContent() {
       }`}
     >
       {/* Desktop header */}
-      {!isMobile && (
+      {!isMobile && (!isFullscreen || showUI) && (
         <header className="border-b theme-border theme-bg-primary/80 backdrop-blur-sm flex-shrink-0 relative z-30">
           <div className="px-6 py-4">
             <div className="flex items-center justify-between">
@@ -356,7 +365,7 @@ function BookViewerContent() {
       {/* CONTENT + notes drawer */}
       <div
         className={`flex-1 flex overflow-y-hidden relative min-h-0 ${
-          isMobile ? "pt-[calc(env(safe-area-inset-top)+52px)]" : ""
+          isMobile ? "pt-[calc(env(safe-area-inset-top)]" : ""
         }`}
       >
         <div
@@ -403,8 +412,8 @@ function BookViewerContent() {
       </div>
 
       {/* Mobile Top Bar */}
-      {isMobile && (
-        <div className="fixed top-0 left-0 right-0 z-30 theme-bg-primary/90 backdrop-blur-sm border-b theme-border pt-[env(safe-area-inset-top)]">
+      {isMobile && (!isFullscreen || showUI) && (
+        <div className="fixed top-0 left-0 right-0 z-30 theme-bg-primary border-b theme-border pt-[env(safe-area-inset-top)]">
           <div className="px-3 py-2 flex items-center justify-between">
             <button
               onClick={() => setCurrentBook(null)}

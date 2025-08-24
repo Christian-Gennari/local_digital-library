@@ -53,6 +53,9 @@ interface EpubReaderProps {
   setIsTocOpen?: (open: boolean) => void;
   showSearch?: boolean; // Add this
   setShowSearch?: (show: boolean) => void; // Add this
+  isFullscreen?: boolean; // ADD THIS
+  showUI?: boolean; // ADD THIS
+  setShowUI?: (show: boolean) => void; // ADD THIS
 }
 
 const TOOLBAR_MOBILE_HEIGHT = 64; // keep toolbar compact and predictable
@@ -70,6 +73,9 @@ const EpubReader = forwardRef<EpubReaderRef, EpubReaderProps>(
       setIsTocOpen: setTocOpenProp, // Add this
       showSearch = false, // Add this
       setShowSearch, // Add this
+      isFullscreen = false, // ADD THIS
+      showUI = true, // ADD THIS
+      setShowUI, // ADD THIS
     },
     ref
   ) => {
@@ -126,6 +132,24 @@ const EpubReader = forwardRef<EpubReaderRef, EpubReaderProps>(
     const restorePositionRef = useRef<(rend: any) => Promise<boolean>>(
       async () => false
     );
+
+    // for "Fullscreen hide UI"
+    const isFullscreenRef = useRef(isFullscreen);
+    const showUIRef = useRef(showUI);
+    const setShowUIRef = useRef(setShowUI);
+
+    // Update refs when values change (add these useEffects around line 430)
+    useEffect(() => {
+      isFullscreenRef.current = isFullscreen;
+    }, [isFullscreen]);
+
+    useEffect(() => {
+      showUIRef.current = showUI;
+    }, [showUI]);
+
+    useEffect(() => {
+      setShowUIRef.current = setShowUI;
+    }, [setShowUI]);
 
     // robust href → title mapping
     const [hrefTitleMap, setHrefTitleMap] = useState<Map<string, string>>(
@@ -466,25 +490,25 @@ const EpubReader = forwardRef<EpubReaderRef, EpubReaderProps>(
         switch (event.key) {
           case "ArrowLeft":
             event.preventDefault();
-            clickByActionRef.current("prev");
+            goToPreviousRef.current(); // Direct function call
             break;
           case "ArrowRight":
             event.preventDefault();
-            clickByActionRef.current("next");
+            goToNextRef.current(); // Direct function call
             break;
           case "-":
           case "_":
           case "Subtract":
           case "NumpadSubtract":
             event.preventDefault();
-            clickByActionRef.current("zoom-out");
+            zoomOut(); // Direct function call
             break;
           case "+":
           case "=":
           case "Add":
           case "NumpadAdd":
             event.preventDefault();
-            clickByActionRef.current("zoom-in");
+            zoomIn(); // Direct function call
             break;
         }
       };
@@ -543,6 +567,34 @@ const EpubReader = forwardRef<EpubReaderRef, EpubReaderProps>(
         }
       };
 
+      const addTapListener = (view: any) => {
+        try {
+          const doc: Document | undefined =
+            view?.document || view?.contents?.document;
+          if (!doc) return;
+
+          const handleClick = (e: MouseEvent) => {
+            // Only in fullscreen
+            if (!isFullscreenRef.current) return;
+
+            // Ignore clicks on links
+            const target = e.target as HTMLElement;
+            if (target.closest("a")) return;
+
+            // Ignore if text is selected
+            const selection = doc.getSelection();
+            if (selection && selection.toString().length > 0) return;
+
+            // Toggle UI
+            setShowUIRef.current?.(!showUIRef.current);
+          };
+
+          doc.addEventListener("click", handleClick);
+        } catch (error) {
+          console.warn("Failed to add tap listener:", error);
+        }
+      };
+
       const removeIframeKeyListener = (view: any) => {
         try {
           const doc: Document | undefined =
@@ -582,6 +634,7 @@ const EpubReader = forwardRef<EpubReaderRef, EpubReaderProps>(
       const onRendered = (_section: any, view: any) => {
         addIframeKeyListener(view);
         addSwipeListener(view); // Add this line
+        addTapListener(view); // ADD THIS LINE
 
         try {
           rendition.themes.select("reader-layout");
@@ -948,12 +1001,7 @@ const EpubReader = forwardRef<EpubReaderRef, EpubReaderProps>(
             {/* Reading area shell keeps the content centered and above toolbar */}
             <div
               ref={viewerShellRef}
-              className="flex-1 overflow-auto grid place-items-center min-h-0 theme-bg-primary theme-transition"
-              style={{
-                paddingBottom: `max(${
-                  TOOLBAR_MOBILE_HEIGHT + 16
-                }px, env(safe-area-inset-bottom))`,
-              }}
+              className="flex-1 overflow-auto grid min-h-0 theme-bg-primary theme-transition"
             >
               {isLoading && (
                 <div className="absolute inset-0 flex items-center justify-center theme-bg-secondary z-20">
@@ -1024,11 +1072,11 @@ const EpubReader = forwardRef<EpubReaderRef, EpubReaderProps>(
               )}
 
               {/* Centered hidden canvas that the rendition fills */}
-              <div className="w-full h-full grid place-items-center pt-10">
+              <div className="w-full h-full grid place-items-center">
                 <div
                   ref={viewerRef}
-                  className="w-full h-full theme-bg-primary overflow-hidden
-               md:max-w-5xl md:max-h-[90vh] md:mx-auto"
+                  className="w-full h-full max-h-[90dvh] theme-bg-primary overflow-hidden
+               md:max-w-5xl md:mx-auto"
                   tabIndex={0}
                   style={{
                     userSelect: "text",
@@ -1037,69 +1085,70 @@ const EpubReader = forwardRef<EpubReaderRef, EpubReaderProps>(
                 />
               </div>
             </div>
-
             {/* Compact bottom toolbar (mobile sticky, desktop static) */}
-            <div
-              className="theme-bg-primary border-t theme-border md:static fixed bottom-0 left-0 right-0 z-30"
-              style={{
-                paddingBottom: "env(safe-area-inset-bottom)",
-              }}
-            >
-              <div className="px-3 py-2 md:px-4 md:py-3 grid grid-cols-3 items-center gap-2">
-                {/* Prev / Next */}
-                <div className="flex items-center gap-2 justify-start">
-                  <button
-                    data-epub-action="prev"
-                    onClick={goToPrevious}
-                    className="inline-flex items-center gap-1 px-3 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer theme-btn-primary hover:theme-btn-primary"
-                  >
-                    <ChevronLeftIcon className="h-4 w-4" />
-                    <span className="hidden xs:inline">Prev</span>
-                  </button>
-                  <button
-                    data-epub-action="next"
-                    onClick={goToNext}
-                    className="inline-flex items-center gap-1 px-3 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer theme-btn-primary hover:theme-btn-primary"
-                  >
-                    <span className="hidden xs:inline">Next</span>
-                    <ChevronRightIcon className="h-4 w-4" />
-                  </button>
-                </div>
+            {(!isFullscreen || showUI) && (
+              <div
+                className="theme-bg-primary border-t theme-border md:static fixed bottom-0 left-0 right-0 z-30"
+                style={{
+                  paddingBottom: "env(safe-area-inset-bottom)",
+                }}
+              >
+                <div className="px-3 py-2 md:px-4 md:py-3 grid grid-cols-3 items-center gap-2">
+                  {/* Prev / Next */}
+                  <div className="flex items-center gap-2 justify-start">
+                    <button
+                      data-epub-action="prev"
+                      onClick={goToPrevious}
+                      className="inline-flex items-center gap-1 px-3 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer theme-btn-primary hover:theme-btn-primary"
+                    >
+                      <ChevronLeftIcon className="h-4 w-4" />
+                      <span className="hidden xs:inline">Prev</span>
+                    </button>
+                    <button
+                      data-epub-action="next"
+                      onClick={goToNext}
+                      className="inline-flex items-center gap-1 px-3 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer theme-btn-primary hover:theme-btn-primary"
+                    >
+                      <span className="hidden xs:inline">Next</span>
+                      <ChevronRightIcon className="h-4 w-4" />
+                    </button>
+                  </div>
 
-                {/* Zoom (center on desktop) */}
-                <div className="flex items-center justify-center gap-3">
-                  <button
-                    data-epub-action="zoom-out"
-                    aria-label="Font smaller"
-                    onClick={zoomOut}
-                    className="h-8 w-8 grid place-items-center rounded-md border theme-border theme-bg-primary theme-text-primary hover\:theme-bg-secondary active\:theme-bg-tertiary cursor-pointer"
-                  >
-                    <MinusIcon className="h-4 w-4" />
-                  </button>
-                  <span className="tabular-nums text-sm theme-text-primary min-w-[3ch] text-center">
-                    {fontSize}%
-                  </span>
-                  <button
-                    data-epub-action="zoom-in"
-                    aria-label="Font larger"
-                    onClick={zoomIn}
-                    className="h-8 w-8 grid place-items-center rounded-md border theme-border theme-bg-primary theme-text-primary hover\:theme-bg-secondary active\:theme-bg-tertiary cursor-pointer"
-                  >
-                    <PlusIcon className="h-4 w-4" />
-                  </button>
-                </div>
+                  {/* Zoom (center on desktop) */}
+                  <div className="flex items-center justify-center gap-3">
+                    <button
+                      data-epub-action="zoom-out"
+                      aria-label="Font smaller"
+                      onClick={zoomOut}
+                      className="h-8 w-8 grid place-items-center rounded-md border theme-border theme-bg-primary theme-text-primary hover\:theme-bg-secondary active\:theme-bg-tertiary cursor-pointer"
+                    >
+                      <MinusIcon className="h-4 w-4" />
+                    </button>
+                    <span className="tabular-nums text-sm theme-text-primary min-w-[3ch] text-center">
+                      {fontSize}%
+                    </span>
+                    <button
+                      data-epub-action="zoom-in"
+                      aria-label="Font larger"
+                      onClick={zoomIn}
+                      className="h-8 w-8 grid place-items-center rounded-md border theme-border theme-bg-primary theme-text-primary hover\:theme-bg-secondary active\:theme-bg-tertiary cursor-pointer"
+                    >
+                      <PlusIcon className="h-4 w-4" />
+                    </button>
+                  </div>
 
-                {/* Progress (right) */}
-                <div className="flex items-center justify-end">
-                  <ProgressBar
-                    progress={progressPercent}
-                    variant="reader"
-                    size="md"
-                    className="w-24 md:w-28"
-                  />
+                  {/* Progress (right) */}
+                  <div className="flex items-center justify-end">
+                    <ProgressBar
+                      progress={progressPercent}
+                      variant="reader"
+                      size="md"
+                      className="w-24 md:w-28"
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       </div>
