@@ -1,5 +1,5 @@
 // src/components/CoverPreview.tsx
-import React, { useRef } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { Image } from "@unpic/react";
 
 interface CoverPreviewProps {
@@ -18,23 +18,89 @@ const CoverPreview: React.FC<CoverPreviewProps> = ({
   containerClassName = "mb-8 flex gap-4 md:gap-6 items-start flex-col sm:flex-row",
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState<number>(0);
+
+  // Measure container width for responsive sizing
+  useEffect(() => {
+    const measureWidth = () => {
+      if (containerRef.current) {
+        setContainerWidth(containerRef.current.offsetWidth);
+      }
+    };
+
+    measureWidth();
+    window.addEventListener("resize", measureWidth);
+
+    // Re-measure after fonts load
+    if (document.fonts?.ready) {
+      document.fonts.ready.then(measureWidth);
+    }
+
+    return () => window.removeEventListener("resize", measureWidth);
+  }, []);
+
+  // Calculate optimal breakpoints for preview context
+  const getOptimalBreakpoints = (): number[] => {
+    const dpr = window.devicePixelRatio || 1;
+
+    // Preview-specific breakpoints (smaller than main covers)
+    const baseBreakpoints = [
+      128, // Tiny mobile preview
+      192, // Small mobile preview
+      256, // Standard mobile preview
+      384, // Large mobile / small tablet
+      512, // Tablet
+      640, // Large tablet
+      768, // Small desktop
+      1024, // Desktop
+      1280, // Large desktop
+    ];
+
+    // For high DPI screens, add larger sizes
+    if (dpr > 1.5) {
+      baseBreakpoints.push(1536, 1920);
+    }
+
+    // Filter based on actual container size if known
+    if (containerWidth > 0) {
+      const maxNeeded = Math.ceil(containerWidth * dpr * 1.5);
+      return baseBreakpoints.filter((bp) => bp <= maxNeeded);
+    }
+
+    return baseBreakpoints;
+  };
+
+  // Generate sizes attribute for preview context
+  const getSizesAttribute = (): string => {
+    // Preview images are smaller, so different sizing logic
+    return `
+      (max-width: 640px) 112px,
+      (max-width: 768px) 128px,
+      192px
+    `.trim();
+  };
 
   return (
     <div className={containerClassName}>
-      <div className="flex-shrink-0">
+      <div className="flex-shrink-0" ref={containerRef}>
         <div
           className={`${className} theme-bg-secondary rounded-lg border theme-border overflow-hidden flex items-center justify-center`}
         >
           {coverPreview ? (
-            <Image
-              src={coverPreview}
-              alt="Book cover"
-              width={200}
-              height={300}
-              className="w-full h-full object-cover"
-              priority={true}
-              breakpoints={[150, 200, 300]}
-            />
+            <div className="h-full w-full [&>img]:h-full [&>img]:w-full">
+              <Image
+                src={coverPreview}
+                alt="Book cover preview"
+                width={768} // Higher base resolution for quality
+                height={1152} // Maintain 2:3 aspect ratio
+                className="w-full h-full object-cover [image-rendering:high-quality] [-webkit-backface-visibility:hidden] [backface-visibility:hidden] [transform:translateZ(0)]"
+                priority={true}
+                breakpoints={getOptimalBreakpoints()}
+                sizes={getSizesAttribute()}
+                loading="eager" // Always eager for preview since it's user-interactive
+              />
+            </div>
           ) : (
             <svg
               className="h-10 w-10 md:h-12 md:w-12 theme-text-muted"
