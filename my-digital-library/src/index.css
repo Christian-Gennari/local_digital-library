@@ -72,6 +72,26 @@
   }
 }
 
+[data-theme-preview="paper"] {
+  background-color: #fafaf8;
+  color: #1f1f1f;
+}
+
+[data-theme-preview="sepia"] {
+  background-color: #f4f1ea;
+  color: #2c2416;
+}
+
+[data-theme-preview="night"] {
+  background-color: #1e1e1e;
+  color: #e8e6e3;
+}
+
+[data-theme-preview="highContrast"] {
+  background-color: #ffffff;
+  color: #000000;
+}
+
 /* Theme CSS Variables */
 :root {
   /* Default Paper Theme */
@@ -97,10 +117,32 @@
   --theme-button-primary-hover: #334155;
   --theme-button-danger: #dc2626;
   --theme-button-danger-hover: #b91c1c;
+}
 
-  /* Transitions */
-  --theme-transition: background-color 0.2s ease, color 0.2s ease,
-    border-color 0.2s ease, box-shadow 0.2s ease;
+/* Add paper theme with data-theme for consistency */
+[data-theme="paper"] {
+  --theme-bg-primary: #fafaf8;
+  --theme-bg-secondary: #f5f5f3;
+  --theme-bg-tertiary: #efefe8;
+  --theme-text-primary: #1f1f1f;
+  --theme-text-secondary: #4a4a48;
+  --theme-text-muted: #6b6b68;
+  --theme-border: rgba(0, 0, 0, 0.08);
+  --theme-border-hover: rgba(0, 0, 0, 0.12);
+  --theme-hover: rgba(0, 0, 0, 0.04);
+  --theme-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  --theme-reader-bg: #fafaf8;
+  --theme-reader-text: #1f1f1f;
+  --theme-reader-selection: rgba(59, 130, 246, 0.15);
+  --theme-reader-highlight: rgba(251, 191, 36, 0.25);
+  --theme-accent: #3b82f6;
+  --theme-success: #10b981;
+  --theme-warning: #f59e0b;
+  --theme-error: #ef4444;
+  --theme-button-primary: #1e293b;
+  --theme-button-primary-hover: #334155;
+  --theme-button-danger: #dc2626;
+  --theme-button-danger-hover: #b91c1c;
 }
 
 /* Theme-specific overrides */

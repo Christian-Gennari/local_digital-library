@@ -19,16 +19,8 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
     const theme = themes[currentTheme];
     if (!theme) return;
 
-    // Set data attribute for CSS
+    // Set data attribute for CSS - THIS IS ALL WE NEED!
     document.documentElement.setAttribute("data-theme", currentTheme);
-
-    // Update CSS variables programmatically
-    const root = document.documentElement;
-    Object.entries(theme.colors).forEach(([key, value]) => {
-      // Convert camelCase to kebab-case
-      const cssVar = `--theme-${key.replace(/([A-Z])/g, "-$1").toLowerCase()}`;
-      root.style.setProperty(cssVar, value);
-    });
 
     // Update meta theme-color for mobile browsers
     const metaThemeColor = document.querySelector('meta[name="theme-color"]');

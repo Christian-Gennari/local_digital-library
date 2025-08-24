@@ -1,4 +1,4 @@
-// src/components/BookList.tsx - Mobile Optimized Version
+// src/components/BookList.tsx - Mobile Optimized Version with Performance Fixes
 import React, {
   useState,
   useEffect,
@@ -38,8 +38,8 @@ interface BookListProps {
   };
 }
 
-// Helper function for format icons
-const getIconForFormat = (format: string) => {
+// OPTIMIZATION: Memoized helper function to prevent recreation
+const getIconForFormat = memo((format: string) => {
   switch (format) {
     case "pdf":
       return <DocumentIcon className="h-16 w-16 theme-text-muted" />;
@@ -50,9 +50,11 @@ const getIconForFormat = (format: string) => {
     default:
       return <BookOpenIcon className="h-16 w-16 theme-text-muted" />;
   }
-};
+});
 
-// BookListHeader Component
+getIconForFormat.displayName = "GetIconForFormat";
+
+// BookListHeader Component - Already properly memoized
 const BookListHeader = memo(() => {
   return (
     <div className="hidden md:grid grid-cols-12 gap-x-6 border-b theme-border theme-bg-secondary/80 px-4 py-2 text-left font-sans text-xs font-semibold uppercase tracking-wider theme-text-secondary">
@@ -67,26 +69,47 @@ const BookListHeader = memo(() => {
 
 BookListHeader.displayName = "BookListHeader";
 
-// BookListItem Component - Memoized
+// OPTIMIZATION: Updated props to use stable callbacks
 interface BookListItemProps {
   book: Book;
   isSelected: boolean;
-  handleBookClick: (book: Book) => void;
-  setEditingBook: (book: Book | null) => void;
-  handleDeleteBook: (book: Book, event: React.MouseEvent) => void;
+  onBookClick: (bookId: string) => void; // Changed to use ID
+  onEditBook: (bookId: string) => void; // Changed to use ID
+  onDeleteBook: (bookId: string) => void; // Changed to use ID
   isMobile: boolean;
 }
 
 const BookListItem = memo<BookListItemProps>(
-  ({
-    book,
-    isSelected,
-    handleBookClick,
-    setEditingBook,
-    handleDeleteBook,
-    isMobile,
-  }) => {
+  ({ book, isSelected, onBookClick, onEditBook, onDeleteBook, isMobile }) => {
     const [showActions, setShowActions] = useState(false);
+
+    // OPTIMIZATION: Memoized handlers
+    const handleClick = useCallback(() => {
+      onBookClick(book.id);
+    }, [book.id, onBookClick]);
+
+    const handleEdit = useCallback(
+      (e: React.MouseEvent) => {
+        e.stopPropagation();
+        onEditBook(book.id);
+        setShowActions(false);
+      },
+      [book.id, onEditBook]
+    );
+
+    const handleDelete = useCallback(
+      (e: React.MouseEvent) => {
+        e.stopPropagation();
+        onDeleteBook(book.id);
+        setShowActions(false);
+      },
+      [book.id, onDeleteBook]
+    );
+
+    const toggleActions = useCallback((e: React.MouseEvent) => {
+      e.stopPropagation();
+      setShowActions((prev) => !prev);
+    }, []);
 
     // Mobile: Card layout
     if (isMobile) {
@@ -95,7 +118,7 @@ const BookListItem = memo<BookListItemProps>(
           className={`relative p-4 transition-colors active\:theme-bg-secondary ${
             isSelected ? "theme-bg-tertiary shadow-sm" : ""
           }`}
-          onClick={() => handleBookClick(book)}
+          onClick={handleClick}
         >
           <div className="flex gap-3">
             {/* Mini cover thumbnail */}
@@ -126,10 +149,7 @@ const BookListItem = memo<BookListItemProps>(
             {/* Actions button for mobile */}
             <div className="flex-shrink-0">
               <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowActions(!showActions);
-                }}
+                onClick={toggleActions}
                 className="p-2 rounded-lg active\:theme-bg-tertiary"
               >
                 <EllipsisVerticalIcon className="h-5 w-5 theme-text-secondary" />
@@ -141,21 +161,14 @@ const BookListItem = memo<BookListItemProps>(
           {showActions && (
             <div className="absolute right-4 top-14 z-10 theme-bg-primary rounded-lg shadow-lg border theme-border py-1 min-w-[140px]">
               <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setEditingBook(book);
-                  setShowActions(false);
-                }}
+                onClick={handleEdit}
                 className="flex items-center gap-2 w-full px-4 py-2 text-sm theme-text-primary hover\:theme-bg-secondary"
               >
                 <PencilSquareIcon className="h-4 w-4" />
                 Edit
               </button>
               <button
-                onClick={(e) => {
-                  handleDeleteBook(book, e);
-                  setShowActions(false);
-                }}
+                onClick={handleDelete}
                 className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50"
               >
                 <TrashIcon className="h-4 w-4" />
@@ -173,7 +186,7 @@ const BookListItem = memo<BookListItemProps>(
         className={`group grid grid-cols-12 cursor-pointer items-center gap-x-6 p-4 transition-colors hover\:theme-bg-secondary ${
           isSelected ? "theme-bg-tertiary shadow-sm" : ""
         }`}
-        onClick={() => handleBookClick(book)}
+        onClick={handleClick}
       >
         <div className="col-span-5">
           <h3 className="line-clamp-2 font-sans text-sm font-medium leading-tight theme-text-primary transition-colors duration-200 group-hover\:theme-text-primary">
@@ -204,17 +217,14 @@ const BookListItem = memo<BookListItemProps>(
         <div className="col-span-1 flex justify-end">
           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
             <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setEditingBook(book);
-              }}
+              onClick={handleEdit}
               className="p-1 theme-text-secondary hover\:theme-text-primary rounded cursor-pointer"
               title="Edit book"
             >
               <PencilSquareIcon className="h-4 w-4" />
             </button>
             <button
-              onClick={(e) => handleDeleteBook(book, e)}
+              onClick={handleDelete}
               className="p-1 theme-text-secondary hover:text-red-600 rounded cursor-pointer"
               title="Delete book"
             >
@@ -225,8 +235,8 @@ const BookListItem = memo<BookListItemProps>(
       </div>
     );
   },
+  // OPTIMIZATION: Improved comparison function
   (prevProps, nextProps) => {
-    // Only re-render if these specific props change
     return (
       prevProps.book.id === nextProps.book.id &&
       prevProps.isSelected === nextProps.isSelected &&
@@ -235,57 +245,85 @@ const BookListItem = memo<BookListItemProps>(
       prevProps.book.metadata.isFavorite ===
         nextProps.book.metadata.isFavorite &&
       prevProps.book.format === nextProps.book.format &&
-      prevProps.isMobile === nextProps.isMobile
+      prevProps.isMobile === nextProps.isMobile &&
+      // OPTIMIZATION: Check callback equality (they should be stable now)
+      prevProps.onBookClick === nextProps.onBookClick &&
+      prevProps.onEditBook === nextProps.onEditBook &&
+      prevProps.onDeleteBook === nextProps.onDeleteBook
     );
   }
 );
 
 BookListItem.displayName = "BookListItem";
 
-// BookGridItem Component - New memoized component for grid items
+// OPTIMIZATION: Updated props to use stable callbacks
 interface BookGridItemProps {
   book: Book;
   isSelected: boolean;
-  onBookClick: (book: Book) => void;
-  onEditClick: (book: Book) => void;
+  onBookClick: (bookId: string) => void; // Changed to use ID
+  onEditClick: (bookId: string) => void; // Changed to use ID
   isMobile: boolean;
 }
 
 const BookGridItem = memo<BookGridItemProps>(
   ({ book, isSelected, onBookClick, onEditClick, isMobile }) => {
+    // OPTIMIZATION: Memoized handlers
+    const handleClick = useCallback(() => {
+      onBookClick(book.id);
+    }, [book.id, onBookClick]);
+
+    const handleEditClick = useCallback(
+      (e: React.MouseEvent) => {
+        e.stopPropagation();
+        onEditClick(book.id);
+      },
+      [book.id, onEditClick]
+    );
+
+    // OPTIMIZATION: Memoized styles to prevent recalculation
+    const articleStyle = useMemo(
+      () => ({
+        transform: "translateY(0)",
+        transition:
+          "transform 300ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 300ms cubic-bezier(0.4, 0, 0.2, 1)",
+        willChange: "transform",
+      }),
+      []
+    );
+
+    const handleMouseEnter = useCallback((e: React.MouseEvent<HTMLElement>) => {
+      if (window.matchMedia("(min-width: 768px)").matches) {
+        e.currentTarget.style.transform = "translateY(-2px)";
+        e.currentTarget.style.boxShadow =
+          "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)";
+      }
+    }, []);
+
+    const handleMouseLeave = useCallback(
+      (e: React.MouseEvent<HTMLElement>) => {
+        e.currentTarget.style.transform = "translateY(0)";
+        e.currentTarget.style.boxShadow = isSelected
+          ? "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)"
+          : "0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)";
+      },
+      [isSelected]
+    );
+
     return (
       <article
         className={`
-    group relative cursor-pointer overflow-hidden rounded-xl p-3 md:p-4
-    shadow-sm active:scale-[0.98] md:active:scale-100
-    ${
-      isSelected
-        ? "theme-bg-tertiary !shadow-md ring-2 ring-slate-200 ring-offset-2"
-        : "theme-bg-primary"
-    }
-  `}
-        style={{
-          transform: "translateY(0)",
-          transition:
-            "transform 300ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 300ms cubic-bezier(0.4, 0, 0.2, 1)",
-          willChange: "transform",
-        }}
-        onMouseEnter={(e) => {
-          // Only apply hover transform on desktop
-          if (window.matchMedia("(min-width: 768px)").matches) {
-            e.currentTarget.style.transform = "translateY(-2px)";
-            e.currentTarget.style.boxShadow =
-              "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)";
+          group relative cursor-pointer overflow-hidden rounded-xl p-3 md:p-4
+          shadow-sm active:scale-[0.98] md:active:scale-100
+          ${
+            isSelected
+              ? "theme-bg-tertiary !shadow-md ring-2 ring-slate-200 ring-offset-2"
+              : "theme-bg-primary"
           }
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.transform = "translateY(0)";
-          // Reset shadow based on selected state
-          e.currentTarget.style.boxShadow = isSelected
-            ? "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)" // shadow-md equivalent
-            : "0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)"; // shadow-sm equivalent
-        }}
-        onClick={() => onBookClick(book)}
+        `}
+        style={articleStyle}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        onClick={handleClick}
       >
         <div className="space-y-3 md:space-y-4">
           <div className="relative">
@@ -295,10 +333,7 @@ const BookGridItem = memo<BookGridItemProps>(
             {!isMobile && (
               <div className="absolute bottom-2 right-2 flex items-center space-x-2">
                 <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onEditClick(book);
-                  }}
+                  onClick={handleEditClick}
                   className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full theme-bg-primary theme-text-secondary shadow-sm transition-all duration-200 hover:theme-bg-tertiary hover:theme-text-primary opacity-0 group-hover:opacity-100 group-hover:scale-110"
                   title="Edit metadata"
                 >
@@ -314,7 +349,7 @@ const BookGridItem = memo<BookGridItemProps>(
               </span>
             </div>
 
-            {/* Progress bar - this now handles both progress AND finished state */}
+            {/* Progress bar */}
             <ProgressBar
               progress={book.metadata.readingProgress ?? 0}
               variant="minimal"
@@ -355,8 +390,8 @@ const BookGridItem = memo<BookGridItemProps>(
       </article>
     );
   },
+  // OPTIMIZATION: Improved comparison function
   (prevProps, nextProps) => {
-    // Only re-render if these specific props change
     return (
       prevProps.book.id === nextProps.book.id &&
       prevProps.isSelected === nextProps.isSelected &&
@@ -369,7 +404,10 @@ const BookGridItem = memo<BookGridItemProps>(
       prevProps.book.metadata.readingProgress ===
         nextProps.book.metadata.readingProgress &&
       prevProps.book.format === nextProps.book.format &&
-      prevProps.isMobile === nextProps.isMobile
+      prevProps.isMobile === nextProps.isMobile &&
+      // OPTIMIZATION: Check callback equality
+      prevProps.onBookClick === nextProps.onBookClick &&
+      prevProps.onEditClick === nextProps.onEditClick
     );
   }
 );
@@ -449,7 +487,7 @@ export function BookList({
   const [bookToDelete, setBookToDelete] = useState<Book | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Mobile detection (following pattern from other components)
+  // Mobile detection
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -458,24 +496,34 @@ export function BookList({
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  // Memoized callbacks
-  const handleDeleteBook = useCallback(
-    async (book: Book, event: React.MouseEvent) => {
-      event.stopPropagation();
-      setBookToDelete(book);
-    },
-    []
-  );
-
+  // OPTIMIZATION: Stable callbacks that only use IDs
   const handleBookClick = useCallback(
-    (book: Book) => {
-      setSelectedBook(book);
+    (bookId: string) => {
+      const book = books.find((b) => b.id === bookId);
+      if (book) setSelectedBook(book);
     },
-    [setSelectedBook]
+    [books, setSelectedBook]
   );
 
-  const handleSetEditingBook = useCallback((book: Book | null) => {
-    setEditingBook(book);
+  const handleEditBook = useCallback(
+    (bookId: string) => {
+      const book = books.find((b) => b.id === bookId);
+      if (book) setEditingBook(book);
+    },
+    [books]
+  );
+
+  const handleDeleteBook = useCallback(
+    (bookId: string) => {
+      const book = books.find((b) => b.id === bookId);
+      if (book) setBookToDelete(book);
+    },
+    [books]
+  );
+
+  // OPTIMIZATION: Stable callback for closing edit modal
+  const handleCloseEdit = useCallback(() => {
+    setEditingBook(null);
   }, []);
 
   const confirmDeleteBook = async () => {
@@ -493,10 +541,11 @@ export function BookList({
     }
   };
 
-  const cancelDeleteBook = () => {
+  const cancelDeleteBook = useCallback(() => {
     setBookToDelete(null);
-  };
+  }, []);
 
+  // OPTIMIZATION: Properly memoized filtered books with minimal dependencies
   const filteredBooks = useMemo(() => {
     return books.filter((book) => {
       // Search filter
@@ -609,17 +658,26 @@ export function BookList({
     });
   }, [books, searchQuery, selectedCollection, filters, collections]);
 
+  // OPTIMIZATION: Memoized collection name calculation
+  const collectionName = useMemo(() => {
+    if (!selectedCollection) return "All Books";
+
+    const collection = collections.find((c) => c.id === selectedCollection);
+    if (collection) return collection.name;
+
+    return (
+      selectedCollection.charAt(0).toUpperCase() +
+      selectedCollection.slice(1).replace("-", " ")
+    );
+  }, [selectedCollection, collections]);
+
   return (
     <div className="h-full flex flex-col theme-bg-primary">
       {/* Header with View Toggle */}
       <div className="flex items-center justify-between p-3 md:p-4 border-b theme-border">
         <div className="flex items-center space-x-2 md:space-x-4 min-w-0">
           <h2 className="text-base md:text-lg font-semibold theme-text-primary truncate">
-            {selectedCollection
-              ? collections.find((c) => c.id === selectedCollection)?.name ||
-                selectedCollection.charAt(0).toUpperCase() +
-                  selectedCollection.slice(1).replace("-", " ")
-              : "All Books"}
+            {collectionName}
           </h2>
           <span className="text-xs md:text-sm theme-text-secondary flex-shrink-0">
             {filteredBooks.length}{" "}
@@ -651,18 +709,11 @@ export function BookList({
                 : "Start by adding some books to your library"}
             </p>
           </div>
-        ) : viewMode === "list" ? (
-          // List View - Responsive with mobile cards
-          <div
-            className="theme-bg-primary rounded-lg shadow-sm border theme-border"
-            style={{
-              transition:
-                "background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease",
-            }}
-          >
-            {" "}
-            <BookListHeader />
-            <div>
+        ) : (
+          <>
+            {/* List View - Always rendered, hidden when not active */}
+            <div style={{ display: viewMode === "list" ? "block" : "none" }}>
+              <BookListHeader />
               {filteredBooks.map((book, index) => (
                 <div
                   key={book.id}
@@ -671,29 +722,34 @@ export function BookList({
                   <BookListItem
                     book={book}
                     isSelected={selectedBook?.id === book.id}
-                    handleBookClick={handleBookClick}
-                    setEditingBook={handleSetEditingBook}
-                    handleDeleteBook={handleDeleteBook}
+                    onBookClick={handleBookClick}
+                    onEditBook={handleEditBook}
+                    onDeleteBook={handleDeleteBook}
                     isMobile={isMobile}
                   />
                 </div>
               ))}
             </div>
-          </div>
-        ) : (
-          // Grid View - Using the new memoized BookGridItem component
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 md:gap-6">
-            {filteredBooks.map((book) => (
-              <BookGridItem
-                key={book.id}
-                book={book}
-                isSelected={selectedBook?.id === book.id}
-                onBookClick={handleBookClick}
-                onEditClick={handleSetEditingBook}
-                isMobile={isMobile}
-              />
-            ))}
-          </div>
+
+            {/* Grid View - Always rendered, hidden when not active */}
+            <div
+              className="grid grid-cols-2 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 md:gap-6"
+              style={{
+                display: viewMode === "grid" ? "grid" : "none",
+              }}
+            >
+              {filteredBooks.map((book) => (
+                <BookGridItem
+                  key={book.id}
+                  book={book}
+                  isSelected={selectedBook?.id === book.id}
+                  onBookClick={handleBookClick}
+                  onEditClick={handleEditBook}
+                  isMobile={isMobile}
+                />
+              ))}
+            </div>
+          </>
         )}
       </div>
 
@@ -711,10 +767,7 @@ export function BookList({
 
       {/* Metadata Editor Modal */}
       {editingBook && (
-        <BookMetadataEditor
-          book={editingBook}
-          onClose={() => handleSetEditingBook(null)}
-        />
+        <BookMetadataEditor book={editingBook} onClose={handleCloseEdit} />
       )}
     </div>
   );
