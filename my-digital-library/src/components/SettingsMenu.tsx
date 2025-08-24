@@ -1,37 +1,80 @@
 import { useEffect, useRef, useState } from "react";
 import { ThemeSelector } from "./ThemeSelector";
-import { Cog6ToothIcon, UserCircleIcon } from "@heroicons/react/24/outline";
+import { Cog6ToothIcon } from "@heroicons/react/24/outline";
 import { UserButton, useUser } from "@clerk/clerk-react";
 
 export function SettingsMenu({ isMobile }: { isMobile: boolean }) {
   const [open, setOpen] = useState(false);
+  const [clerkPopoverOpen, setClerkPopoverOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const { user } = useUser();
 
-  // Close on outside click
+  // Monitor for Clerk popover
+  useEffect(() => {
+    const checkForClerkPopover = () => {
+      const clerkPopover = document.querySelector(".cl-userButtonPopoverCard");
+      setClerkPopoverOpen(!!clerkPopover);
+    };
+
+    // Use MutationObserver to detect when Clerk adds/removes its popover
+    const observer = new MutationObserver(checkForClerkPopover);
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+    });
+
+    return () => observer.disconnect();
+  }, []);
+
+  // Close on outside click (but not when Clerk popover is open)
   useEffect(() => {
     if (!open) return;
+
     const onDown = (e: MouseEvent | TouchEvent) => {
+      const target = e.target as HTMLElement;
       const el = containerRef.current;
-      if (el && !el.contains(e.target as Node)) setOpen(false);
+
+      // Don't close if clicking inside our menu
+      if (el && el.contains(target)) return;
+
+      // Don't close if Clerk popover is open
+      if (clerkPopoverOpen) return;
+
+      // Don't close if clicking on any Clerk element
+      const isClerkElement =
+        target.closest(".cl-userButtonPopoverCard") ||
+        target.closest(".cl-userButtonTrigger") ||
+        target.closest(".cl-avatarBox") ||
+        target.closest("[data-clerk-portal]") ||
+        target.closest(".cl-rootBox");
+
+      if (isClerkElement) return;
+
+      setOpen(false);
     };
-    document.addEventListener("mousedown", onDown);
-    document.addEventListener("touchstart", onDown);
+
+    // Small delay to let Clerk elements render
+    const timeoutId = setTimeout(() => {
+      document.addEventListener("mousedown", onDown);
+      document.addEventListener("touchstart", onDown);
+    }, 100);
+
     return () => {
+      clearTimeout(timeoutId);
       document.removeEventListener("mousedown", onDown);
       document.removeEventListener("touchstart", onDown);
     };
-  }, [open]);
+  }, [open, clerkPopoverOpen]);
 
-  // Close on Escape
+  // Close on Escape (but not when Clerk popover is open)
   useEffect(() => {
-    if (!open) return;
+    if (!open || clerkPopoverOpen) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setOpen(false);
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [open]);
+  }, [open, clerkPopoverOpen]);
 
   // panel styles per layout
   const panelClass = isMobile
@@ -64,6 +107,10 @@ export function SettingsMenu({ isMobile }: { isMobile: boolean }) {
           className={panelClass}
           role="menu"
           onMouseDown={(e) => e.stopPropagation()} // protect against mousedown bubbling
+          style={{
+            // Keep settings menu above most things but below Clerk popover
+            zIndex: clerkPopoverOpen ? 40 : 50,
+          }}
         >
           <div className={headerClass}>
             <h3 className="text-sm font-semibold theme-text-primary">
@@ -92,7 +139,8 @@ export function SettingsMenu({ isMobile }: { isMobile: boolean }) {
                     elements: {
                       avatarBox: "h-10 w-10",
                       userButtonTrigger: "focus:shadow-none",
-                      userButtonPopoverCard: "left-auto right-0",
+                      userButtonPopoverCard: "z-[60]", // Ensure Clerk popover is above settings menu
+                      userButtonPopoverFooter: "hidden", // Optional: hide footer if you want
                     },
                   }}
                 />
@@ -105,12 +153,16 @@ export function SettingsMenu({ isMobile }: { isMobile: boolean }) {
                   </p>
                 </div>
               </div>
+              <p className="text-xs theme-text-secondary mt-3">
+                Click your avatar to manage account settings, security, and sign
+                out.
+              </p>
             </div>
 
             {/* Theme Section */}
             <div className="border-b theme-border">
-              <div className="px-4 pt-4 pb-2">
-                <h4 className="text-xs font-medium theme-text-secondary uppercase tracking-wider mb-3">
+              <div className="px-4 pt-4">
+                <h4 className="text-xs font-medium theme-text-secondary uppercase tracking-wider">
                   Appearance
                 </h4>
               </div>
@@ -135,6 +187,14 @@ export function SettingsMenu({ isMobile }: { isMobile: boolean }) {
                   Public endpoint for KOReader and other e-readers. No
                   authentication required.
                 </p>
+              </div>
+            </div>
+
+            {/* Version/About Section (optional) */}
+            <div className="px-4 pb-4 pt-2 border-t theme-border">
+              <div className="flex items-center justify-between text-xs theme-text-secondary">
+                <span>Nostos</span>
+                <span>v1.0.0</span>
               </div>
             </div>
           </div>

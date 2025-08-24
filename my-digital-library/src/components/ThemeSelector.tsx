@@ -39,9 +39,6 @@ export function ThemeSelector() {
     <div className="space-y-4 p-4">
       {/* Theme Grid */}
       <div>
-        <h3 className="text-sm font-medium theme-text-secondary mb-3">
-          Reading Theme
-        </h3>
         <div className="grid grid-cols-2 gap-2">
           {Object.entries(themes).map(([id, theme]) => (
             <button
