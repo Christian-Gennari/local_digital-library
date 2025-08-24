@@ -1,4 +1,4 @@
-// src/components/BookList.tsx - Mobile Optimized Version with Performance Fixes
+// src/components/BookList.tsx - Mobile Optimized Version with Performance Fixes + Pagination
 import React, {
   useState,
   useEffect,
@@ -24,6 +24,8 @@ import {
   ArrowPathIcon,
   TrashIcon,
   EllipsisVerticalIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
 } from "@heroicons/react/24/outline";
 import { StarIcon, CheckCircleIcon } from "@heroicons/react/24/solid";
 import { Squares2X2Icon, Bars3Icon } from "@heroicons/react/24/outline";
@@ -37,6 +39,174 @@ interface BookListProps {
     readingStatus: string;
   };
 }
+
+// ============ NEW: PAGINATION COMPONENTS ============
+interface PaginationState {
+  currentPage: number;
+  itemsPerPage: number;
+}
+
+const PaginationControls: React.FC<{
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
+  itemsPerPage: number;
+  onPageChange: (page: number) => void;
+  onItemsPerPageChange: (items: number) => void;
+  startIndex: number;
+  endIndex: number;
+}> = memo(
+  ({
+    currentPage,
+    totalPages,
+    totalItems,
+    itemsPerPage,
+    onPageChange,
+    onItemsPerPageChange,
+    startIndex,
+    endIndex,
+  }) => {
+    // Generate page numbers to show
+    const getPageNumbers = (): (number | string)[] => {
+      const delta = 2; // Pages to show on each side of current page
+      const range: (number | string)[] = [];
+      const rangeWithDots: (number | string)[] = [];
+      let l: number | undefined;
+
+      for (let i = 1; i <= totalPages; i++) {
+        if (
+          i === 1 ||
+          i === totalPages ||
+          (i >= currentPage - delta && i <= currentPage + delta)
+        ) {
+          range.push(i);
+        }
+      }
+
+      range.forEach((i) => {
+        if (l) {
+          if (typeof i === "number" && i - l === 2) {
+            rangeWithDots.push(l + 1);
+          } else if (typeof i === "number" && i - l !== 1) {
+            rangeWithDots.push("...");
+          }
+        }
+        rangeWithDots.push(i);
+        if (typeof i === "number") l = i;
+      });
+
+      return rangeWithDots;
+    };
+
+    const pageNumbers = getPageNumbers();
+
+    return (
+      <div className="flex flex-col gap-4 border-t theme-border pt-4 mt-4">
+        {/* Items per page selector and info */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <label className="flex items-center gap-2 text-sm theme-text-secondary">
+              <span>Show:</span>
+              <select
+                value={itemsPerPage}
+                onChange={(e) => onItemsPerPageChange(Number(e.target.value))}
+                className="px-3 py-1.5 rounded-lg theme-bg-secondary theme-text-primary theme-border border focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+              >
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+                <option value={200}>200</option>
+              </select>
+              <span>per page</span>
+            </label>
+          </div>
+
+          <div className="text-sm theme-text-secondary">
+            Showing{" "}
+            <span className="font-medium theme-text-primary">{startIndex}</span>{" "}
+            to{" "}
+            <span className="font-medium theme-text-primary">{endIndex}</span>{" "}
+            of{" "}
+            <span className="font-medium theme-text-primary">{totalItems}</span>{" "}
+            books
+          </div>
+        </div>
+
+        {/* Pagination buttons */}
+        <div className="flex items-center justify-center gap-1">
+          {/* Previous button */}
+          <button
+            onClick={() => onPageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+            className={`
+            flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors
+            ${
+              currentPage === 1
+                ? "theme-bg-secondary theme-text-muted cursor-not-allowed opacity-50"
+                : "theme-bg-secondary theme-text-secondary hover:theme-bg-tertiary hover:theme-text-primary cursor-pointer"
+            }
+          `}
+            aria-label="Previous page"
+          >
+            <ChevronLeftIcon className="h-4 w-4" />
+            <span className="hidden sm:inline">Previous</span>
+          </button>
+
+          {/* Page numbers */}
+          <div className="flex items-center gap-1">
+            {pageNumbers.map((pageNum, index) =>
+              pageNum === "..." ? (
+                <span
+                  key={`dots-${index}`}
+                  className="px-3 py-2 text-sm theme-text-muted"
+                >
+                  ...
+                </span>
+              ) : (
+                <button
+                  key={pageNum}
+                  onClick={() => onPageChange(pageNum as number)}
+                  className={`
+                  min-w-[40px] px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer
+                  ${
+                    currentPage === pageNum
+                      ? "theme-bg-primary text-white"
+                      : "theme-bg-secondary theme-text-secondary hover:theme-bg-tertiary hover:theme-text-primary"
+                  }
+                `}
+                  aria-label={`Go to page ${pageNum}`}
+                >
+                  {pageNum}
+                </button>
+              )
+            )}
+          </div>
+
+          {/* Next button */}
+          <button
+            onClick={() => onPageChange(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            className={`
+            flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors
+            ${
+              currentPage === totalPages
+                ? "theme-bg-secondary theme-text-muted cursor-not-allowed opacity-50"
+                : "theme-bg-secondary theme-text-secondary hover:theme-bg-tertiary hover:theme-text-primary cursor-pointer"
+            }
+          `}
+            aria-label="Next page"
+          >
+            <span className="hidden sm:inline">Next</span>
+            <ChevronRightIcon className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+    );
+  }
+);
+
+PaginationControls.displayName = "PaginationControls";
+// ============ END PAGINATION COMPONENTS ============
 
 // OPTIMIZATION: Memoized helper function to prevent recreation
 const getIconForFormat = memo((format: string) => {
@@ -54,18 +224,22 @@ const getIconForFormat = memo((format: string) => {
 
 getIconForFormat.displayName = "GetIconForFormat";
 
-// BookListHeader Component - Already properly memoized
-const BookListHeader = memo(() => {
+// BookListHeader Component
+const BookListHeader = memo(({ isMobile }: { isMobile: boolean }) => {
+  if (isMobile) return null; // no header in mobile card layout
+
   return (
-    <div className="hidden md:grid grid-cols-12 gap-x-6 border-b theme-border theme-bg-secondary/80 px-4 py-2 text-left font-sans text-xs font-semibold uppercase tracking-wider theme-text-secondary">
-      <h3 className="col-span-5">Title</h3>
-      <h3 className="col-span-3">Author</h3>
-      <h3 className="col-span-2">Type</h3>
-      <h3 className="col-span-1 text-center">Favorite</h3>
-      <div className="col-span-1"></div>
+    <div className="grid grid-cols-[5fr_3fr_2fr_1fr_1fr] px-3 py-2 border-b theme-border text-xs font-sans font-medium theme-text-secondary uppercase tracking-wide">
+      <div>Title</div>
+      <div>Author</div>
+      <div>Format</div>
+      <div className="text-center">Fav</div>
+      <div className="text-right">Actions</div>
     </div>
   );
 });
+
+BookListHeader.displayName = "BookListHeader";
 
 BookListHeader.displayName = "BookListHeader";
 
@@ -111,18 +285,18 @@ const BookListItem = memo<BookListItemProps>(
       setShowActions((prev) => !prev);
     }, []);
 
-    // Mobile: Card layout
+    // Mobile: Card layout (visual refresh only)
     if (isMobile) {
       return (
         <div
-          className={`relative p-4 transition-colors active\:theme-bg-secondary ${
-            isSelected ? "theme-bg-tertiary shadow-sm" : ""
+          className={`relative p-3 rounded-lg border theme-border shadow-sm transition-colors active\:theme-bg-secondary ${
+            isSelected ? "theme-bg-tertiary" : "theme-bg-primary"
           }`}
           onClick={handleClick}
         >
           <div className="flex gap-3">
             {/* Mini cover thumbnail */}
-            <div className="flex-shrink-0 w-12 h-16">
+            <div className="flex-shrink-0 w-12 h-16 rounded-sm overflow-hidden">
               <BookCover book={book} hideStarOverlay={true} />
             </div>
 
@@ -132,12 +306,12 @@ const BookListItem = memo<BookListItemProps>(
                 {book.metadata.title}
               </h3>
               {book.metadata.author && (
-                <p className="font-serif text-sm theme-text-secondary line-clamp-1 mt-0.5">
+                <p className="font-serif text-xs italic theme-text-secondary line-clamp-1 mt-0.5">
                   {book.metadata.author}
                 </p>
               )}
-              <div className="flex items-center gap-2 mt-2">
-                <span className="inline-flex items-center rounded-md theme-bg-tertiary px-2 py-0.5 font-sans text-xs font-medium theme-text-secondary">
+              <div className="mt-2 flex items-center gap-2">
+                <span className="inline-flex items-center rounded-full theme-bg-tertiary px-1.5 py-0.5 font-sans text-[10px] font-medium theme-text-secondary">
                   {book.format.toUpperCase()}
                 </span>
                 {book.metadata.isFavorite && (
@@ -151,6 +325,8 @@ const BookListItem = memo<BookListItemProps>(
               <button
                 onClick={toggleActions}
                 className="p-2 rounded-lg active\:theme-bg-tertiary"
+                aria-label="Open actions"
+                title="Actions"
               >
                 <EllipsisVerticalIcon className="h-5 w-5 theme-text-secondary" />
               </button>
@@ -159,7 +335,7 @@ const BookListItem = memo<BookListItemProps>(
 
           {/* Mobile action menu */}
           {showActions && (
-            <div className="absolute right-4 top-14 z-10 theme-bg-primary rounded-lg shadow-lg border theme-border py-1 min-w-[140px]">
+            <div className="absolute right-3 top-14 z-10 theme-bg-primary rounded-lg shadow-lg border theme-border py-1 min-w-[140px]">
               <button
                 onClick={handleEdit}
                 className="flex items-center gap-2 w-full px-4 py-2 text-sm theme-text-primary hover\:theme-bg-secondary"
@@ -180,53 +356,60 @@ const BookListItem = memo<BookListItemProps>(
       );
     }
 
-    // Desktop: Original grid layout
+    // Desktop: Clean, dense list row with aligned columns
     return (
       <div
-        className={`group grid grid-cols-12 cursor-pointer items-center gap-x-6 p-4 transition-colors hover\:theme-bg-secondary ${
-          isSelected ? "theme-bg-tertiary shadow-sm" : ""
+        className={`group grid grid-cols-[5fr_3fr_2fr_1fr_1fr] items-center cursor-pointer p-3 border-b theme-border transition-colors hover\:theme-bg-secondary ${
+          isSelected ? "theme-bg-tertiary" : "theme-bg-primary"
         }`}
         onClick={handleClick}
       >
-        <div className="col-span-5">
-          <h3 className="line-clamp-2 font-sans text-sm font-medium leading-tight theme-text-primary transition-colors duration-200 group-hover\:theme-text-primary">
+        {/* Title */}
+        <div>
+          <h3 className="line-clamp-1 font-sans text-sm font-medium leading-tight theme-text-primary transition-colors duration-200 group-hover\:theme-text-primary">
             {book.metadata.title}
           </h3>
         </div>
 
-        <div className="col-span-3">
+        {/* Author */}
+        <div>
           {book.metadata.author && (
-            <p className="line-clamp-1 font-serif text-sm theme-text-secondary group-hover\:theme-text-muted">
+            <p className="line-clamp-1 font-serif text-xs italic theme-text-secondary group-hover\:theme-text-muted">
               {book.metadata.author}
             </p>
           )}
         </div>
 
-        <div className="col-span-2">
-          <span className="inline-flex items-center rounded-md theme-bg-tertiary px-2 py-1 font-sans text-xs font-medium theme-text-secondary">
+        {/* Format */}
+        <div>
+          <span className="inline-flex items-center rounded-full theme-bg-tertiary px-1.5 py-0.5 font-sans text-[10px] font-medium theme-text-secondary">
             {book.format.toUpperCase()}
           </span>
         </div>
 
-        <div className="col-span-1 flex justify-center">
+        {/* Favorite */}
+        <div className="flex justify-center">
           {book.metadata.isFavorite && (
-            <StarIcon className="h-5 w-5 text-yellow-500" />
+            <StarIcon className="h-4 w-4 text-yellow-500" />
           )}
         </div>
 
-        <div className="col-span-1 flex justify-end">
+        {/* Actions */}
+        <div className="flex justify-end">
           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
             <button
               onClick={handleEdit}
-              className="p-1 theme-text-secondary hover\:theme-text-primary rounded cursor-pointer"
+              className="p-1 rounded hover\:theme-bg-tertiary theme-text-secondary hover\:theme-text-primary cursor-pointer"
               title="Edit book"
+              aria-label="Edit"
             >
               <PencilSquareIcon className="h-4 w-4" />
             </button>
             <button
               onClick={handleDelete}
-              className="p-1 theme-text-secondary hover:text-red-600 rounded cursor-pointer"
+              className="p-1 rounded hover:bg-red-50 text-red-600 cursor-pointer"
               title="Delete book"
+              aria-label="Delete"
             >
               <TrashIcon className="h-4 w-4" />
             </button>
@@ -487,6 +670,12 @@ export function BookList({
   const [bookToDelete, setBookToDelete] = useState<Book | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // ============ NEW: PAGINATION STATE ============
+  const [paginationState, setPaginationState] = useState<PaginationState>({
+    currentPage: 1,
+    itemsPerPage: parseInt(localStorage.getItem("booksPerPage") || "50"),
+  });
+
   // Mobile detection
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
@@ -658,6 +847,61 @@ export function BookList({
     });
   }, [books, searchQuery, selectedCollection, filters, collections]);
 
+  // ============ NEW: PAGINATION LOGIC ============
+  const totalPages = Math.ceil(
+    filteredBooks.length / paginationState.itemsPerPage
+  );
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setPaginationState((prev) => ({ ...prev, currentPage: 1 }));
+  }, [searchQuery, selectedCollection, filters]);
+
+  // Ensure current page is valid
+  useEffect(() => {
+    if (paginationState.currentPage > totalPages && totalPages > 0) {
+      setPaginationState((prev) => ({ ...prev, currentPage: totalPages }));
+    }
+  }, [totalPages, paginationState.currentPage]);
+
+  const paginatedBooks = useMemo(() => {
+    const startIndex =
+      (paginationState.currentPage - 1) * paginationState.itemsPerPage;
+    const endIndex = startIndex + paginationState.itemsPerPage;
+    return filteredBooks.slice(startIndex, endIndex);
+  }, [
+    filteredBooks,
+    paginationState.currentPage,
+    paginationState.itemsPerPage,
+  ]);
+
+  const handlePageChange = useCallback((page: number) => {
+    setPaginationState((prev) => ({ ...prev, currentPage: page }));
+    // Scroll to top of book list
+    document
+      .querySelector(".overflow-y-auto")
+      ?.scrollTo({ top: 0, behavior: "smooth" });
+  }, []);
+
+  const handleItemsPerPageChange = useCallback((items: number) => {
+    localStorage.setItem("booksPerPage", items.toString());
+    setPaginationState((prev) => ({
+      ...prev,
+      itemsPerPage: items,
+      currentPage: 1, // Reset to first page when changing items per page
+    }));
+  }, []);
+
+  const startIndex =
+    filteredBooks.length === 0
+      ? 0
+      : (paginationState.currentPage - 1) * paginationState.itemsPerPage + 1;
+  const endIndex = Math.min(
+    paginationState.currentPage * paginationState.itemsPerPage,
+    filteredBooks.length
+  );
+  // ============ END PAGINATION LOGIC ============
+
   // OPTIMIZATION: Memoized collection name calculation
   const collectionName = useMemo(() => {
     if (!selectedCollection) return "All Books";
@@ -713,8 +957,9 @@ export function BookList({
           <>
             {/* List View - Always rendered, hidden when not active */}
             <div style={{ display: viewMode === "list" ? "block" : "none" }}>
-              <BookListHeader />
-              {filteredBooks.map((book, index) => (
+              <BookListHeader isMobile={isMobile} />
+              {/* CHANGED: Using paginatedBooks instead of filteredBooks */}
+              {paginatedBooks.map((book, index) => (
                 <div
                   key={book.id}
                   className={index > 0 ? "border-t theme-border" : ""}
@@ -738,7 +983,8 @@ export function BookList({
                 display: viewMode === "grid" ? "grid" : "none",
               }}
             >
-              {filteredBooks.map((book) => (
+              {/* CHANGED: Using paginatedBooks instead of filteredBooks */}
+              {paginatedBooks.map((book) => (
                 <BookGridItem
                   key={book.id}
                   book={book}
@@ -749,6 +995,20 @@ export function BookList({
                 />
               ))}
             </div>
+
+            {/* NEW: Pagination Controls - Only show if there's more than one page */}
+            {totalPages > 1 && (
+              <PaginationControls
+                currentPage={paginationState.currentPage}
+                totalPages={totalPages}
+                totalItems={filteredBooks.length}
+                itemsPerPage={paginationState.itemsPerPage}
+                onPageChange={handlePageChange}
+                onItemsPerPageChange={handleItemsPerPageChange}
+                startIndex={startIndex}
+                endIndex={endIndex}
+              />
+            )}
           </>
         )}
       </div>
