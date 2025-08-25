@@ -239,7 +239,7 @@ const EpubReader = forwardRef<EpubReaderRef, EpubReaderProps>(
           } catch (error) {
             console.error("Failed to save reading progress:", error);
           }
-        }, 2000);
+        }, 1000);
       },
       [currentBook.id, updateBookMetadata]
     );

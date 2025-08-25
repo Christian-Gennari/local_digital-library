@@ -16,10 +16,15 @@ function App() {
     skipMetadataForPendingBook,
   } = useStore();
 
-  // Load books once on mount
+  // Load books once on mount (with delay to ensure API is ready)
   useEffect(() => {
-    // call directly without adding it to deps
-    useStore.getState().loadBooksFromFolder();
+    // Wait 1 seconds for API/auth to stabilize, then load books
+    const timer = setTimeout(() => {
+      useStore.getState().loadBooksFromFolder();
+    }, 500);
+
+    // Cleanup timer if component unmounts
+    return () => clearTimeout(timer);
   }, []);
 
   return (

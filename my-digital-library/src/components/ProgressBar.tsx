@@ -1,8 +1,11 @@
 // src/components/ProgressBar.tsx
 import React, { useState } from "react";
-import { ArrowPathIcon } from "@heroicons/react/24/outline";
+import {
+  ArrowPathIcon,
+  CheckCircleIcon as CheckCircleOutlineIcon,
+} from "@heroicons/react/24/outline";
 import { CheckCircleIcon } from "@heroicons/react/24/solid";
-import { createPortal } from "react-dom"; // Add this line
+import { createPortal } from "react-dom";
 
 // Type definitions
 export interface ProgressBarProps {
@@ -27,6 +30,12 @@ export interface ProgressBarProps {
   /** Callback when reset is requested */
   onReset?: () => void | Promise<void>;
 
+  /** Enable mark as complete functionality */
+  allowMarkComplete?: boolean;
+
+  /** Callback when mark as complete is requested */
+  onMarkComplete?: () => void | Promise<void>;
+
   /** Book title for reset confirmation */
   bookTitle?: string;
 
@@ -43,21 +52,31 @@ export interface ProgressBarProps {
   customColor?: string;
 }
 
-interface ConfirmResetDialogProps {
+interface ConfirmDialogProps {
   isOpen: boolean;
   onConfirm: () => void;
   onCancel: () => void;
   bookTitle?: string;
+  action: "reset" | "complete";
 }
 
-// Compact Confirmation Popup Component with Portal
-const ConfirmResetDialog: React.FC<ConfirmResetDialogProps> = ({
+// Generic Confirmation Dialog Component with Portal
+const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   isOpen,
   onConfirm,
   onCancel,
   bookTitle = "this book",
+  action,
 }) => {
   if (!isOpen) return null;
+
+  const isReset = action === "reset";
+  const title = isReset ? "Reset progress?" : "Mark as complete?";
+  const message = isReset
+    ? `This will reset your reading progress for "${bookTitle}" back to 0%.`
+    : `This will mark "${bookTitle}" as complete with 100% progress.`;
+  const confirmText = isReset ? "Reset" : "Complete";
+  const IconComponent = isReset ? ArrowPathIcon : CheckCircleOutlineIcon;
 
   // Render the modal outside of the sidebar using a portal
   return createPortal(
@@ -74,16 +93,14 @@ const ConfirmResetDialog: React.FC<ConfirmResetDialogProps> = ({
         <div className="space-y-4">
           {/* Header with icon */}
           <div className="flex items-center gap-3">
-            <ArrowPathIcon className="h-5 w-5 theme-text-muted flex-shrink-0" />
+            <IconComponent className="h-5 w-5 theme-text-muted flex-shrink-0" />
             <h3 className="text-base font-semibold theme-text-primary">
-              Reset progress?
+              {title}
             </h3>
           </div>
 
           {/* Message */}
-          <p className="text-sm theme-text-secondary pl-8">
-            This will reset your reading progress for "{bookTitle}" back to 0%.
-          </p>
+          <p className="text-sm theme-text-secondary pl-8">{message}</p>
 
           {/* Actions */}
           <div className="flex justify-end gap-2 pt-1">
@@ -97,7 +114,7 @@ const ConfirmResetDialog: React.FC<ConfirmResetDialogProps> = ({
               onClick={onConfirm}
               className="px-3 py-1.5 text-sm font-medium theme-bg-secondary theme-text-primary hover:theme-bg-tertiary rounded-md transition-colors cursor-pointer"
             >
-              Reset
+              {confirmText}
             </button>
           </div>
         </div>
@@ -116,14 +133,19 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
   showStatusLabels = false,
   allowReset = false,
   onReset,
+  allowMarkComplete = false,
+  onMarkComplete,
   bookTitle,
   className = "",
   hideWhenZero = false,
   colorScheme = "default",
   customColor,
 }) => {
-  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [showResetConfirmDialog, setShowResetConfirmDialog] = useState(false);
+  const [showCompleteConfirmDialog, setShowCompleteConfirmDialog] =
+    useState(false);
   const [isResetting, setIsResetting] = useState(false);
+  const [isMarkingComplete, setIsMarkingComplete] = useState(false);
 
   // Normalize progress to 0-100 range
   const normalizedProgress = Math.round(Math.max(0, Math.min(100, progress)));
@@ -180,7 +202,13 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
   const handleResetClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    setShowConfirmDialog(true);
+    setShowResetConfirmDialog(true);
+  };
+
+  const handleMarkCompleteClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setShowCompleteConfirmDialog(true);
   };
 
   const handleConfirmReset = async () => {
@@ -189,7 +217,7 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
     setIsResetting(true);
     try {
       await onReset();
-      setShowConfirmDialog(false);
+      setShowResetConfirmDialog(false);
     } catch (error) {
       console.error("Failed to reset progress:", error);
     } finally {
@@ -197,8 +225,26 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
     }
   };
 
+  const handleConfirmComplete = async () => {
+    if (!onMarkComplete) return;
+
+    setIsMarkingComplete(true);
+    try {
+      await onMarkComplete();
+      setShowCompleteConfirmDialog(false);
+    } catch (error) {
+      console.error("Failed to mark as complete:", error);
+    } finally {
+      setIsMarkingComplete(false);
+    }
+  };
+
   const handleCancelReset = () => {
-    setShowConfirmDialog(false);
+    setShowResetConfirmDialog(false);
+  };
+
+  const handleCancelComplete = () => {
+    setShowCompleteConfirmDialog(false);
   };
 
   // Render based on variant
@@ -267,7 +313,7 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
                 {getStatusIcon()}
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1">
                 <span
                   className={`${fontSize} font-semibold ${
                     isNotStarted
@@ -279,6 +325,22 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
                 >
                   {getStatusLabel()}
                 </span>
+
+                {/* Mark as Complete button */}
+                {allowMarkComplete && !isFinished && normalizedProgress > 0 && (
+                  <button
+                    onClick={handleMarkCompleteClick}
+                    className="group p-1.5 rounded-full hover:theme-bg-tertiary transition-all duration-200 cursor-pointer"
+                    title="Mark as complete"
+                    disabled={isMarkingComplete}
+                  >
+                    <CheckCircleOutlineIcon
+                      className={`${iconSize} theme-text-muted group-hover:text-emerald-600 transition-colors ${
+                        isMarkingComplete ? "animate-pulse" : ""
+                      }`}
+                    />
+                  </button>
+                )}
 
                 {/* Reset button */}
                 {allowReset && normalizedProgress > 0 && (
@@ -316,12 +378,20 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
             </div>
           </div>
 
-          {/* Confirmation Dialog */}
-          <ConfirmResetDialog
-            isOpen={showConfirmDialog}
+          {/* Confirmation Dialogs */}
+          <ConfirmDialog
+            isOpen={showResetConfirmDialog}
             onConfirm={handleConfirmReset}
             onCancel={handleCancelReset}
             bookTitle={bookTitle}
+            action="reset"
+          />
+          <ConfirmDialog
+            isOpen={showCompleteConfirmDialog}
+            onConfirm={handleConfirmComplete}
+            onCancel={handleCancelComplete}
+            bookTitle={bookTitle}
+            action="complete"
           />
         </>
       );
@@ -342,6 +412,20 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
               </span>
               <div className="flex items-center gap-2">
                 {showPercentage && <span>{normalizedProgress}%</span>}
+                {allowMarkComplete && !isFinished && normalizedProgress > 0 && (
+                  <button
+                    onClick={handleMarkCompleteClick}
+                    className="group p-1 rounded hover:theme-bg-tertiary transition-all cursor-pointer"
+                    title="Mark as complete"
+                    disabled={isMarkingComplete}
+                  >
+                    <CheckCircleOutlineIcon
+                      className={`${iconSize} theme-text-muted group-hover:text-emerald-600 ${
+                        isMarkingComplete ? "animate-pulse" : ""
+                      }`}
+                    />
+                  </button>
+                )}
                 {allowReset && normalizedProgress > 0 && (
                   <button
                     onClick={handleResetClick}
@@ -368,13 +452,23 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
             </div>
           </div>
 
-          {/* Confirmation Dialog */}
+          {/* Confirmation Dialogs */}
           {allowReset && (
-            <ConfirmResetDialog
-              isOpen={showConfirmDialog}
+            <ConfirmDialog
+              isOpen={showResetConfirmDialog}
               onConfirm={handleConfirmReset}
               onCancel={handleCancelReset}
               bookTitle={bookTitle}
+              action="reset"
+            />
+          )}
+          {allowMarkComplete && (
+            <ConfirmDialog
+              isOpen={showCompleteConfirmDialog}
+              onConfirm={handleConfirmComplete}
+              onCancel={handleCancelComplete}
+              bookTitle={bookTitle}
+              action="complete"
             />
           )}
         </>
@@ -391,5 +485,16 @@ export const resetBookProgress = async (
     readingProgress: 0,
     lastReadPosition: undefined,
     lastRead: undefined,
+  });
+};
+
+// Export helper function for marking as complete
+export const markBookComplete = async (
+  bookId: string,
+  updateBookMetadata: (id: string, metadata: any) => Promise<void>
+) => {
+  await updateBookMetadata(bookId, {
+    readingProgress: 100,
+    lastRead: new Date().toISOString(),
   });
 };

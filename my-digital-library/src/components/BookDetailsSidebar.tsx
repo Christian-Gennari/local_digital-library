@@ -6,14 +6,18 @@ import { BookMetadataEditor } from "./BookMetadataEditor";
 import { ConfirmationModal } from "./ConfirmationModal";
 import { Book } from "../types";
 import { getAllIdentifiers, formatDuration } from "../utils/metadataHelpers";
-import { ProgressBar, resetBookProgress } from "./ProgressBar";
+import {
+  ProgressBar,
+  resetBookProgress,
+  markBookComplete,
+} from "./ProgressBar";
 import BookCover from "./BookCover"; // Add this import
 
 import {
   PencilSquareIcon,
   BookOpenIcon,
   DocumentIcon,
-  PlayIcon,
+  CheckCircleIcon,
   CalendarIcon,
   ClockIcon,
   TagIcon,
@@ -31,7 +35,6 @@ import {
   MicrophoneIcon,
   SpeakerWaveIcon,
 } from "@heroicons/react/24/outline";
-import { getCoverImageSrc } from "../utils/coverUtils";
 
 export function BookDetailsSidebar() {
   const { selectedBook, openBook, removeBook, updateBookMetadata } = useStore();
@@ -59,6 +62,11 @@ export function BookDetailsSidebar() {
   const handleResetProgress = async () => {
     if (!selectedBook) return;
     await resetBookProgress(selectedBook.id, updateBookMetadata);
+  };
+
+  const handleMarkComplete = async () => {
+    if (!selectedBook) return;
+    await markBookComplete(selectedBook.id, updateBookMetadata);
   };
 
   const formatDate = (dateString?: string) => {
@@ -229,6 +237,8 @@ export function BookDetailsSidebar() {
           size="md"
           showStatusLabels={true}
           allowReset={true}
+          allowMarkComplete={true}
+          onMarkComplete={handleMarkComplete}
           onReset={handleResetProgress}
           bookTitle={selectedBook.metadata.title}
           className="mt-3"
