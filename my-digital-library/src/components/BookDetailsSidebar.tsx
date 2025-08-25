@@ -7,6 +7,7 @@ import { ConfirmationModal } from "./ConfirmationModal";
 import { Book } from "../types";
 import { getAllIdentifiers, formatDuration } from "../utils/metadataHelpers";
 import { ProgressBar, resetBookProgress } from "./ProgressBar";
+import BookCover from "./BookCover"; // Add this import
 
 import {
   PencilSquareIcon,
@@ -22,7 +23,6 @@ import {
   AcademicCapIcon,
   UserGroupIcon,
   BookmarkIcon,
-  IdentificationIcon,
   MapPinIcon,
   FolderIcon,
   LinkIcon,
@@ -36,7 +36,6 @@ import { getCoverImageSrc } from "../utils/coverUtils";
 export function BookDetailsSidebar() {
   const { selectedBook, openBook, removeBook, updateBookMetadata } = useStore();
   const [showReferenceGenerator, setShowReferenceGenerator] = useState(false);
-  const [coverSrc, setCoverSrc] = useState<string | null>(null);
   const [isEditingMetadata, setIsEditingMetadata] = useState(false);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [bookToDelete, setBookToDelete] = useState<Book | null>(null);
@@ -57,44 +56,9 @@ export function BookDetailsSidebar() {
 
   const itemType = selectedBook?.metadata.itemType || "book";
 
-  useEffect(() => {
-    if (selectedBook) {
-      loadCoverImage();
-    } else {
-      setCoverSrc(null);
-    }
-  }, [selectedBook]);
-  const loadCoverImage = async () => {
-    if (!selectedBook) return;
-
-    const coverUrl = await getCoverImageSrc(selectedBook);
-    setCoverSrc(coverUrl);
-  };
-
   const handleResetProgress = async () => {
     if (!selectedBook) return;
     await resetBookProgress(selectedBook.id, updateBookMetadata);
-  };
-
-  const getIconForFormat = (format: string) => {
-    switch (format) {
-      case "pdf":
-        return (
-          <DocumentIcon className="h-16 w-16 sm:h-24 sm:w-24 theme-text-muted" />
-        );
-      case "epub":
-        return (
-          <BookOpenIcon className="h-16 w-16 sm:h-24 sm:w-24 theme-text-muted" />
-        );
-      case "audio":
-        return (
-          <PlayIcon className="h-16 w-16 sm:h-24 sm:w-24 theme-text-muted" />
-        );
-      default:
-        return (
-          <BookOpenIcon className="h-16 w-16 sm:h-24 sm:w-24 theme-text-muted" />
-        );
-    }
   };
 
   const formatDate = (dateString?: string) => {
@@ -169,19 +133,14 @@ export function BookDetailsSidebar() {
       {/* Sticky Header with Cover */}
       <div className="p-4 sm:p-6 theme-bg-primary border-b theme-border sticky top-0 z-10">
         <div className="flex items-start gap-4 mb-3">
-          <div className="flex-shrink-0 w-20 h-28 sm:w-24 sm:h-36 theme-bg-secondary rounded-lg overflow-hidden shadow">
-            {coverSrc ? (
-              <img
-                src={coverSrc}
-                alt={selectedBook.metadata.title}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center theme-bg-tertiary">
-                {getIconForFormat(selectedBook.format)}
-              </div>
-            )}
-          </div>
+          <BookCover
+            book={selectedBook}
+            width={320}
+            height={480}
+            priority={true}
+            hideStarOverlay={true}
+            className="flex-shrink-0 w-20 h-28 sm:w-24 sm:h-36 rounded-lg overflow-hidden shadow"
+          />
 
           <div className="flex-1 min-w-0">
             {/* Item Type Badge */}
