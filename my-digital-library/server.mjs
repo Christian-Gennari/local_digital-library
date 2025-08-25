@@ -3,14 +3,16 @@ import express from "express";
 import cors from "cors";
 import path from "path";
 import fs from "fs/promises";
-import fsSync from "fs"; // ADD THIS LINE for synchronous operations
 import { fileURLToPath } from "url";
 import multer from "multer";
 import { readdir } from "fs/promises";
 import ttsService from "./src/services/ttsService.mjs";
-import https from "https";
 import http from "http";
-import os from "os";
+import { clerkMiddleware, requireAuth } from "@clerk/express";
+import dotenv from "dotenv";
+
+// Load environment variables
+dotenv.config();
 
 // ============= OPDS Helper Functions =============
 
@@ -93,6 +95,14 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+
+app.use(
+  clerkMiddleware({
+    secretKey: process.env.CLERK_SECRET_KEY,
+    publishableKey: process.env.VITE_CLERK_PUBLISHABLE_KEY,
+  })
+);
+
 app.use(cors());
 app.use(express.json({ limit: "50mb" }));
 
@@ -242,6 +252,18 @@ app.put("/api/collections", async (req, res) => {
 });
 
 // ---------- READ ----------
+
+// AUTH
+app.use((req, res, next) => {
+  // Check if the path starts with /api/
+  if (req.path.startsWith("/api/")) {
+    // Apply requireAuth for API routes
+    return requireAuth()(req, res, next);
+  }
+  // Skip authentication for non-API routes
+  next();
+});
+
 app.get("/api/books", async (_req, res) => {
   try {
     res.json(await listBooks());
@@ -715,15 +737,24 @@ app.get("/opds/all", async (req, res) => {
 // ---------- Serve built frontend (Vite build in ./dist) ----------
 app.use(express.static(path.join(__dirname, "dist")));
 
-// SPA fallback using a REGEX (works with Express 5 + path-to-regexp@6)
-// This serves index.html for anything NOT starting with /api or /files
-app.get(/^(?!\/(?:api|files|opds)\/).*/, (_req, res) => {
+// SPA fallback - serve index.html for all non-API/files/OPDS routes
+app.use((req, res, next) => {
+  // Skip API, files, and OPDS routes
+  if (
+    req.path.startsWith("/api/") ||
+    req.path.startsWith("/files/") ||
+    req.path.startsWith("/opds") ||
+    req.path === "/debug/dist"
+  ) {
+    return next();
+  }
+
+  // Serve index.html for everything else (SPA routes)
   res.sendFile(path.join(__dirname, "dist", "index.html"));
 });
 
 // ---------- Start Server ----------
 const port = process.env.PORT || 8080;
-const httpsPort = process.env.HTTPS_PORT || 8443;
 
 // Always start HTTP server
 const httpServer = http.createServer(app);
