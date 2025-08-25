@@ -6,6 +6,7 @@ import { fetchArticleDataFromDOI } from "../utils/doi";
 import { useStore } from "../store";
 import CoverPreview from "./CoverPreview";
 import { TagInput } from "./CategoriesInput";
+import { useAudioDuration } from "../hooks/useAudioDuration";
 import {
   getFieldVisibility,
   getIdentifier,
@@ -56,44 +57,26 @@ export function BookMetadataEntry({ fileName, onSave, onSkip }: Props) {
 
   const panelRef = useRef<HTMLDivElement>(null);
 
+  // Get the pending file from store for duration and format detection
+  const pendingFile = useStore.getState().pendingBook;
+  const {
+    duration: detectedDuration,
+    format: detectedFormat,
+    isLoading: isDurationLoading,
+    error: durationError,
+  } = useAudioDuration(pendingFile, itemType);
+
+  // Update metadata when duration or format is detected
   useEffect(() => {
-    // Auto-detect duration for audio files from the pending file
-    if (itemType === "audiobook" && fileName) {
-      const audioExtensions = [
-        ".mp3",
-        ".m4a",
-        ".m4b",
-        ".wav",
-        ".aac",
-        ".flac",
-        ".ogg",
-      ];
-      const hasAudioExtension = audioExtensions.some((ext) =>
-        fileName.toLowerCase().endsWith(ext)
-      );
-
-      if (hasAudioExtension) {
-        // Access the pending file from the store
-        const pendingFile = useStore.getState().pendingBook;
-        if (pendingFile) {
-          const audio = new Audio();
-          const url = URL.createObjectURL(pendingFile);
-
-          audio.addEventListener("loadedmetadata", () => {
-            const duration = Math.floor(audio.duration);
-            handleAudiobookFieldChange("duration", duration);
-            URL.revokeObjectURL(url);
-          });
-
-          audio.addEventListener("error", () => {
-            console.error("Failed to detect audio duration");
-          });
-
-          audio.src = url;
-        }
+    if (itemType === "audiobook") {
+      if (detectedDuration !== null) {
+        handleAudiobookFieldChange("duration", detectedDuration);
+      }
+      if (detectedFormat !== null) {
+        handleAudiobookFieldChange("format", detectedFormat);
       }
     }
-  }, [fileName, itemType]);
+  }, [detectedDuration, detectedFormat, itemType]);
 
   // Update metadata when item type changes
   useEffect(() => {
@@ -922,52 +905,85 @@ export function BookMetadataEntry({ fileName, onSave, onSkip }: Props) {
                           <input
                             type="text"
                             value={
-                              formatDuration(metadata.audiobook?.duration) ||
-                              "Detecting..."
+                              metadata.audiobook?.duration
+                                ? formatDuration(metadata.audiobook.duration)
+                                : isDurationLoading
+                                ? "Detecting..."
+                                : durationError
+                                ? "Detection failed"
+                                : "Not detected"
                             }
                             readOnly
-                            className="flex-1 rounded-lg border theme-border theme-bg-secondary px-4 py-3 text-sm theme-text-secondary"
+                            className={`flex-1 rounded-lg border theme-border theme-bg-secondary px-4 py-3 text-sm ${
+                              durationError
+                                ? "text-red-500"
+                                : "theme-text-secondary"
+                            }`}
                             placeholder="Auto-detected"
+                            title={durationError || undefined}
                           />
                           <button
                             type="button"
                             onClick={() => {
                               const input = prompt(
-                                "Enter duration (e.g., 8h 25m):"
+                                durationError
+                                  ? `Detection failed: ${durationError}\n\nEnter duration manually (e.g., 8h 25m):`
+                                  : "Enter duration (e.g., 8h 25m):"
                               );
                               if (input) {
                                 const seconds = parseDuration(input);
-                                if (seconds)
+                                if (seconds) {
                                   handleAudiobookFieldChange(
                                     "duration",
                                     seconds
                                   );
+                                }
                               }
                             }}
-                            className="px-3 py-2 text-sm theme-bg-secondary hover\:theme-bg-tertiary rounded-lg"
+                            className="px-3 py-2 text-sm theme-bg-secondary hover:theme-bg-tertiary rounded-lg"
                           >
                             Edit
                           </button>
                         </div>
+                        {durationError && (
+                          <p className="text-xs text-red-500 mt-1">
+                            {durationError}
+                          </p>
+                        )}
                       </div>
                       <div>
                         <label className="block text-sm font-medium theme-text-secondary mb-2">
                           Audio Format
                         </label>
-                        <select
-                          value={metadata.audiobook?.format || ""}
-                          onChange={(e) =>
-                            handleAudiobookFieldChange("format", e.target.value)
-                          }
-                          className="w-full rounded-lg border theme-border px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
-                        >
-                          <option value="">Select format...</option>
-                          <option value="mp3">MP3</option>
-                          <option value="m4a">M4A</option>
-                          <option value="m4b">M4B</option>
-                          <option value="audible">Audible</option>
-                          <option value="other">Other</option>
-                        </select>
+                        <div className="flex gap-2">
+                          <select
+                            value={
+                              metadata.audiobook?.format || detectedFormat || ""
+                            }
+                            onChange={(e) =>
+                              handleAudiobookFieldChange(
+                                "format",
+                                e.target.value
+                              )
+                            }
+                            className="flex-1 rounded-lg border theme-border px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500/20"
+                          >
+                            <option value="">Select format...</option>
+                            <option value="mp3">MP3</option>
+                            <option value="m4a">M4A</option>
+                            <option value="m4b">M4B</option>
+                            <option value="aac">AAC</option>
+                            <option value="flac">FLAC</option>
+                            <option value="ogg">OGG/Opus</option>
+                            <option value="wav">WAV</option>
+                            <option value="other">Other</option>
+                          </select>
+                          {detectedFormat && (
+                            <span className="px-3 py-3 text-xs theme-text-muted">
+                              Auto-detected: {detectedFormat.toUpperCase()}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
 
