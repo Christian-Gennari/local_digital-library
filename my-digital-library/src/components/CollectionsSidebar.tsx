@@ -362,16 +362,20 @@ export function CollectionsSidebar({
             className={`group relative flex items-center justify-between w-full px-3 py-2 text-sm transition-colors ${
               isSelected
                 ? "theme-bg-tertiary theme-text-primary"
-                : "theme-text-primary hover\:theme-bg-secondary"
+                : "theme-text-primary hover:theme-bg-secondary"
             }`}
             style={{ paddingLeft: `${12 + level * 16}px` }}
-            onClick={() => {
-              if (hasChildren) toggleFolder(col.id);
-              onSelectCollection(col.id);
-            }}
+            onClick={() => onSelectCollection(col.id)} // <-- CHANGED: Removed toggle logic
           >
             <div className="flex items-center gap-2 flex-1 min-w-0">
-              <span className="w-4 h-4">
+              {/* CHANGED: Made chevron a separate clickable button */}
+              <button
+                className="w-4 h-4 flex items-center justify-center"
+                onClick={(e) => {
+                  e.stopPropagation(); // Prevent the parent onClick from firing
+                  if (hasChildren) toggleFolder(col.id);
+                }}
+              >
                 {hasChildren ? (
                   isExpanded ? (
                     <ChevronDownIcon className="h-4 w-4" />
@@ -379,7 +383,7 @@ export function CollectionsSidebar({
                     <ChevronRightIcon className="h-4 w-4" />
                   )
                 ) : null}
-              </span>
+              </button>
               {isExpanded ? (
                 <FolderOpenIcon className="h-4 w-4" />
               ) : (
@@ -472,7 +476,7 @@ export function CollectionsSidebar({
           className={`w-full flex items-center justify-between px-3 py-2 text-sm transition-colors ${
             selectedCollection === null
               ? "theme-bg-tertiary theme-text-primary"
-              : "theme-text-primary hover\:theme-bg-secondary"
+              : "theme-text-primary hover:theme-bg-secondary"
           }`}
         >
           <div className="flex items-center gap-2">
@@ -499,7 +503,7 @@ export function CollectionsSidebar({
                   className={`w-full flex items-center justify-between px-3 py-2 text-sm transition-colors ${
                     isSelected
                       ? "theme-bg-tertiary theme-text-primary"
-                      : "theme-text-primary hover\:theme-bg-secondary"
+                      : "theme-text-primary hover:theme-bg-secondary"
                   }`}
                 >
                   <div className="flex items-center gap-2">
