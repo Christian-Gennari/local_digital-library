@@ -139,7 +139,7 @@ export function BookDetailsSidebar() {
             height={480}
             priority={true}
             hideStarOverlay={true}
-            className="flex-shrink-0 w-20 h-28 sm:w-24 sm:h-36 rounded-lg overflow-hidden shadow"
+            className="relative flex-shrink-0 w-20 h-28 sm:w-24 sm:h-36 rounded-lg overflow-hidden shadow"
           />
 
           <div className="flex-1 min-w-0">
