@@ -5,7 +5,7 @@ import { LibraryLayout } from "./components/LibraryLayout";
 import { BookViewer } from "./components/BookViewer";
 import { BookMetadataEntry } from "./components/BookMetadataEntry";
 import { ThemeProvider } from "./components/ThemeProvider";
-import { SignedIn, SignedOut, SignIn } from "@clerk/clerk-react";
+import { SignedIn, SignedOut, SignIn, useAuth } from "@clerk/clerk-react";
 
 function App() {
   const {
@@ -16,16 +16,14 @@ function App() {
     skipMetadataForPendingBook,
   } = useStore();
 
-  // Load books once on mount (with delay to ensure API is ready)
-  useEffect(() => {
-    // Wait 1 seconds for API/auth to stabilize, then load books
-    const timer = setTimeout(() => {
-      useStore.getState().loadBooksFromFolder();
-    }, 500);
+  const { isLoaded: authLoaded, isSignedIn } = useAuth();
 
-    // Cleanup timer if component unmounts
-    return () => clearTimeout(timer);
-  }, []);
+  // Load books only when auth is loaded and user is signed in
+  useEffect(() => {
+    if (authLoaded && isSignedIn) {
+      useStore.getState().loadBooksFromFolder();
+    }
+  }, [authLoaded, isSignedIn]); // Only run when these change
 
   return (
     <ThemeProvider>
