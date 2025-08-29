@@ -72,7 +72,7 @@ export function FileUpload() {
               <input
                 type="file"
                 multiple
-                accept=".pdf,.epub,audio/*"
+                accept=".m4b,.pdf,.epub,audio/*"
                 onChange={handleFileSelect}
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
               />

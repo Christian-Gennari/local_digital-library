@@ -100,7 +100,7 @@ const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(
     useEffect(() => {
       const howl = new Howl({
         src: [audioUrl],
-        format: ["mp3", "wav", "m4a", "aac", "flac"],
+        format: ["mp3", "wav", "m4a", "m4b", "aac", "flac"],
         html5: true,
         preload: true,
         onload: function () {
