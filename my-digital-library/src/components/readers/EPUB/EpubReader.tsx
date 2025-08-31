@@ -772,9 +772,7 @@ const EpubReader = forwardRef<EpubReaderRef, EpubReaderProps>(
                   }
 
                   const progressPercentage = calculateProgress(location, spine);
-                  if (progressPercentage > 0) {
-                    saveProgress(location.start.cfi, progressPercentage);
-                  }
+                  saveProgress(location.start.cfi, progressPercentage);
                 }
               } catch {}
             }, 160);

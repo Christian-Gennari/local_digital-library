@@ -45,9 +45,6 @@ const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(
 
         const progressPercentage =
           totalSeconds > 0 ? (currentSeconds / totalSeconds) * 100 : 0;
-        if (Math.abs(progressPercentage - lastSavedProgressRef.current) < 1) {
-          return;
-        }
 
         progressSaveTimeoutRef.current = setTimeout(async () => {
           try {
