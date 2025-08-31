@@ -174,7 +174,7 @@ const PdfReader = forwardRef<PdfReaderRef, PdfReaderProps>(
           } catch (e) {
             console.error("Failed to save PDF reading progress:", e);
           }
-        }, 2000);
+        }, 150);
       },
       [numPages, currentBook.id, updateBookMetadata]
     );

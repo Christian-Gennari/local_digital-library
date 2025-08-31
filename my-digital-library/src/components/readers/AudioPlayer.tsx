@@ -61,7 +61,7 @@ const AudioPlayer = forwardRef<AudioPlayerRef, AudioPlayerProps>(
           } catch (error) {
             console.error("Failed to save audio progress:", error);
           }
-        }, 2000);
+        }, 150);
       },
       [currentBook.id, updateBookMetadata]
     );
