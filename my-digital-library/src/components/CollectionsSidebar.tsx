@@ -7,9 +7,11 @@ import {
   FolderOpenIcon,
   PlusIcon,
   BookOpenIcon,
+  BookmarkIcon,
   ClockIcon,
   StarIcon,
   CheckIcon,
+  CheckCircleIcon,
   ChevronRightIcon,
   ChevronDownIcon,
   TrashIcon,
@@ -17,6 +19,7 @@ import {
   XMarkIcon,
   EllipsisVerticalIcon,
   InboxIcon,
+  DocumentIcon,
 } from "@heroicons/react/24/outline";
 
 interface SmartCollection {
@@ -149,7 +152,18 @@ export function CollectionsSidebar({
     (b) => !b.metadata.collectionIds || b.metadata.collectionIds.length === 0
   ).length;
 
+  const notStartedCount = books.filter(
+    (b) => (b.metadata.readingProgress ?? 0) === 0
+  ).length;
+
   const smartCollections: SmartCollection[] = [
+    {
+      id: "not-started",
+      name: "Not Started",
+      type: "smart",
+      icon: <BookmarkIcon className="h-4 w-4" />,
+      count: notStartedCount,
+    },
     {
       id: "currently-reading",
       name: "Currently Reading",
@@ -158,17 +172,10 @@ export function CollectionsSidebar({
       count: currentlyReadingCount,
     },
     {
-      id: "recently-added",
-      name: "Recently Added",
-      type: "smart",
-      icon: <ClockIcon className="h-4 w-4" />,
-      count: recentlyAddedCount,
-    },
-    {
       id: "finished",
       name: "Finished",
       type: "smart",
-      icon: <CheckIcon className="h-4 w-4" />,
+      icon: <CheckCircleIcon className="h-4 w-4" />,
       count: finishedCount,
     },
     {
@@ -177,6 +184,13 @@ export function CollectionsSidebar({
       type: "smart",
       icon: <StarIcon className="h-4 w-4" />,
       count: favoritesCount,
+    },
+    {
+      id: "recently-added",
+      name: "Recently Added",
+      type: "smart",
+      icon: <ClockIcon className="h-4 w-4" />,
+      count: recentlyAddedCount,
     },
     {
       id: "unsorted",

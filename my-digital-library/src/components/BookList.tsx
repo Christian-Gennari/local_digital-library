@@ -767,13 +767,14 @@ export function BookList({
           case "favorites":
             return book.metadata.isFavorite === true;
 
-          // 👇 ADD THIS
-          case "unsorted": {
+          case "unsorted":
             const ids = Array.isArray(book.metadata?.collectionIds)
               ? book.metadata.collectionIds
               : [];
             return ids.length === 0;
-          }
+
+          case "not-started":
+            return (book.metadata.readingProgress ?? 0) === 0;
 
           default:
             // User collections (incl. descendants)
