@@ -743,20 +743,23 @@ export function BookList({
 
       // Collection filter
       if (selectedCollection) {
-        // Smart collections
         switch (selectedCollection) {
           case "currently-reading":
             return (
-              book.metadata.readingProgress &&
+              typeof book.metadata.readingProgress === "number" &&
               book.metadata.readingProgress > 0 &&
               book.metadata.readingProgress < 100
             );
 
-          case "recently-added":
-            const addedDate = new Date(book.metadata.dateAdded);
+          case "recently-added": {
+            const raw = book.metadata?.dateAdded;
+            if (!raw) return false;
+            const addedDate = new Date(raw);
+            if (isNaN(+addedDate)) return false;
             const thirtyDaysAgo = new Date();
             thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
             return addedDate > thirtyDaysAgo;
+          }
 
           case "finished":
             return book.metadata.readingProgress === 100;
@@ -764,26 +767,29 @@ export function BookList({
           case "favorites":
             return book.metadata.isFavorite === true;
 
+          // 👇 ADD THIS
+          case "unsorted": {
+            const ids = Array.isArray(book.metadata?.collectionIds)
+              ? book.metadata.collectionIds
+              : [];
+            return ids.length === 0;
+          }
+
           default:
-            // User collections - check if book belongs to the collection or any of its subcollections
+            // User collections (incl. descendants)
             const isInCollection = (
               bookCollectionIds: string[] | undefined,
               targetCollectionId: string
             ): boolean => {
               if (!bookCollectionIds) return false;
-
-              // Check direct membership
               if (bookCollectionIds.includes(targetCollectionId)) return true;
 
-              // Check if book is in any subcollection of the target
               const getAllDescendantIds = (id: string): string[] => {
                 const descendants = [id];
                 const children = collections.filter((c) => c.parentId === id);
-
                 children.forEach((child) => {
                   descendants.push(...getAllDescendantIds(child.id));
                 });
-
                 return descendants;
               };
 

@@ -16,7 +16,7 @@ import {
   PencilIcon,
   XMarkIcon,
   EllipsisVerticalIcon,
-  PlusCircleIcon,
+  InboxIcon,
 } from "@heroicons/react/24/outline";
 
 interface SmartCollection {
@@ -145,6 +145,10 @@ export function CollectionsSidebar({
     (b) => (b.metadata as any)?.isFavorite === true
   ).length;
 
+  const unsortedCount = books.filter(
+    (b) => !b.metadata.collectionIds || b.metadata.collectionIds.length === 0
+  ).length;
+
   const smartCollections: SmartCollection[] = [
     {
       id: "currently-reading",
@@ -173,6 +177,13 @@ export function CollectionsSidebar({
       type: "smart",
       icon: <StarIcon className="h-4 w-4" />,
       count: favoritesCount,
+    },
+    {
+      id: "unsorted",
+      name: "Unsorted",
+      type: "smart",
+      icon: <InboxIcon className="h-4 w-4" />,
+      count: unsortedCount,
     },
   ];
 
