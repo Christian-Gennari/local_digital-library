@@ -142,7 +142,6 @@ export class EPUBAdapter implements TTSAdapter {
 
     const attachHandlersToDoc = (doc: Document, view: any) => {
       let lastTap = 0;
-      let pressTimer: NodeJS.Timeout | null = null;
 
       // Remove existing handlers to avoid duplicates
       const existingClickHandler = (doc as any)._ttsClickHandler;
@@ -158,33 +157,14 @@ export class EPUBAdapter implements TTSAdapter {
           console.log("🎯 EPUB double-click detected!");
           event.preventDefault();
           event.stopPropagation();
-          this.handleDoubleClick(event, view); // Pass the view object
+          this.handleDoubleClick(event, view);
         }
 
         lastTap = now;
       };
 
-      const touchStartHandler = (event: TouchEvent) => {
-        pressTimer = setTimeout(() => {
-          console.log("👆 EPUB long press detected!");
-          this.handleLongPress(event, view); // Pass the view object
-        }, 500);
-      };
-
-      const touchEndHandler = () => {
-        if (pressTimer) {
-          clearTimeout(pressTimer);
-          pressTimer = null;
-        }
-      };
-
       doc.addEventListener("click", clickHandler, true);
-      doc.addEventListener("touchstart", touchStartHandler, { passive: true });
-      doc.addEventListener("touchend", touchEndHandler, { passive: true });
-
       (doc as any)._ttsClickHandler = clickHandler;
-      (doc as any)._ttsTouchHandler = touchStartHandler;
-      (doc as any)._ttsTouchEndHandler = touchEndHandler;
     };
 
     // Handle already rendered views
@@ -211,7 +191,7 @@ export class EPUBAdapter implements TTSAdapter {
       const doc =
         section?.document || view?.contents?.document || view?.document;
       if (doc) {
-        attachHandlersToDoc(doc, view); // Pass view, not section
+        attachHandlersToDoc(doc, view);
       }
     });
 
@@ -299,95 +279,62 @@ export class EPUBAdapter implements TTSAdapter {
     }
   }
 
-  private handleLongPress(event: TouchEvent, view: any): void {
-    try {
-      const touch = event.touches[0];
-      if (!touch) return;
-
-      // Get the contents object which has CFI methods
-      const contents = view?.contents || view;
-      if (!contents) {
-        console.warn("No contents object available");
-        return;
-      }
-
-      const doc = contents.document || contents.content;
-
-      // Get the element at touch position
-      const element = doc.elementFromPoint(touch.clientX, touch.clientY);
-      if (!element) {
-        console.warn("No element at touch position");
-        return;
-      }
-
-      console.log(
-        "👆 Touch target:",
-        element.tagName,
-        element.textContent?.substring(0, 50)
-      );
-
-      // Create range from the touched element
-      const range = doc.createRange();
-
-      // Try to get the text node
-      if (element.nodeType === Node.TEXT_NODE) {
-        range.selectNode(element);
-      } else if (element.firstChild?.nodeType === Node.TEXT_NODE) {
-        range.selectNode(element.firstChild);
-      } else {
-        // Find the first text node within
-        const walker = doc.createTreeWalker(
-          element,
-          NodeFilter.SHOW_TEXT,
-          null,
-          false
-        );
-        const textNode = walker.nextNode();
-        if (textNode) {
-          range.selectNode(textNode);
-        } else {
-          range.selectNodeContents(element);
-        }
-      }
-
-      // Generate CFI using epub.js's built-in method
-      let cfi = "";
-      try {
-        cfi = contents.cfiFromRange(range);
-        console.log("📍 Generated CFI from touch:", cfi);
-      } catch (e) {
-        console.warn("Failed to generate CFI:", e);
-      }
-
-      // Get the href for this section
-      const href = view?.section?.href || contents.section?.href || "";
-
-      if (this.startHereCallback) {
-        const locator = {
-          type: "epub" as const,
-          sentenceId: "",
-          href: href,
-          cfi: cfi,
-        };
-
-        console.log("📍 Sending touch locator with CFI:", locator);
-        this.startHereCallback(locator);
-      }
-    } catch (error) {
-      console.warn("Failed to handle long press:", error);
-    }
-  }
-
   // Method to get chapter content for sentence indexing
+  // In EPUBAdapter.ts - Fix getChapterContent method
   async getChapterContent(href: string): Promise<{ html: string } | null> {
     try {
       const section = this.book.spine.get(href);
       if (!section) return null;
 
       await section.load(this.book.load.bind(this.book));
-      const html = section.document.documentElement.outerHTML;
 
-      return { html };
+      // Clone the document to avoid modifying the original
+      const clonedDoc = section.document.cloneNode(true) as Document;
+
+      // Remove all elements that EPUB.js won't render
+      const selectorsToRemove = [
+        '[style*="display:none"]',
+        '[style*="display: none"]',
+        '[style*="visibility:hidden"]',
+        '[style*="visibility: hidden"]',
+        ".hidden",
+        "[hidden]",
+        "script",
+        "style",
+        "noscript",
+        "template",
+        // Common EPUB-specific hidden elements
+        ".page-num",
+        ".pagenum",
+        ".page-number",
+        "span.footnote",
+        "a.footnote-ref",
+        "aside.footnote",
+        '[epub\\:type="pagebreak"]',
+        '[epub\\:type="footnote"]',
+        '[epub\\:type="rearnote"]',
+        '[epub\\:type="annotation"]',
+      ];
+
+      selectorsToRemove.forEach((selector) => {
+        clonedDoc.querySelectorAll(selector).forEach((el) => el.remove());
+      });
+
+      // Also check computed styles if elements have inline styles
+      const allElements = clonedDoc.querySelectorAll("*");
+      allElements.forEach((el) => {
+        const style = (el as HTMLElement).style;
+        if (
+          style &&
+          (style.display === "none" ||
+            style.visibility === "hidden" ||
+            (style.position === "absolute" && style.left === "-9999px"))
+        ) {
+          el.remove();
+        }
+      });
+
+      return { html: clonedDoc.documentElement.outerHTML };
     } catch (error) {
       console.warn("Failed to get chapter content:", error);
       return null;
@@ -402,34 +349,66 @@ export class EPUBAdapter implements TTSAdapter {
         return `epubcfi(/6/14[${href}]!/4/2/2[char-${charOffset}])`;
       }
 
-      // This is a simplified approach - you might need more sophisticated CFI calculation
-      // based on your specific EPUB structure
       const textNodes: Node[] = [];
       const walker = section.document.createTreeWalker(
         section.document.body,
-        NodeFilter.SHOW_TEXT
+        NodeFilter.SHOW_TEXT,
+        {
+          acceptNode: (node: Node): number => {
+            // <-- Fixed: Added type annotations
+            const parent = node.parentElement;
+            if (!parent) return NodeFilter.FILTER_REJECT;
+
+            // Skip hidden elements
+            const style = (parent as HTMLElement).style;
+            if (
+              style &&
+              (style.display === "none" || style.visibility === "hidden")
+            ) {
+              return NodeFilter.FILTER_REJECT;
+            }
+
+            // Skip common hidden classes
+            if (
+              parent.classList.contains("hidden") ||
+              parent.classList.contains("page-num") ||
+              parent.classList.contains("pagenum") ||
+              parent.classList.contains("footnote") ||
+              parent.classList.contains("page-number")
+            ) {
+              return NodeFilter.FILTER_REJECT;
+            }
+
+            // Skip empty text nodes
+            const text = node.textContent?.trim();
+            if (!text || text.length === 0) {
+              return NodeFilter.FILTER_REJECT;
+            }
+
+            return NodeFilter.FILTER_ACCEPT;
+          },
+        }
       );
 
       let node;
-      while ((node = walker.nextNode())) {
-        textNodes.push(node);
-      }
-
       let currentOffset = 0;
-      for (const textNode of textNodes) {
-        const text = textNode.textContent || "";
+
+      while ((node = walker.nextNode())) {
+        const text = node.textContent || "";
         if (currentOffset + text.length >= charOffset) {
-          // Found the node containing our character offset
           const range = section.document.createRange();
-          range.setStart(textNode, charOffset - currentOffset);
-          range.setEnd(textNode, charOffset - currentOffset);
+          const localOffset = Math.min(
+            charOffset - currentOffset,
+            text.length - 1
+          );
+          range.setStart(node, localOffset);
+          range.setEnd(node, Math.min(localOffset + 1, text.length));
 
           return section.cfiFromRange(range);
         }
         currentOffset += text.length;
       }
 
-      // Fallback
       return `epubcfi(/6/14[${href}]!/4/2/2[char-${charOffset}])`;
     } catch (error) {
       console.warn("Failed to compute CFI:", error);
