@@ -146,11 +146,9 @@ A modern, feature-rich personal digital library application for organizing, read
 # Build application
 npm run build
 
-# Preview production build
-npm run preview
+# Start production build
+npm run server.mjs
 
-# Start production server (if backend configured)
-npm run start
 ```
 
 ## 📁 Complete Project Structure
