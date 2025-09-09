@@ -109,7 +109,7 @@ A modern, feature-rich personal digital library application for organizing, read
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/nostos.git
+   git clone https://github.com/Christian-Gennari/nostos_digital-library
    cd nostos
    ```
 
@@ -231,9 +231,9 @@ nostos/
 │   ├── fsRemote.ts                     # Remote file system API
 │   └── vite-env.d.ts                   # Vite type declarations
 ├── public/                              # Static assets
-├── server/                              # Backend server (if configured)
+├── server.mjs                           # Backend server (if configured)
 ├── package.json                         # Dependencies & scripts
-├── package-lock.json                   # Dependency lock file
+├── package-lock.json                    # Dependency lock file
 ├── tsconfig.json                        # TypeScript configuration
 ├── vite.config.ts                       # Vite bundler config
 ├── tailwind.config.js                   # Tailwind CSS config
@@ -249,7 +249,7 @@ nostos/
 - **React 18** - Modern React with hooks and concurrent features
 - **TypeScript 5.6** - Type-safe development with strict mode
 - **Vite 6** - Lightning-fast bundling and HMR
-- **Tailwind CSS 3.4** - Utility-first styling framework
+- **Tailwind CSS 4** - Utility-first styling framework
 
 ### State Management & Data
 - **Zustand** - Lightweight state management
@@ -293,39 +293,11 @@ nostos/
 | PUT | `/api/books/:id/file` | Replace book file |
 | PUT | `/api/books/:id/cover` | Upload cover image |
 
-### Notes & Concepts
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/books/:id/notes` | Get book notes |
-| PUT | `/api/books/:id/notes` | Save notes |
-| GET | `/api/notes/concepts` | List all concepts |
-| GET | `/api/notes/search?concept=X` | Search by concept |
-
-### TTS Services
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/tts/status` | Check TTS availability |
-| GET | `/api/books/:id/tts/sentences` | Get sentence index |
-| PUT | `/api/books/:id/tts/bookmark` | Save playback position |
-| PUT | `/api/books/:id/tts/settings` | Save voice preferences |
-
-### Collections
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/collections` | Get all collections |
-| PUT | `/api/collections` | Update collections |
-
 ### OPDS Catalog
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/opds` | OPDS catalog root |
 | GET | `/opds/all` | All books catalog feed |
-
-### Theme Settings
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/settings/theme` | Get theme preferences |
-| PUT | `/api/settings/theme` | Save theme preferences |
 
 ## 🎯 Advanced Features
 
@@ -419,10 +391,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📞 Support
 
-- **Documentation**: [View Docs](https://docs.nostos.app)
-- **Issues**: [GitHub Issues](https://github.com/yourusername/nostos/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/nostos/discussions)
-- **Email**: support@nostos.app
+Open an issue on the Github Repo.
 
 ---
 
