@@ -75,7 +75,6 @@ A modern, feature-rich personal digital library application for organizing, read
   - Paper: Light, classic reading experience
   - Sepia: Warm, comfortable tones
   - Night: Dark mode for evening reading
-  - OLED: True black for OLED displays
   - High Contrast: Accessibility-focused
 - **Typography Controls**:
   - Font size: 70-200% scaling
